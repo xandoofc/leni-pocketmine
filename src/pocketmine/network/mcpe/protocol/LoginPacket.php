@@ -138,12 +138,6 @@ class LoginPacket extends DataPacket
 			throw new PacketDecodeException("Failed decoding chain data JSON: " . $e->getMessage());
 		}
 
-		if($this->protocol >= 900){
-			$logger = \GlobalLogger::get();
-			$logger->info("authInfo (protocol " . $this->protocol . "): keys=" . implode(", ", array_keys($this->authInfo)));
-			$logger->info("authInfo raw: " . substr(json_encode($this->authInfo), 0, 500));
-		}
-
 		if(isset($this->authInfo["Certificate"]) && is_string($this->authInfo["Certificate"])){
 			$certificateData = json_decode($this->authInfo["Certificate"], true);
 			if(isset($certificateData["chain"]) && is_array($certificateData["chain"])){
@@ -153,6 +147,8 @@ class LoginPacket extends DataPacket
 			}
 		}elseif(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
 			$chainArray = $this->authInfo;
+		}elseif($this->protocol >= 900 && isset($this->authInfo["Token"]) && is_string($this->authInfo["Token"])){
+			$chainArray = ["chain" => [$this->authInfo["Token"]]];
 		}else{
 			throw new PacketDecodeException("Missing or invalid 'chain' field in chain data (keys: " . implode(", ", array_keys($this->authInfo)) . ")");
 		}
@@ -161,7 +157,13 @@ class LoginPacket extends DataPacket
 
 		$hasExtraData = false;
 		foreach ($chainArray["chain"] as $chain) {
+			if(strlen($chain) < 10){
+				continue; //skip placeholder entries like ".."
+			}
 			$webtoken = Utils::decodeJWT($chain);
+			if(!is_array($webtoken)){
+				continue;
+			}
 			if (isset($webtoken["extraData"])) {
 				if ($hasExtraData) {
 					throw new PacketDecodeException("Found 'extraData' multiple times in key chain");
