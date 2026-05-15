@@ -132,17 +132,12 @@ class LevelChunkPacket extends DataPacket
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_649) {
 				$this->putVarInt($this->dimensionId);
 			}
-			if($this->getProtocol() >= 944){
-				$this->putUnsignedVarInt(0xFFFFFFFF); // CLIENT_REQUEST_FULL_COLUMN_FAKE_COUNT
-				$this->putBool(false); // cache disabled
-			}else{
-				$this->putUnsignedVarInt($this->subChunkCount);
-				$this->putBool($this->cacheEnabled);
-				if ($this->cacheEnabled) {
-					$this->putUnsignedVarInt(count($this->usedBlobHashes));
-					foreach ($this->usedBlobHashes as $hash) {
-						$this->putLLong($hash);
-					}
+			$this->putUnsignedVarInt($this->subChunkCount);
+			$this->putBool($this->cacheEnabled);
+			if ($this->cacheEnabled) {
+				$this->putUnsignedVarInt(count($this->usedBlobHashes));
+				foreach ($this->usedBlobHashes as $hash) {
+					$this->putLLong($hash);
 				}
 			}
 		}
