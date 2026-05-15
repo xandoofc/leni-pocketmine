@@ -195,11 +195,24 @@ class LoginPacket extends DataPacket
 		if($this->username === null && isset($this->clientData["ThirdPartyName"])){
 			$this->username = $this->clientData["ThirdPartyName"];
 		}
-		if($this->clientUUID === null && isset($this->clientData["ClientUUID"])){
-			$this->clientUUID = $this->clientData["ClientUUID"];
+		if($this->clientUUID === null){
+			$uuidFields = ["ClientUUID", "SelfSignedId", "DeviceId", "AppSessionId"];
+			foreach($uuidFields as $field){
+				if(isset($this->clientData[$field]) && is_string($this->clientData[$field]) && $this->clientData[$field] !== ""){
+					$this->clientUUID = $this->clientData[$field];
+					break;
+				}
+			}
+		}
+		if($this->clientUUID === null && $this->username !== null){
+			$hash = md5("offline:" . $this->username);
+			$this->clientUUID = substr($hash, 0, 8) . "-" . substr($hash, 8, 4) . "-" . substr($hash, 12, 4) . "-" . substr($hash, 16, 4) . "-" . substr($hash, 20, 12);
 		}
 		if(($this->xuid === null || $this->xuid === "") && isset($this->clientData["XUID"])){
 			$this->xuid = $this->clientData["XUID"];
+		}
+		if($this->xuid === null || $this->xuid === ""){
+			$this->xuid = "0";
 		}
 	}
 
