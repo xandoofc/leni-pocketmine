@@ -185,8 +185,15 @@ class LoginPacket extends DataPacket
 			}
 		}
 
-		$this->clientDataJwt = $buffer->get($buffer->getLInt());
-		$this->clientData = Utils::decodeJWT($this->clientDataJwt);
+		$clientDataLen = $buffer->getLInt();
+		$this->clientDataJwt = $buffer->get($clientDataLen);
+		\GlobalLogger::get()->info("clientDataJwt len=$clientDataLen, first=" . substr($this->clientDataJwt, 0, 60));
+		try{
+			$this->clientData = Utils::decodeJWT($this->clientDataJwt);
+		}catch(\Throwable $e){
+			\GlobalLogger::get()->warning("Failed to decode clientDataJwt: " . $e->getMessage() . " data=" . bin2hex(substr($this->clientDataJwt, 0, 40)));
+			throw $e;
+		}
 
 		$this->clientId = $this->clientData["ClientRandomId"] ?? null;
 		$this->serverAddress = $this->clientData["ServerAddress"] ?? null;
