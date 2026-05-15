@@ -102,7 +102,7 @@ final class ChunkSerializer
 	/**
 	 * Serializes the chunk for sending to players
 	 */
-	public static function serializeFullChunk(Chunk $chunk, int $playerProtocol, \Closure|null $legacyToRuntime, int $dimensionId) : string
+	public static function serializeFullChunk(Chunk $chunk, int $playerProtocol, \Closure|null $legacyToRuntime, int $dimensionId, int $tileCount = 0) : string
 	{
 		$stream = new BinaryStream();
 
@@ -134,6 +134,10 @@ final class ChunkSerializer
 
 		$stream->putByte(0); //border block array count
 		//Border block entry format: 1 byte (4 bits X, 4 bits Z). These are however useless since they crash the regular client.
+
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_712) {
+			$stream->putUnsignedVarInt($tileCount);
+		}
 
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_274) {
 			$stream->putVarInt(0); // extraData (WTF)

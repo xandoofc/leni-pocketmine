@@ -142,6 +142,7 @@ use pocketmine\network\mcpe\encryption\PrepareEncryptionTask;
 use pocketmine\network\mcpe\PacketRateLimiter;
 use pocketmine\network\mcpe\PacketSender;
 use pocketmine\network\mcpe\PlayerNetworkSessionAdapter;
+use pocketmine\network\mcpe\serializer\ChunkSerializer;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
@@ -201,6 +202,8 @@ use pocketmine\network\mcpe\protocol\StartGamePacket;
 use pocketmine\network\mcpe\protocol\CameraPresetsPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\ToastRequestPacket;
+use pocketmine\network\mcpe\protocol\SubChunkPacket;
+use pocketmine\network\mcpe\protocol\SubChunkRequestPacket;
 use pocketmine\network\mcpe\protocol\TransferPacket;
 use pocketmine\network\mcpe\protocol\types\AbilitiesData;
 use pocketmine\network\mcpe\protocol\types\AbilitiesLayer;
@@ -234,6 +237,12 @@ use pocketmine\network\mcpe\protocol\types\skin\SerializedSkin;
 use pocketmine\network\mcpe\protocol\types\skin\SkinAnimation;
 use pocketmine\network\mcpe\protocol\types\skin\SkinImage;
 use pocketmine\network\mcpe\protocol\types\SpawnSettings;
+use pocketmine\network\mcpe\protocol\types\SubChunkPacketEntryCommon;
+use pocketmine\network\mcpe\protocol\types\SubChunkPacketEntryWithoutCache;
+use pocketmine\network\mcpe\protocol\types\SubChunkPacketEntryWithoutCacheList;
+use pocketmine\network\mcpe\protocol\types\SubChunkPosition;
+use pocketmine\network\mcpe\protocol\types\SubChunkPositionOffset;
+use pocketmine\network\mcpe\protocol\types\SubChunkRequestResult;
 use pocketmine\network\mcpe\protocol\UnknownPacket;
 use pocketmine\network\mcpe\protocol\UpdateAbilitiesPacket;
 use pocketmine\network\mcpe\protocol\UpdateAdventureSettingsPacket;
@@ -6310,5 +6319,50 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 */
 	public function addInventoryTransactionActions(InventoryAction $action) : void {
 		$this->faultyOldTransactionActions[] = $action;
+	}
+
+	public function handleSubChunkRequest(SubChunkRequestPacket $packet) : bool
+	{
+		$basePos = $packet->getBasePosition();
+		$entries = [];
+
+		foreach ($packet->getEntries() as $offset) {
+			$subChunkX = $basePos->getX() + $offset->getX();
+			$subChunkY = $basePos->getY() + $offset->getY();
+			$subChunkZ = $basePos->getZ() + $offset->getZ();
+
+			$chunk = $this->level->getChunk($subChunkX, $subChunkZ);
+			if ($chunk !== null) {
+				$subChunk = $chunk->getSubChunk($subChunkY);
+				$data = ChunkSerializer::serializeSubChunk($subChunk, null, $this->protocolVersion, new BinaryStream());
+				$entries[] = new SubChunkPacketEntryWithoutCache(new SubChunkPacketEntryCommon(
+					$offset,
+					SubChunkRequestResult::SUCCESS,
+					$data,
+					null,
+					null
+				));
+			} else {
+				$entries[] = new SubChunkPacketEntryWithoutCache(new SubChunkPacketEntryCommon(
+					$offset,
+					SubChunkRequestResult::CHUNK_NOT_FOUND,
+					"",
+					null,
+					null
+				));
+			}
+		}
+
+		$this->sendData(SubChunkPacket::create(
+			$packet->getDimension(),
+			$basePos,
+			"",
+			SubChunkRequestResult::SUCCESS,
+			null,
+			null,
+			new SubChunkPacketEntryWithoutCacheList($entries)
+		));
+
+		return true;
 	}
 }

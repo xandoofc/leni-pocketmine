@@ -122,7 +122,7 @@ class LevelChunkPacket extends DataPacket
 				}
 			}
 		}
-		$this->extraPayload = $this->getString();
+		$this->extraPayload = $this->get($this->getSize() - $this->getOffset());
 	}
 
 	protected function encodePayload() : void
@@ -141,7 +141,7 @@ class LevelChunkPacket extends DataPacket
 				}
 			}
 		}
-		$this->putString($this->extraPayload);
+		$this->put($this->extraPayload);
 	}
 
 	public function mustBeDecoded() : bool

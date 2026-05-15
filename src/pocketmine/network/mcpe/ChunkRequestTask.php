@@ -46,6 +46,7 @@ class ChunkRequestTask extends AsyncTask
 	protected int $chunkZ;
 	protected int $dimensionId;
 	protected string $tiles;
+	protected int $tileCount;
 	protected int $compressionLevel;
 	protected int $protocol;
 
@@ -60,12 +61,15 @@ class ChunkRequestTask extends AsyncTask
 		$this->chunk = FastChunkSerializer::serializeTerrain($chunk);
 
 		$tiles = "";
+		$tileCount = 0;
 		foreach ($chunk->getTiles() as $tile) {
 			if ($tile instanceof Spawnable) {
 				$tiles .= $tile->getProtocolSerializedSpawnCompound($protocol);
+				$tileCount++;
 			}
 		}
 		$this->tiles = $tiles;
+		$this->tileCount = $tileCount;
 
 		$this->protocol = $protocol;
 	}
@@ -91,7 +95,7 @@ class ChunkRequestTask extends AsyncTask
 			new ChunkPosition($this->chunkX, $this->chunkZ),
 			$dimensionId,
 			ChunkSerializer::getSubChunkCount($chunk, $dimensionId, $protocol),
-			ChunkSerializer::serializeFullChunk($chunk, $protocol, $legacyToRuntime ?? null, $dimensionId) . $this->tiles
+			ChunkSerializer::serializeFullChunk($chunk, $protocol, $legacyToRuntime ?? null, $dimensionId, $this->tileCount) . $this->tiles
 		);
 		$pk->setProtocol($protocol);
 

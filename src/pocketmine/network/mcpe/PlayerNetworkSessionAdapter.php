@@ -553,6 +553,11 @@ class PlayerNetworkSessionAdapter extends NetworkSession
 		return true;
 	}
 
+	public function handleSubChunkRequest(SubChunkRequestPacket $packet) : bool
+	{
+		return $this->player->handleSubChunkRequest($packet);
+	}
+
 	public function handleItemFrameDropItem(ItemFrameDropItemPacket $packet) : bool
 	{
 		return $this->player->handleItemFrameDropItem($packet);
