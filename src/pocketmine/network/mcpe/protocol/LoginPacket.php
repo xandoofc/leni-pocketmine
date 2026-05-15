@@ -145,12 +145,17 @@ class LoginPacket extends DataPacket
 			}else{
 				throw new PacketDecodeException("Invalid 'chain' data in Certificate field");
 			}
-		}else{
-			if(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
-				$chainArray = $this->authInfo;
-			} else {
-				throw new PacketDecodeException("Missing or invalid 'chain' field in chain data");
+		}elseif(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
+			$chainArray = $this->authInfo;
+		}elseif(isset($this->authInfo["rawChain"]) && is_array($this->authInfo["rawChain"])){
+			$chainArray = ["chain" => $this->authInfo["rawChain"]];
+		}elseif($this->protocol >= ProtocolInfo::PROTOCOL_975){
+			$chainArray = $this->authInfo;
+			if(!isset($chainArray["chain"]) && isset($chainArray[0])){
+				$chainArray = ["chain" => $chainArray];
 			}
+		}else{
+			throw new PacketDecodeException("Missing or invalid 'chain' field in chain data (keys: " . implode(", ", array_keys($this->authInfo)) . ")");
 		}
 
 		$this->chainData = $chainArray;
