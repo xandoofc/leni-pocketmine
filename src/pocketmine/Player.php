@@ -26,9 +26,7 @@ use BadMethodCallException;
 use pocketmine\block\Bed;
 use pocketmine\block\Block;
 use pocketmine\block\BlockFactory;
-use pocketmine\block\BlockIds;
 use pocketmine\block\ItemFrame;
-use pocketmine\block\RespawnAnchor;
 use pocketmine\block\UnknownBlock;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
@@ -37,6 +35,7 @@ use pocketmine\entity\Effect;
 use pocketmine\entity\EffectInstance;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Human;
+use pocketmine\entity\Living;
 use pocketmine\entity\object\ItemEntity;
 use pocketmine\entity\passive\AbstractHorse;
 use pocketmine\entity\projectile\Arrow;
@@ -46,6 +45,7 @@ use pocketmine\entity\vehicle\Boat;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\inventory\InventoryCloseEvent;
+use pocketmine\event\player\PlayerAnimationEvent;
 use pocketmine\event\player\PlayerBedEnterEvent;
 use pocketmine\event\player\PlayerBedLeaveEvent;
 use pocketmine\event\player\PlayerBlockPickEvent;
@@ -55,10 +55,10 @@ use pocketmine\event\player\PlayerCommandPreprocessEvent;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\player\PlayerDropItemEvent;
 use pocketmine\event\player\PlayerEditBookEvent;
-use pocketmine\event\player\PlayerEntityInteractEvent;
 use pocketmine\event\player\PlayerEntityPickEvent;
 use pocketmine\event\player\PlayerExhaustEvent;
 use pocketmine\event\player\PlayerGameModeChangeEvent;
+use pocketmine\event\player\PlayerInteractEntityEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerItemConsumeEvent;
 use pocketmine\event\player\PlayerJoinEvent;
@@ -84,23 +84,17 @@ use pocketmine\form\Form;
 use pocketmine\form\FormValidationException;
 use pocketmine\inventory\BaseInventory;
 use pocketmine\inventory\CraftingGrid;
-use pocketmine\inventory\FakeInventory;
+use pocketmine\inventory\CraftingManager;
+use pocketmine\inventory\CreativeInventory;
 use pocketmine\inventory\Inventory;
 use pocketmine\inventory\InventoryHolder;
-use pocketmine\inventory\itemStack\ItemStackContainerIdTranslator;
-use pocketmine\inventory\itemStack\ItemStackRequestExecutor;
-use pocketmine\inventory\itemStack\ItemStackRequestProcessException;
-use pocketmine\inventory\itemStack\ItemStackResponseBuilder;
 use pocketmine\inventory\PlayerCursorInventory;
 use pocketmine\inventory\PlayerUIInventory;
-use pocketmine\inventory\transaction\action\ContainerDropItemAction;
 use pocketmine\inventory\transaction\action\ContainerSlotChangeAction;
-use pocketmine\inventory\transaction\action\DropItemAction;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\action\SlotChangeAction;
 use pocketmine\inventory\transaction\CraftingTransaction;
 use pocketmine\inventory\transaction\InventoryTransaction;
-use pocketmine\inventory\transaction\TransactionBuilder;
 use pocketmine\inventory\transaction\TransactionValidationException;
 use pocketmine\item\Consumable;
 use pocketmine\item\Durable;
@@ -108,7 +102,6 @@ use pocketmine\item\enchantment\EnchantmentInstance;
 use pocketmine\item\enchantment\MeleeWeaponEnchantment;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
-use pocketmine\item\ItemIds;
 use pocketmine\item\MaybeConsumable;
 use pocketmine\item\Releasable;
 use pocketmine\item\WritableBook;
@@ -123,37 +116,26 @@ use pocketmine\level\Level;
 use pocketmine\level\Location;
 use pocketmine\level\particle\PunchBlockParticle;
 use pocketmine\level\Position;
-use pocketmine\level\sound\EntityAttackNoDamageSound;
-use pocketmine\level\sound\EntityAttackSound;
-use pocketmine\level\sound\FireExtinguishSound;
-use pocketmine\level\sound\ItemBreakSound;
-use pocketmine\level\sound\RespawnAnchorDepleteSound;
-use pocketmine\level\sound\Sound;
 use pocketmine\maps\MapData;
 use pocketmine\maps\MapManager;
 use pocketmine\math\AxisAlignedBB;
-use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\DoubleTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\network\mcpe\auth\ProcessLoginTask;
-use pocketmine\network\mcpe\cache\CraftingDataCache;
 use pocketmine\network\mcpe\cache\MapCache;
 use pocketmine\network\mcpe\cache\StaticPacketCache;
 use pocketmine\network\mcpe\compression\CompressBatchPromise;
 use pocketmine\network\mcpe\compression\DecompressionException;
 use pocketmine\network\mcpe\compression\NetworkCompression;
 use pocketmine\network\mcpe\convert\GlobalItemTypeDictionary;
-use pocketmine\network\mcpe\convert\ItemTranslator;
 use pocketmine\network\mcpe\convert\LegacyItemIdToStringIdMap;
 use pocketmine\network\mcpe\convert\PacketIdTranslator;
 use pocketmine\network\mcpe\convert\ProtocolConvertor;
 use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
-use pocketmine\network\mcpe\convert\TypeConversionException;
 use pocketmine\network\mcpe\convert\TypeConverter;
-use pocketmine\network\mcpe\CounterTimeLimiter;
 use pocketmine\network\mcpe\encryption\DecryptionException;
 use pocketmine\network\mcpe\encryption\EncryptionContext;
 use pocketmine\network\mcpe\encryption\PrepareEncryptionTask;
@@ -164,6 +146,7 @@ use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
 use pocketmine\network\mcpe\protocol\AvailableCommandsPacket;
+use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\BookEditPacket;
 use pocketmine\network\mcpe\protocol\ChangeDimensionPacket;
@@ -173,7 +156,6 @@ use pocketmine\network\mcpe\protocol\CommandStepPacket;
 use pocketmine\network\mcpe\protocol\CompletedUsingItemPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\ContainerOpenPacket;
-use pocketmine\network\mcpe\protocol\ContainerSetContentPacket;
 use pocketmine\network\mcpe\protocol\ContainerSetSlotPacket;
 use pocketmine\network\mcpe\protocol\CraftingEventPacket;
 use pocketmine\network\mcpe\protocol\DataPacket;
@@ -182,8 +164,6 @@ use pocketmine\network\mcpe\protocol\DisconnectPacket;
 use pocketmine\network\mcpe\protocol\DropItemPacket;
 use pocketmine\network\mcpe\protocol\EmotePacket;
 use pocketmine\network\mcpe\protocol\InteractPacket;
-use pocketmine\network\mcpe\protocol\InventoryContentPacket;
-use pocketmine\network\mcpe\protocol\InventorySlotPacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\ItemFrameDropItemPacket;
 use pocketmine\network\mcpe\protocol\ItemRegistryPacket;
@@ -202,7 +182,6 @@ use pocketmine\network\mcpe\protocol\NetworkSettingsPacket;
 use pocketmine\network\mcpe\protocol\PacketDecodeException;
 use pocketmine\network\mcpe\protocol\PacketPool;
 use pocketmine\network\mcpe\protocol\PlayerActionPacket;
-use pocketmine\network\mcpe\protocol\PlayerAuthInputPacket;
 use pocketmine\network\mcpe\protocol\PlayStatusPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\RequestNetworkSettingsPacket;
@@ -224,33 +203,24 @@ use pocketmine\network\mcpe\protocol\ToastRequestPacket;
 use pocketmine\network\mcpe\protocol\TransferPacket;
 use pocketmine\network\mcpe\protocol\types\AbilitiesData;
 use pocketmine\network\mcpe\protocol\types\AbilitiesLayer;
-use pocketmine\network\mcpe\protocol\types\AdventureSettingsData;
 use pocketmine\network\mcpe\protocol\types\command\CommandData;
 use pocketmine\network\mcpe\protocol\types\command\CommandEnum;
 use pocketmine\network\mcpe\protocol\types\command\CommandPermissions;
 use pocketmine\network\mcpe\protocol\types\CompressionAlgorithm;
 use pocketmine\network\mcpe\protocol\types\DimensionIds;
-use pocketmine\network\mcpe\protocol\types\DisconnectFailReason;
 use pocketmine\network\mcpe\protocol\types\Experiments;
 use pocketmine\network\mcpe\protocol\types\GameMode;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-use pocketmine\network\mcpe\protocol\types\inventory\FullContainerName;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\inventory\MismatchTransactionData;
 use pocketmine\network\mcpe\protocol\types\inventory\NetworkInventoryAction;
 use pocketmine\network\mcpe\protocol\types\inventory\NormalTransactionData;
 use pocketmine\network\mcpe\protocol\types\inventory\ReleaseItemTransactionData;
-use pocketmine\network\mcpe\protocol\types\inventory\stackrequest\ItemStackRequest;
-use pocketmine\network\mcpe\protocol\types\inventory\stackresponse\ItemStackResponse;
 use pocketmine\network\mcpe\protocol\types\inventory\UIInventorySlotOffset;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemTransactionData;
 use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\network\mcpe\protocol\types\NetworkPermissions;
-use pocketmine\network\mcpe\protocol\types\PlayerAuthInputFlags;
-use pocketmine\network\mcpe\protocol\types\PlayerBlockActionStopBreak;
-use pocketmine\network\mcpe\protocol\types\PlayerBlockActionWithBlockInfo;
 use pocketmine\network\mcpe\protocol\types\PlayerMovementSettings;
 use pocketmine\network\mcpe\protocol\types\PlayerPermissions;
 use pocketmine\network\mcpe\protocol\types\resourcepacks\ResourcePackInfoEntry;
@@ -283,16 +253,12 @@ use pocketmine\utils\BinaryDataException;
 use pocketmine\utils\BinaryStream;
 use pocketmine\utils\Color;
 use pocketmine\utils\TextFormat;
-use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use SplFixedArray;
 use SplQueue;
-
+use UnexpectedValueException;
 use function abs;
-use function array_fill_keys;
-use function array_keys;
 use function array_map;
-use function array_shift;
 use function array_values;
 use function assert;
 use function base64_decode;
@@ -326,7 +292,6 @@ use function sprintf;
 use function sqrt;
 use function str_repeat;
 use function str_replace;
-use function str_starts_with;
 use function strlen;
 use function strpos;
 use function strtolower;
@@ -334,7 +299,6 @@ use function substr;
 use function time;
 use function trim;
 use function ucfirst;
-
 use const M_PI;
 use const M_SQRT3;
 use const PHP_INT_MAX;
@@ -344,8 +308,20 @@ use const PHP_INT_MAX;
  */
 class Player extends Human implements CommandSender, ChunkLoader, ChunkListener, IPlayer
 {
+	public const SURVIVAL = 0;
+	public const CREATIVE = 1;
+	public const ADVENTURE = 2;
+	public const SPECTATOR = 3;
+	public const VIEW = Player::SPECTATOR;
+
 	private const MOVES_PER_TICK = 2;
 	private const MOVE_BACKLOG_SIZE = 100 * self::MOVES_PER_TICK; //100 ticks backlog (5 seconds)
+
+	private const RESOURCE_PACK_CHUNK_SIZE = 128 * 1024; //128KB
+
+	public const BEACON_WINDOW_ID = 4;
+
+	private const MAX_INPUT_JSON = 15;
 
 	/** Max length of a chat message (UTF-8 codepoints, not bytes) */
 	private const MAX_CHAT_CHAR_LENGTH = 512;
@@ -355,46 +331,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 * is a useful heuristic to filter out oversized messages.
 	 */
 	private const MAX_CHAT_BYTE_LENGTH = self::MAX_CHAT_CHAR_LENGTH * 4;
-	private const MAX_REACH_DISTANCE_CREATIVE = 13;
-	private const MAX_REACH_DISTANCE_SURVIVAL = 7;
-	private const MAX_REACH_DISTANCE_ENTITY_INTERACTION = 8;
-	private const MAX_INPUT_JSON = 15;
 
-	public const DEFAULT_FLIGHT_SPEED_MULTIPLIER = 0.05;
-
-	public const SURVIVAL = 0;
-	public const CREATIVE = 1;
-	public const ADVENTURE = 2;
-	public const SPECTATOR = 3;
-	public const VIEW = Player::SPECTATOR;
-
-	private const RESOURCE_PACK_CHUNK_SIZE = 128 * 1024; //128KB
-
-	public const BEACON_WINDOW_ID = 4;
-
-	private const INCOMING_PACKET_BATCH_PER_TICK = 2; //usually max 1 per tick, but transactions arrive separately
-	private const INCOMING_PACKET_BATCH_BUFFER_TICKS = 100; //enough to account for a 5-second lag spike
-
-	/*
-	 * the fact that between 407 and 431 protocols,
-	 * it is not convenient to use the Stack system,
-	 * so I had to create a minimal protocol with regular stacks
-	 */
-	public const ENABLE_NEW_INVENTORY_SYSTEM_PROTOCOL = ProtocolInfo::PROTOCOL_440;
-
-	/**
-	 * All data/resource_packs/chemistry* packs need to be listed here to get chemistry blocks to render
-	 * correctly, unfortunately there doesn't seem to be a better way to do this
-	 */
-	public const CHEMISTRY_RESOURCE_PACKS = [
-		["b41c2785-c512-4a49-af56-3a87afd47c57", "1.21.30", ProtocolInfo::PROTOCOL_748],
-		["a4df0cb3-17be-4163-88d7-fcf7002b935d", "1.21.20", ProtocolInfo::PROTOCOL_729],
-		["d19adffe-a2e1-4b02-8436-ca4583368c89", "1.21.10", ProtocolInfo::PROTOCOL_712],
-		["85d5603d-2824-4b21-8044-34f441f4fce1", "1.21.0", ProtocolInfo::PROTOCOL_686],
-		["e977cd13-0a11-4618-96fb-03dfe9c43608", "1.20.60", ProtocolInfo::PROTOCOL_649],
-		["0674721c-a0aa-41a1-9ba8-1ed33ea3e7ed", "1.20.50", ProtocolInfo::PROTOCOL_630],
-		["0fba4063-dba1-4281-9b89-ff9390653530", "1.0.0", ProtocolInfo::PROTOCOL_110],
-	];
+	private const INCOMING_PACKET_BATCH_PER_TICK = 1000; //usually max 1 per tick, but transactions arrive separately
+	private const INCOMING_PACKET_BATCH_BUFFER_TICKS = 1000; //enough to account for a 5-second lag spike
 
 	/**
 	 * Validates the given username.
@@ -458,9 +397,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	private $seenLoginPacket = false;
 	/** @var bool */
 	public $awaitingEncryptionHandshake = false;
-	private bool $resourceStackDone = false;
-	private bool $requestedMetadata = false;
-	private bool $requestedStack = false;
+	/** @var bool */
+	private $resourcePacksDone = false;
+	/** @var bool */
+	private $haveAllPacks = false;
 
 	/** @var bool */
 	public $spawned = false;
@@ -491,6 +431,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	/** @var string */
 	protected $xuid = "";
 
+	protected int $windowCnt = ContainerIds::FIRST;
 	/** @var int[] */
 	protected array $windows = [];
 	/** @var Inventory[] */
@@ -498,6 +439,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	/** @var bool[] */
 	protected array  $permanentWindows = [];
 
+	protected CreativeInventory $creativeInventory;
 	protected PlayerCursorInventory $cursorInventory;
 	protected PlayerUIInventory $uiInventory;
 	protected CraftingGrid $craftingGrid;
@@ -517,6 +459,12 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	/** @var bool */
 	protected $removeFormat = true;
 
+	protected int $removeBlockCounter = 0;
+	protected int $removeBlockLast = 0;
+
+	protected int $useItemCounter = 0;
+	protected int $useItemLast = 0;
+
 	/** @var bool */
 	protected $playedBefore;
 	/** @var int */
@@ -530,6 +478,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	protected array $loadQueue = [];
 	protected int $nextChunkOrderRun = 5;
 	protected bool $doOrderChunks = true;
+	protected int $chunkHack = 0;
 
 	protected int $viewDistance = -1;
 	protected int $spawnThreshold;
@@ -565,7 +514,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	protected $allowFlight = false;
 	/** @var bool */
 	protected $flying = false;
-	protected float $flightSpeed = self::DEFAULT_FLIGHT_SPEED_MULTIPLIER;
+	protected float $flightSpeed = 0.05;
 
 	/** @var bool */
 	protected $muted = false;
@@ -595,25 +544,13 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	protected int $commandPermission = CommandPermissions::NORMAL;
 	protected bool $keepExperience = false;
 
-	protected int $currentWindowId = ContainerIds::FIRST;
 	protected ?int $closingWindowId = null;
 	protected int $currentWindowType = WindowTypes::CONTAINER;
 
 	protected PacketRateLimiter $packetBatchLimiter;
 
 	/** @var InventoryAction[] */
-	protected array $transactionActions = [];
-
-	protected ?int $lastPlayerAuthInputFlags = null;
-	protected ?float $lastPlayerAuthInputPitch = null;
-	protected ?float $lastPlayerAuthInputYaw = null;
-	protected ?Vector3 $lastPlayerAuthInputPosition = null;
-
-	protected CounterTimeLimiter $removeBlockLimiter;
-	protected CounterTimeLimiter $useTimeLimiter;
-	protected CounterTimeLimiter $chatLimiter;
-	protected CounterTimeLimiter $blockActorDataLimiter;
-	protected CounterTimeLimiter $animateLimiter;
+	protected array $faultyOldTransactionActions = [];
 
 	/**
 	 * @return TranslationContainer|string
@@ -942,7 +879,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 */
 	public function setViewDistance(int $distance)
 	{
-		if (!$this->constructed) {
+		if(!$this->constructed){
 			return;
 		}
 
@@ -1059,7 +996,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		}
 		$pk = new AvailableCommandsPacket();
 		foreach ($this->server->getCommandMap()->getCommands() as $command) {
-			if (!$command->testPermissionSilent($this) || isset($pk->commandData[$command->getName()]) || $command->getName() === "help") {
+			if (!$command->testPermissionSilent($this) || isset($pk->commandData[$command->getName()]) || $command->getName() === "help" || !$command->testPermissionSilent($this)) {
 				continue;
 			}
 
@@ -1119,11 +1056,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$this->connectTime = time();
 
 		$this->packetBatchLimiter = new PacketRateLimiter("Packet Batches", self::INCOMING_PACKET_BATCH_PER_TICK, self::INCOMING_PACKET_BATCH_BUFFER_TICKS);
-		$this->removeBlockLimiter = new CounterTimeLimiter("Remove Block", 30);
-		$this->useTimeLimiter = new CounterTimeLimiter("Use Item", 75);
-		$this->chatLimiter = new CounterTimeLimiter("Chat", 30);
-		$this->blockActorDataLimiter = new CounterTimeLimiter("Block Actor Data", 50); //it could have been even smaller if it weren't for the labels on the older versions
-		$this->animateLimiter = new CounterTimeLimiter("Animate", 100);
 
 		$this->allowMovementCheats = (bool) $this->server->getProperty("player.anti-cheat.allow-movement-cheats", false);
 
@@ -1407,6 +1339,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return;
 		}
 
+		if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
+			$this->chunkHack = 2;
+		}
+
 		$this->usedChunks[Level::chunkHash($x, $z)] = true;
 		$this->sendEncoded($buffer);
 
@@ -1666,7 +1602,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			$this->level->setSleepTicks(0);
 
-			$this->broadcastAnimation(AnimatePacket::ACTION_STOP_SLEEP, [$this]);
+			$pk = new AnimatePacket();
+			$pk->entityRuntimeId = $this->id;
+			$pk->action = AnimatePacket::ACTION_STOP_SLEEP;
+			$this->dataPacket($pk);
 		}
 	}
 
@@ -1707,9 +1646,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	{
 		parent::setCrawling($value);
 
-		if ($value) {
+		if($value){
 			$this->updateBoundingBox(0.625, 0.6);
-		} else {
+		}else{
 			$this->updateBoundingBox(1.8, 0.6);
 		}
 	}
@@ -1816,7 +1755,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			$layers = [
 				//TODO: dynamic flying speed! FINALLY!!!!!!!!!!!!!!!!!
-				new AbilitiesLayer(AbilitiesLayer::LAYER_BASE, $boolAbilities, self::DEFAULT_FLIGHT_SPEED_MULTIPLIER, 1, 0.1),
+				new AbilitiesLayer(AbilitiesLayer::LAYER_BASE, $boolAbilities, 0.05, 1, 0.1),
 			];
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_582) {
@@ -1833,40 +1772,36 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			}
 
 			$this->sendDataPacket(UpdateAbilitiesPacket::create(new AbilitiesData(
-				(($this->isOp() && !$this->isSpectator()) ? CommandPermissions::OPERATOR : CommandPermissions::NORMAL),
+				(($this->isOp() && !$this->isSpectator()) ? AdventureSettingsPacket::PERMISSION_OPERATOR : AdventureSettingsPacket::PERMISSION_NORMAL),
 				(($this->isOp() && !$this->isSpectator()) ? PlayerPermissions::OPERATOR : PlayerPermissions::MEMBER),
 				$this->getId(),
 				$layers
 			)));
 		} else {
-			$adventureSettingsData = new AdventureSettingsData(
-				0,
-				(($this->isOp() && !$this->isSpectator()) ? CommandPermissions::OPERATOR : CommandPermissions::NORMAL),
-				-1,
-				(($this->isOp() && !$this->isSpectator()) ? PlayerPermissions::OPERATOR : PlayerPermissions::MEMBER),
-				0,
-				$this->getId()
-			);
+			$pk = new AdventureSettingsPacket();
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
-				$adventureSettingsData->setFlag2(AdventureSettingsData::BUILD, !$this->isSpectator());
-				$adventureSettingsData->setFlag2(AdventureSettingsData::MINE, !$this->isSpectator());
-				$adventureSettingsData->setFlag2(AdventureSettingsData::DOORS_AND_SWITCHES, !$this->isSpectator());
-				$adventureSettingsData->setFlag2(AdventureSettingsData::OPEN_CONTAINERS, !$this->isSpectator());
-				$adventureSettingsData->setFlag2(AdventureSettingsData::ATTACK_PLAYERS, !$this->isSpectator());
-				$adventureSettingsData->setFlag2(AdventureSettingsData::ATTACK_MOBS, !$this->isSpectator());
-				$adventureSettingsData->setFlag2(AdventureSettingsData::OPERATOR, ($this->isOp() && !$this->isSpectator()));
-				$adventureSettingsData->setFlag2(AdventureSettingsData::TELEPORT, $this->hasPermission("pocketmine.command.teleport"));
+				$pk->setFlag(AdventureSettingsPacket::BUILD, !$this->isSpectator());
+				$pk->setFlag(AdventureSettingsPacket::MINE, !$this->isSpectator());
+				$pk->setFlag(AdventureSettingsPacket::DOORS_AND_SWITCHES, !$this->isSpectator());
+				$pk->setFlag(AdventureSettingsPacket::OPEN_CONTAINERS, !$this->isSpectator());
+				$pk->setFlag(AdventureSettingsPacket::ATTACK_PLAYERS, !$this->isSpectator());
+				$pk->setFlag(AdventureSettingsPacket::ATTACK_MOBS, !$this->isSpectator());
+				$pk->setFlag(AdventureSettingsPacket::OPERATOR, ($this->isOp() && !$this->isSpectator()));
+				$pk->setFlag(AdventureSettingsPacket::TELEPORT, $this->hasPermission("pocketmine.command.teleport"));
 			}
+			$pk->setFlag(AdventureSettingsPacket::WORLD_IMMUTABLE, $this->isSpectator());
+			$pk->setFlag(AdventureSettingsPacket::NO_PVP, $this->isSpectator());
+			$pk->setFlag(AdventureSettingsPacket::AUTO_JUMP, $this->autoJump);
+			$pk->setFlag(AdventureSettingsPacket::ALLOW_FLIGHT, $this->allowFlight);
+			$pk->setFlag(AdventureSettingsPacket::NO_CLIP, $this->isSpectator());
+			$pk->setFlag(AdventureSettingsPacket::FLYING, $this->flying);
 
-			$adventureSettingsData->setFlag(AdventureSettingsData::WORLD_IMMUTABLE, $this->isSpectator());
-			$adventureSettingsData->setFlag(AdventureSettingsData::NO_PVP, $this->isSpectator());
-			$adventureSettingsData->setFlag(AdventureSettingsData::AUTO_JUMP, $this->autoJump);
-			$adventureSettingsData->setFlag(AdventureSettingsData::ALLOW_FLIGHT, $this->allowFlight);
-			$adventureSettingsData->setFlag(AdventureSettingsData::NO_CLIP, $this->isSpectator());
-			$adventureSettingsData->setFlag(AdventureSettingsData::FLYING, $this->flying);
+			$pk->commandPermission = (($this->isOp() && !$this->isSpectator()) ? AdventureSettingsPacket::PERMISSION_OPERATOR : AdventureSettingsPacket::PERMISSION_NORMAL);
+			$pk->playerPermission = (($this->isOp() && !$this->isSpectator()) ? PlayerPermissions::OPERATOR : PlayerPermissions::MEMBER);
+			$pk->entityUniqueId = $this->getId();
 
-			$this->sendDataPacket(AdventureSettingsPacket::create($adventureSettingsData));
+			$this->dataPacket($pk);
 		}
 	}
 
@@ -2011,137 +1946,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			$entity->onCollideWithPlayer($this);
 		}
-	}
-
-	private function resolveOnOffInputFlags(int $inputFlags, int $startFlag, int $stopFlag) : ?bool
-	{
-		$enabled = ($inputFlags & (1 << $startFlag)) !== 0;
-		$disabled = ($inputFlags & (1 << $stopFlag)) !== 0;
-		if ($enabled !== $disabled) {
-			return $enabled;
-		}
-		//neither flag was set, or both were set
-		return null;
-	}
-
-	public function handlePlayerAuthInput(PlayerAuthInputPacket $packet) : bool
-	{
-		$rawPos = $packet->getPosition();
-		$rawYaw = $packet->getYaw();
-		$rawPitch = $packet->getPitch();
-
-		$hasMoved =
-			$this->lastPlayerAuthInputPosition === null ||
-			!$this->lastPlayerAuthInputPosition->equals($rawPos) ||
-			$rawYaw !== $this->lastPlayerAuthInputYaw ||
-			$rawPitch !== $this->lastPlayerAuthInputPitch;
-
-		if ($hasMoved) {
-			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_649 && $this->isRiding()) {
-				$ent = $this->getRidingEntity();
-				if ($ent !== null) {
-					$rawPos = $rawPos->add(0, -$ent->getMountedYOffset(), 0);
-
-					$vehicle = $packet->getVehicleInfo();
-					if ($vehicle !== null && $vehicle->getPredictedVehicleActorUniqueId() === $ent->getId()) {
-						if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_662) {
-							$yaw = fmod($vehicle->getVehicleRotationZ(), 360);
-						} else {
-							$yaw = fmod($rawYaw, 360);
-						}
-
-						$ent->setClientPositionAndRotation($rawPos, $yaw, 0, 3, true);
-					}
-				}
-			}
-
-			$this->updateNextPosition($rawPos, $rawYaw, $rawYaw, $rawPitch);
-
-			$this->lastPlayerAuthInputPosition = $rawPos;
-			$this->lastPlayerAuthInputYaw = $rawYaw;
-			$this->lastPlayerAuthInputPitch = $rawPitch;
-		}
-
-		$inputFlags = $packet->getInputFlags();
-		if ($inputFlags !== $this->lastPlayerAuthInputFlags) {
-			$this->lastPlayerAuthInputFlags = $inputFlags;
-
-			$sneaking = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SNEAKING, PlayerAuthInputFlags::STOP_SNEAKING);
-			$sprinting = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SPRINTING, PlayerAuthInputFlags::STOP_SPRINTING);
-			$swimming = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SWIMMING, PlayerAuthInputFlags::STOP_SWIMMING);
-			$gliding = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_GLIDING, PlayerAuthInputFlags::STOP_GLIDING);
-			$flying = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_FLYING, PlayerAuthInputFlags::STOP_FLYING);
-			$crawling = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_CRAWLING, PlayerAuthInputFlags::STOP_CRAWLING);
-			$mismatch =
-				($sneaking !== null && !$this->toggleSneak($sneaking)) |
-				($sprinting !== null && !$this->toggleSprint($sprinting)) |
-				($swimming !== null && !$this->toggleSwim($swimming)) |
-				($gliding !== null && !$this->toggleGlide($gliding)) |
-				($flying !== null && !$this->toggleFlight($flying)) |
-				($crawling !== null && !$this->toggleCrawl($crawling));
-			if ((bool) $mismatch) {
-				$this->sendData([$this]);
-			}
-
-			if ($packet->hasFlag(PlayerAuthInputFlags::START_JUMPING)) {
-				$this->jump();
-			}
-			if ($packet->hasFlag(PlayerAuthInputFlags::MISSED_SWING)) {
-				$this->missSwing();
-			}
-		}
-
-		$packetHandled = true;
-
-		$useItemTransaction = $packet->getItemInteractionData();
-		if ($useItemTransaction !== null) {
-			if (count($useItemTransaction->getTransactionData()->getActions()) > 100) {
-				$this->server->getLogger()->debug("Too many actions in item use transaction from " . $this->getName());
-				return false;
-			}
-
-			if (!$this->handleUseItemTransaction($useItemTransaction->getTransactionData())) {
-				$packetHandled = false;
-				$this->server->getLogger()->debug("Unhandled transaction in PlayerAuthInputPacket (type " . $useItemTransaction->getTransactionData()->getActionType() . ") from " . $this->getName());
-			}
-		}
-
-		$itemStackRequest = $packet->getItemStackRequest();
-		$itemStackResponseBuilder = $itemStackRequest !== null ? $this->handleSingleItemStackRequest($itemStackRequest) : null;
-
-		//itemstack request or transaction may set predictions for the outcome of these actions, so these need to be
-		//processed last
-		$blockActions = $packet->getBlockActions();
-		if ($blockActions !== null) {
-			if (count($blockActions) > 100) {
-				$this->server->getLogger()->debug("Too many block actions in PlayerAuthInputPacket from " . $this->getName());
-				return false;
-			}
-			foreach ($blockActions as $k => $blockAction) {
-				$actionHandled = false;
-				if ($blockAction instanceof PlayerBlockActionStopBreak) {
-					$actionHandled = $this->handlePlayerActionFromData($blockAction->getActionType(), new Vector3(0, 0, 0), Facing::DOWN);
-				} elseif ($blockAction instanceof PlayerBlockActionWithBlockInfo) {
-					$actionHandled = $this->handlePlayerActionFromData($blockAction->getActionType(), new Vector3($blockAction->getX(), $blockAction->getY(), $blockAction->getZ()), $blockAction->getFace());
-				}
-
-				if (!$actionHandled) {
-					$packetHandled = false;
-					$this->server->getLogger()->debug("Unhandled player block action at offset $k in PlayerAuthInputPacket from " . $this->getName());
-				}
-			}
-		}
-
-		if ($itemStackRequest !== null) {
-			$itemStackResponse = $itemStackResponseBuilder?->build() ?? new ItemStackResponse(ItemStackResponse::RESULT_ERROR, $itemStackRequest->getRequestId());
-			$this->sendDataPacket(ItemStackResponsePacket::create([$itemStackResponse]));
-		}
-
-		if (!$packetHandled) {
-			$this->getInventory()->sendContents($this);
-		}
-
-		return $packetHandled;
 	}
 
 	/**
@@ -2342,8 +2146,17 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$pk->sound = LevelSoundEventPacket::SOUND_ATTACK_NODAMAGE;
 			$pk->position = $this;
 			$pk->entityType = "minecraft:player";
+			$pk->extraData = -1;
+			$pk->isBabyMob = false;
+			$pk->disableRelativeVolume = false;
 			$this->sendDataPacket($pk);
 
+			$this->server->broadcastPacket($this->getViewers(), $pk);
+
+			$pk = new ActorEventPacket();
+			$pk->entityRuntimeId = $this->id;
+			$pk->event = ActorEventPacket::ARM_SWING;
+			$pk->data = 0;
 			$this->server->broadcastPacket($this->getViewers(), $pk);
 		}
 	}
@@ -2443,25 +2256,23 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$this->entityBaseTick($tickDiff);
 			Timings::$entityBaseTick->stopTiming();
 
-			if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137 && count($this->transactionActions) !== 0) {
-				try {
-					$nextActions = $this->transactionActions;
-					$this->transactionActions = [];
-
-					$nextTransaction = new InventoryTransaction($this, $nextActions, true);
-					$nextTransaction->execute();
-				} catch (TransactionValidationException $e) {
-					$this->server->getLogger()->debug("Failed to execute inventory transaction from " . $this->getName() . ": " . $e->getMessage());
-					$this->server->getLogger()->debug("Actions: " . json_encode($this->transactionActions));
-
-					$this->sendAllInventories();
-				}
-			}
-
 			if (!$this->isSpectator() && $this->isAlive()) {
 				Timings::$playerCheckNearEntities->startTiming();
 				$this->checkNearEntities();
 				Timings::$playerCheckNearEntities->stopTiming();
+			}
+
+			if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137 && $this->chunkHack > 0) {
+				--$this->chunkHack;
+				if ($this->chunkHack === 0) {
+					$pk = new ChunkRadiusUpdatedPacket();
+					$pk->radius = $this->viewDistance;
+					$this->sendDataPacket($pk);
+				} elseif ($this->chunkHack === 1) {
+					$pk = new ChunkRadiusUpdatedPacket();
+					$pk->radius = $this->viewDistance + 1;
+					$this->sendDataPacket($pk);
+				}
 			}
 		}
 
@@ -2491,8 +2302,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		return $this->isSurvival() && parent::isHungry();
 	}
 
-	public function canEat() : bool
-	{
+	public function canEat() : bool{
 		return $this->isCreative() || parent::canEat();
 	}
 
@@ -2738,7 +2548,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$protocolConvertor = ProtocolConvertor::getInstance();
 		$this->chunkProtocolVersion = $protocolConvertor->getChunkProtocol($packet->protocol);
 		$this->craftingProtocolVersion = $protocolConvertor->getCratingProtocol($packet->protocol);
-		$this->mapProtocolVersion = $protocolConvertor->getItemMapProtocol($packet->protocol);
+		$this->mapProtocolVersion = $protocolConvertor->getMapProtocol($packet->protocol);
 
 		$this->username = TextFormat::clean($packet->username);
 		if ($this->server->deleteSpacesForNickname) {
@@ -2759,7 +2569,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		$this->vanillaVersion = $packet->clientData["GameVersion"] ?? "";
 
-		if (count($this->server->getOnlinePlayers()) >= $this->server->getMaxPlayers() && $this->kick("disconnectionScreen.serverFull", false, null, DisconnectFailReason::SERVER_FULL)) {
+		if (count($this->server->getOnlinePlayers()) >= $this->server->getMaxPlayers() && $this->kick("disconnectionScreen.serverFull", false)) {
 			return true;
 		}
 
@@ -2857,7 +2667,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		}
 
 		if (!$skin->isValid()) {
-			$this->close("", "disconnectionScreen.invalidSkin", true, DisconnectFailReason::SKIN_ISSUE);
+			$this->close("", "disconnectionScreen.invalidSkin");
 
 			return true;
 		}
@@ -3006,7 +2816,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	{
 		foreach ($this->server->getLoggedInPlayers() as $p) {
 			if ($p !== $this && ($p->iusername === $this->iusername || $this->getUniqueId()->equals($p->getUniqueId()))) {
-				$this->close($this->getLeaveMessage(), "Logged in from another location", true, DisconnectFailReason::LOGGED_IN_OTHER_LOCATION);
+				$this->close($this->getLeaveMessage(), "Logged in from another location!");
 
 				return;
 			}
@@ -3100,32 +2910,16 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 	public function handleResourcePackClientResponse(ResourcePackClientResponsePacket $packet) : bool
 	{
-		if ($this->resourceStackDone) {
+		if ($this->resourcePacksDone) {
 			return false;
 		}
-
 		switch ($packet->status) {
 			case ResourcePackClientResponsePacket::STATUS_REFUSED:
 				//TODO: add lang strings for this
-				$this->close("Refused resource packs", "You must accept resource packs to join this server.", true);
+				$this->close("", "You must accept resource packs to join this server.", true);
 				break;
 			case ResourcePackClientResponsePacket::STATUS_SEND_PACKS:
-				if($this->requestedMetadata){
-					throw new PacketHandlingException("Cannot request resource pack metadata multiple times");
-				}
-				$this->requestedMetadata = true;
-
-				if($this->requestedStack){
-					//client already told us that they have all the packs, they shouldn't be asking for more
-					throw new PacketHandlingException("Cannot request resource pack metadata after resource pack stack");
-				}
-
 				$manager = $this->server->getResourcePackManager($this->getProtocolVersion());
-				if(count($packet->packIds) > count($manager->getResourceStack())){
-					throw new PacketHandlingException(sprintf("Requested metadata for more resource packs (%d) than available on the server (%d)", count($packet->packIds), count($this->resourcePacksById)));
-				}
-
-				$seen = [];
 				foreach ($packet->packIds as $uuid) {
 					//dirty hack for mojang's dirty hack for versions
 					$splitPos = strpos($uuid, "_");
@@ -3134,14 +2928,12 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 					}
 					$pack = $manager->getPackById($uuid);
 
-					if(!($pack instanceof ResourcePack)){
+					if (!($pack instanceof ResourcePack)) {
 						//Client requested a resource pack but we don't have it available on the server
-						$this->close("", "disconnectionScreen.resourcePack", true, DisconnectFailReason::RESOURCE_PACK_PROBLEM);
+						$this->close("", "disconnectionScreen.resourcePack", true);
 						$this->server->getLogger()->debug("Got a resource pack request for unknown pack with UUID " . $uuid . ", available packs: " . implode(", ", $manager->getPackIdList()));
+
 						return false;
-					}
-					if(isset($seen[$pack->getPackId()])){
-						throw new PacketHandlingException("Repeated metadata request for pack $uuid");
 					}
 
 					$this->sendDataPacket(ResourcePackDataInfoPacket::create(
@@ -3153,28 +2945,20 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 						false,
 						ResourcePackType::RESOURCES //TODO: this might be an addon (not behaviour pack), needed to properly support client-side custom items
 					));
-					$seen[$pack->getPackId()] = true;
 				}
 
 				$this->server->getLogger()->debug("Player " . $this->getName() . " requested download of " . count($packet->packIds) . " resource packs");
 				break;
 			case ResourcePackClientResponsePacket::STATUS_HAVE_ALL_PACKS:
-				if($this->requestedStack){
-					throw new PacketHandlingException("Cannot request resource pack stack multiple times");
-				}
-				$this->requestedStack = true;
+				$this->haveAllPacks = true;
 
 				$packManager = $this->server->getResourcePackManager($this->getProtocolVersion());
 				$stack = array_map(static function (ResourcePack $pack) : ResourcePackStackEntry {
 					return new ResourcePackStackEntry($pack->getPackId(), $pack->getPackVersion(), ""); //TODO: subpacks
 				}, $packManager->getResourceStack());
 
-				//we support chemistry blocks by default, the client should already have these installed
-				foreach(self::CHEMISTRY_RESOURCE_PACKS as [$uuid, $version, $minimalProtocolVersion]){
-					if ($this->getProtocolVersion() >= $minimalProtocolVersion) {
-						$stack[] = new ResourcePackStackEntry($uuid, $version, "");
-					}
-				}
+				//we support chemistry blocks by default, the client should already have this installed
+				$stack[] = new ResourcePackStackEntry("0fba4063-dba1-4281-9b89-ff9390653530", "1.0.0", "");
 
 				//we don't force here, because it doesn't have user-facing effects
 				//but it does have an annoying side-effect when true: it makes
@@ -3183,9 +2967,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				$this->server->getLogger()->debug("Applying resource pack stack for " . $this->getName());
 				break;
 			case ResourcePackClientResponsePacket::STATUS_COMPLETED:
-				if ($this->requestedStack) {
+				if ($this->haveAllPacks) {
 					$this->server->getLogger()->debug("Resource packs sequence completed for " . $this->getName());
-					$this->resourceStackDone = true;
+					$this->resourcePacksDone = true;
 					$this->completeLoginSequence();
 				}
 				break;
@@ -3260,7 +3044,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$pk->worldName = $this->server->getMotd();
 			$pk->experiments = new Experiments([], false);
 
-			$pk->enableNewInventorySystem = $this->isEnableNewInventorySystem();
 			$pk->playerMovementSettings = new PlayerMovementSettings(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V2, 0, false);
 			$pk->serverSoftwareVersion = sprintf("%s %s", VersionInfo::NAME, VersionInfo::VERSION()->getFullVersion(true));
 			$pk->playerActorProperties = new CompoundTag("");
@@ -3283,16 +3066,18 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				}
 			}
 
-			$this->sendDataPacket($pk);
+			$this->dataPacket($pk);
+
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
+				$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));
+			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_332) {
-				if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
-					$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));
-				}
-
 				$this->sendDataPacket(StaticPacketCache::getInstance()->getAvailableActorIdentifiers($this->getProtocolVersion()));
 				$this->sendDataPacket(StaticPacketCache::getInstance()->getBiomeDefs($this->getProtocolVersion()));
 			}
+
+			$this->level->sendTime($this);
 
 			$this->sendAttributes(true);
 			$this->setNameTagVisible();
@@ -3326,7 +3111,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$this->inventory->sendCreativeContents();
 			$this->inventory->sendHeldItem($this);
 
-			$this->sendDataPacket(CraftingDataCache::getInstance()->getCache($this->server->getCraftingManager(), $this->craftingProtocolVersion));
+			$this->queueEncoded(CraftingManager::getCraftingDataPacket($this->getCraftingProtocol()));
 
 			$this->server->addOnlinePlayer($this);
 			$this->server->sendFullPlayerListData($this);
@@ -3345,8 +3130,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return false;
 		}
 
-		$this->chatLimiter->update();
-
 		if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
 			$this->doCloseInventory();
 		}
@@ -3357,10 +3140,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return false;
 		}
 
-		$message = TextFormat::clean($message, $this->removeFormat);
+		$message = $message;
 		foreach (explode("\n", $message, $this->messageCounter + 1) as $messagePart) {
 			if (trim($messagePart) !== "" && strlen($messagePart) <= self::MAX_CHAT_BYTE_LENGTH && mb_strlen($messagePart, 'UTF-8') <= self::MAX_CHAT_CHAR_LENGTH && $this->messageCounter-- > 0) {
-				if (str_starts_with($messagePart, './')) {
+				if (strpos($messagePart, './') === 0) {
 					$messagePart = substr($messagePart, 1);
 				}
 
@@ -3423,34 +3206,50 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$this->handleMovement($newPos);
 	}
 
-	public function removeBlock(Vector3 $pos) : bool
+	public function removeBlock(Vector3 $blockVector) : bool
 	{
 		if ($this->isSpectator()) {
 			return true;
 		}
 
-		$this->removeBlockLimiter->update();
+		$time = time();
+		if ($time !== $this->removeBlockLast) {
+			$this->removeBlockCounter = 0;
+		}
+
+		if (++$this->removeBlockCounter > 30) {
+			$this->getServer()->getNetwork()->blockAddress($this->getAddress());
+			$this->removeBlockLast = $time;
+			return true;
+		}
+		$this->removeBlockLast = $time;
 
 		$this->doCloseInventory();
 
 		if (!$this->isAdventure()) {
-			if ($this->canInteract($pos->add(0.5, 0.5, 0.5), $this->isCreative() ? self::MAX_REACH_DISTANCE_CREATIVE : self::MAX_REACH_DISTANCE_SURVIVAL)) {
-				$item = $this->inventory->getItemInHand();
-				$oldItem = clone $item;
-				if ($this->level->useBreakOn($pos, $item, $this, true)) {
-					$this->returnItemsFromAction($oldItem, $item, $item->getReturnedItems());
-					if (!$this->isCreative()) {
-						$this->exhaust(0.005, PlayerExhaustEvent::CAUSE_MINING);
+			$item = $this->inventory->getItemInHand();
+			$oldItem = clone $item;
+
+			if (
+				$this->canInteract($blockVector->add(0.5, 0.5, 0.5), $this->isCreative() ? 13 : 6) &&
+				$this->level->useBreakOn($blockVector, $item, $this, true)
+			) {
+				if (!$this->isCreative()) {
+					if (!$item->equalsExact($oldItem)) {
+						$this->inventory->setItemInHand($item);
+						$this->inventory->sendHeldItem($this->hasSpawned);
 					}
-					return true;
+
+					$this->exhaust(0.025, PlayerExhaustEvent::CAUSE_MINING);
 				}
+				return true;
 			}
 		}
 
 		$this->inventory->sendContents($this);
 		$this->inventory->sendHeldItem($this);
 
-		$target = $this->level->getBlock($pos);
+		$target = $this->level->getBlock($blockVector);
 		$blocks = $target->getAllSides();
 		$blocks[] = $target;
 
@@ -3496,9 +3295,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		}
 
 		$block = $target->getSide($face);
-		if ($block->getId() === BlockIds::FIRE) {
-			$this->level->setBlock($block, BlockFactory::get(BlockIds::AIR));
-			$this->level->addSound(new FireExtinguishSound($block->add(0.5, 0.5, 0.5)));
+		if ($block->getId() === Block::FIRE) {
+			$this->level->setBlock($block, BlockFactory::get(Block::AIR));
+			$this->level->broadcastLevelSoundEvent($block, LevelSoundEventPacket::SOUND_EXTINGUISH_FIRE);
 			return true;
 		}
 
@@ -3511,35 +3310,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		}
 
 		return true;
-	}
-
-	/**
-	 * Interacts with the given entity using the currently-held item.
-	 */
-	public function interactEntity(Entity $entity, Vector3 $clickPos) : bool
-	{
-		$ev = new PlayerEntityInteractEvent($this, $entity, $clickPos);
-
-		if (!$this->canInteract($entity, self::MAX_REACH_DISTANCE_ENTITY_INTERACTION)) {
-			$ev->setCancelled();
-		}
-
-		$ev->call();
-
-		$item = $this->inventory->getItemInHand();
-		$oldItem = clone $item;
-		if (!$ev->isCancelled()) {
-			if ($item->onInteractEntity($this, $entity, $clickPos)) {
-				if ($this->hasFiniteResources() && !$item->equalsExact($oldItem) && $oldItem->equalsExact($this->inventory->getItemInHand())) {
-					if ($item instanceof Durable && $item->isBroken()) {
-						$this->broadcastSound(new ItemBreakSound($this));
-					}
-					$this->inventory->setItemInHand($item);
-				}
-			}
-			return $entity->onFirstInteract($this, $clickPos);
-		}
-		return false;
 	}
 
 	public function attackEntity(Entity $target) : bool
@@ -3561,9 +3331,8 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$cancelled = false;
 
 		$heldItem = $this->inventory->getItemInHand();
-		$oldItem = clone $heldItem;
 
-		if (!$this->canInteract($target, self::MAX_REACH_DISTANCE_ENTITY_INTERACTION)) {
+		if (!$this->canInteract($target, 8)) {
 			$cancelled = true;
 		} elseif ($target instanceof Player) {
 			if (!$this->server->getConfigBool("pvp")) {
@@ -3599,19 +3368,21 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		$target->attack($ev);
 
-		$soundPos = $target->add(0, $target->height / 2, 0);
 		if ($ev->isCancelled()) {
-			$this->level->addSound(new EntityAttackNoDamageSound($soundPos));
-
 			if ($heldItem instanceof Durable && $this->isSurvival()) {
 				$this->inventory->sendContents($this);
 			}
 			return true;
 		}
-		$this->level->addSound(new EntityAttackSound($soundPos));
 
 		if ($ev->getModifier(EntityDamageEvent::MODIFIER_CRITICAL) > 0) {
-			$target->broadcastAnimation(AnimatePacket::ACTION_CRITICAL_HIT);
+			$pk = new AnimatePacket();
+			$pk->action = AnimatePacket::ACTION_CRITICAL_HIT;
+			$pk->entityRuntimeId = $target->getId();
+			$this->server->broadcastPacket($target->getViewers(), $pk);
+			if ($target instanceof Player) {
+				$target->dataPacket($pk);
+			}
 		}
 
 		foreach ($meleeEnchantments as $enchantment) {
@@ -3623,10 +3394,11 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		if ($this->isAlive()) {
 			//reactive damage like thorns might cause us to be killed by attacking another mob, which
 			//would mean we'd already have dropped the inventory by the time we reached here
-			$heldItem->onAttackEntity($target);
-			$this->returnItemsFromAction($oldItem, $heldItem, $heldItem->getReturnedItems());
+			if ($heldItem->onAttackEntity($target) && $this->isSurvival()) { //always fire the hook, even if we are survival
+				$this->inventory->setItemInHand($heldItem);
+			}
 
-			$this->exhaust(0.1, PlayerExhaustEvent::CAUSE_ATTACK);
+			$this->exhaust(0.3, PlayerExhaustEvent::CAUSE_ATTACK);
 		}
 
 		return true;
@@ -3671,6 +3443,22 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		return true;
 	}
 
+	public function handleLevelSoundEvent(LevelSoundEventPacket $packet) : bool
+	{
+		//TODO: add events so plugins can change this
+		if (
+			($packet->sound === LevelSoundEventPacket::SOUND_ATTACK_NODAMAGE && $this->isSpectator()) ||
+			$packet->sound === LevelSoundEventPacket::SOUND_THROW || //Being sent by server itself
+			$packet->sound === LevelSoundEventPacket::SOUND_NOTE ||
+			$packet->sound === LevelSoundEventPacket::SOUND_UNDEFINED
+		) {
+			return false;
+		}
+
+		$this->getLevel()->broadcastPacketToViewers($this, $packet);
+		return true;
+	}
+
 	public function handleEntityEvent(ActorEventPacket $packet) : bool
 	{
 		if (!$this->spawned || !$this->isAlive()) {
@@ -3684,39 +3472,22 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		switch ($packet->event) {
 			case ActorEventPacket::USE_ITEM: //Eating
 				if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
-					$this->consumeItem();
+					$this->consumeItem($this->inventory->getItemInHand());
 				}
 
 				break;
 			case ActorEventPacket::EATING_ITEM: // Eating particles
 				if (!$this->isUsingItem()) {
-					return true;
-				}
-
-				if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_419) {
-					[$legacyId, $legacyMeta] = ItemTranslator::getInstance($this->getProtocolVersion())->fromNetworkId($packet->data >> 16, 0);
-				} elseif ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_388) {
-					[$legacyId, $legacyMeta] = [$packet->data >> 16, 0];
-				} else {
-					[$legacyId, $legacyMeta] = [$packet->data, 0];
+					return false;
 				}
 
 				$itemInHand = $this->inventory->getItemInHand();
-				$itemProtocol = $itemInHand->getItemProtocol($this->getProtocolVersion());
-				if ($itemProtocol !== null) {
-					$itemInHand = ItemFactory::get($itemProtocol->getId(), $itemProtocol->getMeta());
+				$itemProtocol = $itemInHand->getItemProtocol($this->getProtocolVersion()) ?? $itemInHand;
+				if ($itemProtocol->getId() !== $packet->data) {
+					return false;
 				}
 
-				if (
-					!($itemInHand instanceof Consumable) ||
-					$itemInHand->getId() !== $legacyId
-				) { //TODO: checked legacyMeta?
-					if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
-						$this->inventory->sendContents($this);
-						return false;
-					}
-
-					$this->inventory->sendHeldItem($this);
+				if (!$itemProtocol instanceof Consumable) {
 					return false;
 				}
 
@@ -3724,33 +3495,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				if ($currentTick - $this->lastEatingSound >= 4) { // duct tape for eating sound spam bug
 					$this->sendDataPacket($packet);
 
-					/** @var Player[][] $protocolPlayers */
-					$protocolPlayers = [];
-					foreach ($this->getViewers() as $player) {
-						$protocolPlayers[$player->getProtocolVersion()][] = $player;
-					}
+					foreach ($this->getViewers() as $viewer) {
+						$packet->data = ($itemInHand->getItemProtocol($viewer->getProtocolVersion()) ?? $itemInHand)->getId();
 
-					foreach ($protocolPlayers as $protocolVersion => $players) {
-						[$id, $meta] = [$itemInHand->getId(), $itemInHand->getDamage()];
-
-						$itemProtocol = $itemInHand->getItemProtocol($protocolVersion);
-						if ($itemProtocol !== null) {
-							[$id, $meta] = [$itemProtocol->getId(), $itemProtocol->getMeta()];
-						}
-
-						if ($protocolVersion >= ProtocolInfo::PROTOCOL_419) {
-							[$netId, $netMeta] = ItemTranslator::getInstance($protocolVersion)->toNetworkIdQuiet($id, 0);
-							$runtimeId = $netId << 16;
-						} elseif ($protocolVersion >= ProtocolInfo::PROTOCOL_388) {
-							$runtimeId = $id << 16;
-						} else {
-							$runtimeId = $id;
-						}
-
-						$packet->data = $runtimeId;
-						foreach ($players as $player) {
-							$player->sendDataPacket($packet);
-						}
+						$viewer->sendDataPacket($packet);
 					}
 
 					$this->lastEatingSound = $currentTick;
@@ -3762,49 +3510,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		}
 
 		return true;
-	}
-
-	/**
-	 * @param Item[] $extraReturnedItems
-	 */
-	protected function returnItemsFromAction(Item $oldHeldItem, Item $newHeldItem, array $extraReturnedItems) : void
-	{
-		$heldItemChanged = false;
-
-		if (!$newHeldItem->equalsExact($oldHeldItem) && $oldHeldItem->equalsExact($this->inventory->getItemInHand())) {
-			//determine if the item was changed in some meaningful way, or just damaged/changed count
-			//if it was really changed we always need to set it, whether we have finite resources or not
-			$newReplica = clone $oldHeldItem;
-			$newReplica->setCount($newHeldItem->getCount());
-			if ($newReplica instanceof Durable && $newHeldItem instanceof Durable) {
-				$newDamage = $newHeldItem->getDamage();
-				if ($newDamage >= 0 && $newDamage <= $newReplica->getMaxDurability()) {
-					$newReplica->setDamage($newDamage);
-				}
-			}
-			$damagedOrDeducted = $newReplica->equalsExact($newHeldItem);
-
-			if (!$damagedOrDeducted || $this->hasFiniteResources()) {
-				if ($newHeldItem instanceof Durable && $newHeldItem->isBroken()) {
-					$this->broadcastSound(new ItemBreakSound($this));
-				}
-				$this->inventory->setItemInHand($newHeldItem);
-				$heldItemChanged = true;
-			}
-		}
-
-		if (!$heldItemChanged) {
-			$newHeldItem = $oldHeldItem;
-		}
-
-		if ($heldItemChanged && count($extraReturnedItems) > 0 && $newHeldItem->isNull()) {
-			$this->inventory->setItemInHand(array_shift($extraReturnedItems));
-		}
-
-		foreach ($this->inventory->addItem(...$extraReturnedItems) as $drop) {
-			//TODO: we can't generate a transaction for this since the items aren't coming from an inventory :(
-			$this->dropItem($drop);
-		}
 	}
 
 	/**
@@ -3836,21 +3541,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$result = $this->handleReleaseItemTransaction($packet->trData);
 		}
 
-		//requestChangedSlots asks the server to always send out the contents of the specified slots, even if they
-		//haven't changed. Handling these is necessary to ensure the client inventory stays in sync if the server
-		//rejects the transaction. The most common example of this is equipping armor by right-click, which doesn't send
-		//a legacy prediction action for the destination armor slot.
-		foreach ($packet->requestChangedSlots as $containerInfo) {
-			foreach ($containerInfo->getChangedSlotIndexes() as $netSlot) {
-				[$windowId, $slot] = ItemStackContainerIdTranslator::translate($containerInfo->getContainerId(), $this->currentWindowId, $netSlot);
-				$inventoryAndSlot = $this->locateWindowAndSlot($windowId, $slot);
-				if ($inventoryAndSlot !== null) { //trigger the normal slot sync logic
-					$inventoryAndSlot[0]->sendSlot($inventoryAndSlot[1], [$this]);
-				}
-			}
-		}
-
-		if (!$result && $this->connected && !$this->isEnableNewInventorySystem()) {
+		if (!$result && $this->connected) {
 			$this->inventory->sendContents($this);
 		}
 
@@ -3860,7 +3551,20 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	private function executeInventoryTransaction(InventoryTransaction $transaction) : bool
 	{
 		try {
-			return $transaction->execute();
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+				$transaction->execute();
+			} else {
+				$nextActions = $this->faultyOldTransactionActions;
+				$this->faultyOldTransactionActions = [];
+
+				$transaction->execute();
+
+				if (count($nextActions) !== 0) {
+					$nextTransaction = new InventoryTransaction($this, $nextActions);
+					$nextTransaction->setSkipValidation(true);
+					$this->executeInventoryTransaction($nextTransaction);
+				}
+			}
 		} catch (TransactionValidationException $e) {
 			$this->server->getLogger()->debug("Failed to execute inventory transaction from " . $this->getName() . ": " . $e->getMessage());
 			$this->server->getLogger()->debug("Actions: " . json_encode($transaction->getActions()));
@@ -3869,190 +3573,111 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			return false;
 		}
+
+		return true;
 	}
 
 	private function handleNormalTransaction(NormalTransactionData $data) : bool
 	{
-		if ($this->isEnableNewInventorySystem()) {
-			//When the ItemStackRequest system is used, this transaction type is used for dropping items by pressing Q.
-			//I don't know why they don't just use ItemStackRequest for that too, which already supports dropping items by
-			//clicking them outside an open inventory menu, but for now it is what it is.
-			//Fortunately, this means we can be much stricter about the validation criteria.
-
-			$actionCount = count($data->getActions());
-			if ($actionCount > 2) {
-				if ($actionCount > 5) {
-					throw new PacketHandlingException("Too many actions ($actionCount) in normal inventory transaction from " . $this->getName());
-				}
-
-				//Due to a bug in the game, this transaction type is still sent when a player edits a book. We don't need
-				//these transactions for editing books, since we have BookEditPacket, so we can just ignore them.
-				$this->server->getLogger()->debug("Ignoring normal inventory transaction with $actionCount actions (drop-item should have exactly 2 actions) from " . $this->getName());
-				return false;
-			}
-
-			$sourceSlot = null;
-			$clientItemStack = null;
-			$droppedCount = null;
-
-			foreach ($data->getActions() as $networkInventoryAction) {
-				if ($networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_WORLD && $networkInventoryAction->inventorySlot === NetworkInventoryAction::ACTION_MAGIC_SLOT_DROP_ITEM) {
-					$droppedCount = $networkInventoryAction->newItem->getItemStack()->getCount();
-					if ($droppedCount <= 0) {
-						throw new PacketHandlingException("Expected positive count for dropped item from " . $this->getName());
-					}
-				} elseif ($networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_CONTAINER && $networkInventoryAction->windowId === ContainerIds::INVENTORY) {
-					//mobile players can drop an item from a non-selected hotbar slot
-					$sourceSlot = $networkInventoryAction->inventorySlot;
-					$clientItemStack = $networkInventoryAction->oldItem->getItemStack();
-				} else {
-					$this->server->getLogger()->debug("Unexpected inventory action type $networkInventoryAction->sourceType in drop item transaction from " . $this->getName());
-					return false;
-				}
-			}
-			if ($sourceSlot === null || $clientItemStack === null || $droppedCount === null) {
-				$this->server->getLogger()->debug("Missing information in drop item transaction, need source slot, client item stack and dropped count from " . $this->getName());
-				return false;
-			}
-
-			$inventory = $this->inventory;
-
-			if (!$inventory->slotExists($sourceSlot)) {
-				return false; //TODO: size desync??
-			}
-
-			$sourceSlotItem = $inventory->getItem($sourceSlot);
-			if ($sourceSlotItem->getCount() < $droppedCount) {
-				return false;
-			}
-
-			$serverItemStack = TypeConverter::getInstance()->coreItemStackToNet($sourceSlotItem, $this->getProtocolVersion());
-			//Sadly we don't have itemstack IDs here, so we have to compare the basic item properties to ensure that we're
-			//dropping the item the client expects (inventory might be out of sync with the client).
-			if(
-				$serverItemStack->getId() !== $clientItemStack->getId() ||
-				$serverItemStack->getMeta() !== $clientItemStack->getMeta() ||
-				$serverItemStack->getCount() !== $clientItemStack->getCount() ||
-				$serverItemStack->getBlockRuntimeId() !== $clientItemStack->getBlockRuntimeId()
-				//Raw extraData may not match because of TAG_Compound key ordering differences, and decoding it to compare
-				//is costly. Assume that we're in sync if id+meta+count+runtimeId match.
-				//NB: Make sure $clientItemStack isn't used to create the dropped item, as that would allow the client
-				//to change the item NBT since we're not validating it.
-			){
-				return false;
-			}
-
-			//this modifies $sourceSlotItem
-			$droppedItem = $sourceSlotItem->pop($droppedCount);
-
-			$builder = new TransactionBuilder();
-			$builder->getInventory($inventory)->setItem($sourceSlot, $sourceSlotItem);
-			$builder->addAction(new DropItemAction($droppedItem));
-
-			$transaction = new InventoryTransaction($this, $builder->generateActions());
-		} else {
-			/** @var InventoryAction[] $actions */
-			$actions = [];
-			$isCraftingPart = false;
-			$isFinalCraftingPart = false;
-			foreach ($data->getActions() as $networkInventoryAction) {
-				if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_388) {
-					if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_407) {
-						if (
-							$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_CONTAINER &&
-							$networkInventoryAction->windowId === ContainerIds::UI &&
-							$networkInventoryAction->inventorySlot === 50 &&
-							!$networkInventoryAction->oldItem->getItemStack()->equals($networkInventoryAction->newItem->getItemStack())
-						) {
-							$isCraftingPart = true;
-							if (!$networkInventoryAction->oldItem->getItemStack()->isNull() && $networkInventoryAction->newItem->getItemStack()->isNull()) {
-								$isFinalCraftingPart = true;
-							}
-						} elseif (
-							$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO && (
-								$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT ||
-								$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_USE_INGREDIENT
-							)
-						) {
-							$isCraftingPart = true;
+		/** @var InventoryAction[] $actions */
+		$actions = [];
+		$isCraftingPart = false;
+		$isFinalCraftingPart = false;
+		foreach ($data->getActions() as $networkInventoryAction) {
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_388) {
+				if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_407) {
+					if (
+						$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_CONTAINER &&
+						$networkInventoryAction->windowId === ContainerIds::UI &&
+						$networkInventoryAction->inventorySlot === 50 &&
+						!$networkInventoryAction->oldItem->getItemStack()->equalsExact($networkInventoryAction->newItem->getItemStack())
+					) {
+						$isCraftingPart = true;
+						if (!$networkInventoryAction->oldItem->getItemStack()->isNull() && $networkInventoryAction->newItem->getItemStack()->isNull()) {
+							$isFinalCraftingPart = true;
 						}
-					} else {
-						if (
-							$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO && (
-								$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT ||
-								$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_USE_INGREDIENT
-							)
-						) {
-							$isCraftingPart = true;
-							if ($networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT) {
-								$isFinalCraftingPart = true;
-							}
-						}
+					} elseif (
+						$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO && (
+							$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT ||
+							$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_USE_INGREDIENT
+						)
+					) {
+						$isCraftingPart = true;
 					}
 				} else {
-					if ((
-						$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO ||
-							$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_UNTRACKED_INTERACTION_UI
-					) && (
-						$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT ||
-						$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_USE_INGREDIENT
-					)) {
+					if (
+						$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO && (
+							$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT ||
+							$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_USE_INGREDIENT
+						)
+					) {
 						$isCraftingPart = true;
 						if ($networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT) {
 							$isFinalCraftingPart = true;
 						}
 					}
 				}
-
-				try {
-					$action = TypeConverter::getInstance()->createInventoryAction($networkInventoryAction, $this);
-					if ($action !== null) {
-						$actions[] = $action;
+			} else {
+				if ((
+					$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO ||
+						$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_UNTRACKED_INTERACTION_UI
+				) && (
+					$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT ||
+					$networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_USE_INGREDIENT
+				)) {
+					$isCraftingPart = true;
+					if ($networkInventoryAction->windowId === NetworkInventoryAction::SOURCE_TYPE_CRAFTING_RESULT) {
+						$isFinalCraftingPart = true;
 					}
-				} catch (TypeConversionException $e) {
-					$this->server->getLogger()->debug("Unhandled inventory action from " . $this->getName() . ": " . $e->getMessage());
-					$this->sendAllInventories();
-					return false;
 				}
 			}
 
-			if ($isCraftingPart) {
-				if ($this->craftingTransaction === null) {
-					$this->craftingTransaction = new CraftingTransaction($this, $actions);
-				} else {
-					foreach ($actions as $action) {
-						$this->craftingTransaction->addAction($action);
-					}
+			try {
+				$action = $networkInventoryAction->createInventoryAction($this);
+				if ($action !== null) {
+					$actions[] = $action;
 				}
-
-				if ($isFinalCraftingPart) {
-					//we get the actions for this in several packets, so we need to wait until we have all the pieces before
-					//trying to execute it
-
-					$ret = true;
-					try {
-						$this->craftingTransaction->execute();
-					} catch (TransactionValidationException $e) {
-						$this->server->getLogger()->debug("Failed to execute crafting transaction for " . $this->getName() . ": " . $e->getMessage());
-						$ret = false;
-					} finally {
-						$this->craftingTransaction = null;
-					}
-
-					return $ret;
-				}
-
-				return true;
-			} elseif ($this->craftingTransaction !== null) {
-				$this->server->getLogger()->debug("Got unexpected normal inventory action with incomplete crafting transaction from " . $this->getName() . ", refusing to execute crafting");
-				$this->craftingTransaction = null;
+			} catch (UnexpectedValueException $e) {
+				$this->server->getLogger()->debug("Unhandled inventory action from " . $this->getName() . ": " . $e->getMessage());
+				$this->sendAllInventories();
+				return false;
 			}
-
-			$this->setUsingItem(false);
-
-			$transaction = new InventoryTransaction($this, $actions);
 		}
 
+		if ($isCraftingPart) {
+			if ($this->craftingTransaction === null) {
+				$this->craftingTransaction = new CraftingTransaction($this, $actions);
+			} else {
+				foreach ($actions as $action) {
+					$this->craftingTransaction->addAction($action);
+				}
+			}
+
+			if ($isFinalCraftingPart) {
+				//we get the actions for this in several packets, so we need to wait until we have all the pieces before
+				//trying to execute it
+
+				$ret = true;
+				try {
+					$this->craftingTransaction->execute();
+				} catch (TransactionValidationException $e) {
+					$this->server->getLogger()->debug("Failed to execute crafting transaction for " . $this->getName() . ": " . $e->getMessage());
+					$ret = false;
+				}
+
+				$this->craftingTransaction = null;
+				return $ret;
+			}
+
+			return true;
+		} elseif ($this->craftingTransaction !== null) {
+			$this->server->getLogger()->debug("Got unexpected normal inventory action with incomplete crafting transaction from " . $this->getName() . ", refusing to execute crafting");
+			$this->craftingTransaction = null;
+		}
+
+		$this->setUsingItem(false);
+
+		$transaction = new InventoryTransaction($this, $actions);
 		return $this->executeInventoryTransaction($transaction);
 	}
 
@@ -4083,14 +3708,19 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				}
 				//TODO: end hack for client spam bug
 
-				$this->useItem($blockVector, $data->getClickPos(), $this->getInventory()->getItemInHand(), $face);
+				$this->useItem($blockVector, $data->getClickPos(), $data->getItemInHand()->getItemStack(), $face);
 				return true;
 			case UseItemTransactionData::ACTION_BREAK_BLOCK:
 				return $this->removeBlock($blockVector);
 			case UseItemTransactionData::ACTION_CLICK_AIR:
-				$item = $this->getInventory()->getItemInHand();
+				$item = $data->getItemInHand()->getItemStack();
+				if (!$this->isCreative() && !$item->equals($this->inventory->getItemInHand())) {
+					$this->inventory->sendHeldItem($this);
+					return false;
+				}
+
 				if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_388 && $this->isUsingItem()) {
-					if ($this->consumeItem()) {
+					if ($this->consumeItem($item)) {
 						$action = CompletedUsingItemPacket::ACTION_CONSUME;
 					} else {
 						$action = CompletedUsingItemPacket::ACTION_UNKNOWN;
@@ -4121,7 +3751,31 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		switch ($data->getActionType()) {
 			case UseItemOnEntityTransactionData::ACTION_INTERACT:
-				return $this->interactEntity($target, $data->getClickPosition());
+				if (!$target->isAlive()) {
+					return true;
+				}
+				$ev = new PlayerInteractEntityEvent($this, $target, $item = $this->inventory->getItemInHand(), $data->getClickPosition());
+				$ev->call();
+
+				if (!$ev->isCancelled()) {
+					$oldItem = clone $item;
+					if (!$target->onFirstInteract($this, $ev->getItem(), $ev->getClickPosition())) {
+						if ($target instanceof Living) {
+							if ($this->isCreative()) {
+								$item = $oldItem;
+							}
+
+							if ($item->onInteractWithEntity($this, $target)) {
+								if (!$item->equalsExact($oldItem) && !$this->isCreative()) {
+									$this->inventory->setItemInHand($item);
+								}
+							}
+						}
+					} elseif (!$item->equalsExact($oldItem)) {
+						$this->inventory->setItemInHand($ev->getItem());
+					}
+				}
+				return true;
 			case UseItemOnEntityTransactionData::ACTION_ATTACK:
 				return $this->attackEntity($target);
 			default:
@@ -4140,13 +3794,14 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		try {
 			switch ($data->getActionType()) {
 				case ReleaseItemTransactionData::ACTION_RELEASE:
-					if ($this->releaseHeldItem()) {
-						$this->completeUsingItem($this->getInventory()->getItemInHand(), CompletedUsingItemPacket::ACTION_SHOOT);
+					$item = $data->getItemInHand()->getItemStack();
+					if ($this->releaseItem($item)) {
+						$this->completeUsingItem($item, CompletedUsingItemPacket::ACTION_SHOOT);
 					}
 					break;
 				case ReleaseItemTransactionData::ACTION_CONSUME:
 					if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_388) {
-						$this->consumeItem();
+						$this->consumeItem($this->inventory->getItemInHand());
 					}
 					break;
 				default:
@@ -4159,74 +3814,25 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		return true;
 	}
 
-	public function releaseHeldItem() : bool
+	public function releaseItem(Item $item) : bool
 	{
-		try {
-			$item = $this->inventory->getItemInHand();
-			if (!$this->isUsingItem() || $this->hasItemCooldown($item)) {
+		if ($this->isUsingItem()) {
+			if ($this->hasItemCooldown($item)) {
 				$this->inventory->sendContents($this);
 				return false;
 			}
-
-			$oldItem = clone $item;
-			if ($item->onReleaseUsing($this)) {
-				$this->resetItemCooldown($oldItem);
-				$this->returnItemsFromAction($oldItem, $item, $item->getReturnedItems());
-				return true;
-			}
-
+			$item->onReleaseUsing($this);
+			$this->resetItemCooldown($item);
+		} else {
+			$this->inventory->sendContents($this);
 			return false;
-		} finally {
-			$this->setUsingItem(false);
 		}
-	}
-
-	private function handleSingleItemStackRequest(ItemStackRequest $request) : ?ItemStackResponseBuilder
-	{
-		if (count($request->getActions()) > 60) {
-			//recipe book auto crafting can affect all slots of the inventory when consuming inputs or producing outputs
-			//this means there could be as many as 50 CraftingConsumeInput actions or Place (taking the result) actions
-			//in a single request (there are certain ways items can be arranged which will result in the same stack
-			//being taken from multiple times, but this is behaviour with a calculable limit)
-			//this means there SHOULD be AT MOST 53 actions in a single request, but 60 is a nice round number.
-			//n64Stacks = ?
-			//n1Stacks = 45 - n64Stacks
-			//nItemsRequiredFor1Craft = 9
-			//nResults = floor((n1Stacks + (n64Stacks * 64)) / nItemsRequiredFor1Craft)
-			//nTakeActionsTotal = floor(64 / nResults) + max(1, 64 % nResults) + ((nResults * nItemsRequiredFor1Craft) - (n64Stacks * 64))
-			throw new PacketHandlingException("Too many actions in ItemStackRequest");
-		}
-		$executor = new ItemStackRequestExecutor($this, $request);
-		try {
-			$transaction = $executor->generateInventoryTransaction();
-			if ($transaction !== null) {
-				$result = $this->executeInventoryTransaction($transaction);
-			} else {
-				$result = true; //predictions only, just send responses
-			}
-		} catch (ItemStackRequestProcessException $e) {
-			$result = false;
-			$this->server->getLogger()->debug($this->getName() . " ItemStackRequest #" . $request->getRequestId() . " failed: " . $e->getMessage());
-			$this->server->getLogger()->debug(implode("\n", Utils::printableExceptionInfo($e)));
-			$this->sendAllInventories();
-		}
-
-		return $result ? $executor->getItemStackResponseBuilder() : null;
+		return true;
 	}
 
 	public function handleItemStackRequest(ItemStackRequestPacket $packet) : bool
 	{
-		$responses = [];
-		if (count($packet->getRequests()) > 80) {
-			//TODO: we can probably lower this limit, but this will do for now
-			throw new PacketHandlingException("Too many requests in ItemStackRequestPacket");
-		}
-		foreach ($packet->getRequests() as $request) {
-			$responses[] = $this->handleSingleItemStackRequest($request)?->build() ?? new ItemStackResponse(ItemStackResponse::RESULT_ERROR, $request->getRequestId());
-		}
-
-		$this->sendDataPacket(ItemStackResponsePacket::create($responses));
-
+		$this->sendDataPacket(ItemStackResponsePacket::create([]));
 		return true;
 	}
 
@@ -4234,7 +3840,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	{
 		if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_388) {
 			$pk = new CompletedUsingItemPacket();
-			$pk->itemId = TypeConverter::getInstance()->coreItemStackToNet($item, $this->getProtocolVersion())->getId();
+			$pk->itemId = $item->getId();
 			$pk->action = $action;
 			$this->sendDataPacket($pk);
 		}
@@ -4246,11 +3852,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return true;
 		}
 
-		$protocolVersion = $this->getProtocolVersion();
-		$input = array_map(fn (ItemStackWrapper $itemStackWrapper) => TypeConverter::getInstance()->netItemStackToCore($itemStackWrapper->getItemStack(), $protocolVersion), $packet->input);
-		$output = array_map(fn (ItemStackWrapper $itemStackWrapper) => TypeConverter::getInstance()->netItemStackToCore($itemStackWrapper->getItemStack(), $protocolVersion), $packet->output);
+		$input = array_map(fn (ItemStackWrapper $itemStackWrapper) => $itemStackWrapper->getItemStack(), $packet->input);
+		$output = array_map(fn (ItemStackWrapper $itemStackWrapper) => $itemStackWrapper->getItemStack(), $packet->output);
 
-		$recipes = $this->server->getCraftingManager()->matchRecipeByOutputs($output, $this->getCraftingProtocol());
+		$recipes = CraftingManager::matchRecipeByOutputs($output);
 		$inventory = $this->getCraftingGrid();
 		if (count($input) > 0) {
 			foreach ($input as $item) {
@@ -4361,29 +3966,37 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		return true;
 	}
 
-	public function consumeItem() : bool
+	public function consumeItem(Item $item) : bool
 	{
 		if ($this->isUsingItem()) {
-			$slot = $this->inventory->getItemInHand();
-			if ($slot instanceof Consumable && !($slot instanceof MaybeConsumable && !$slot->canBeConsumed())) {
-				$oldItem = clone $slot;
+			$this->setUsingItem(false);
 
-				$ev = new PlayerItemConsumeEvent($this, $slot);
-				if ($this->hasItemCooldown($slot)) {
+			if ($item instanceof Consumable && !($item instanceof MaybeConsumable && !$item->canBeConsumed())) {
+				$ev = new PlayerItemConsumeEvent($this, $item);
+				if ($this->hasItemCooldown($item)) {
 					$ev->setCancelled();
 				}
 				$ev->call();
-				if ($ev->isCancelled() || !$this->consumeObject($slot)) {
+				if ($ev->isCancelled() || !$this->consumeObject($item)) {
 					$this->inventory->sendContents($this);
 					$this->sendAttributes(true);
 					return false;
 				}
 
-				$this->setUsingItem(false);
-				$this->resetItemCooldown($oldItem);
+				if ($this->isSurvival()) {
+					$item->pop();
+					$this->inventory->setItemInHand($item);
+					$this->inventory->addItem($item->getResidue());
+				}
 
-				$slot->pop();
-				$this->returnItemsFromAction($oldItem, $slot, [$slot->getResidue()]);
+				$pk = new ActorEventPacket();
+				$pk->entityRuntimeId = $this->getId();
+				$pk->event = ActorEventPacket::USE_ITEM;
+				$this->sendDataPacket($pk);
+
+				$this->server->broadcastPacket($this->getViewers(), $pk);
+
+				$this->resetItemCooldown($item);
 				return true;
 			}
 		}
@@ -4399,13 +4012,11 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		if ($packet->windowId === ContainerIds::OFFHAND) {
 			if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
-				$this->addInventoryTransactionActions(new ContainerSlotChangeAction(
-						$this->offHandInventory,
-						0,
-						$this->offHandInventory->getItem(0),
-						TypeConverter::getInstance()->netItemStackToCore($packet->item->getItemStack(), $this->getProtocolVersion()))
-				);
-				return true;
+				$transaction = new InventoryTransaction($this, [
+					new ContainerSlotChangeAction($this->offHandInventory, 0, $this->offHandInventory->getItem(0), $packet->item->getItemStack())
+				]);
+				$transaction->setSkipValidation(true);
+				return $this->executeInventoryTransaction($transaction);
 			}
 			return true;
 		}
@@ -4480,8 +4091,31 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
 					return true;
 				}
+				if (!$target->isAlive()) {
+					return true;
+				}
+				$ev = new PlayerInteractEntityEvent($this, $target, $item = $this->inventory->getItemInHand(), $target->asVector3());
+				$ev->call();
 
-				return $this->interactEntity($target, $target->asVector3());
+				if (!$ev->isCancelled()) {
+					$oldItem = clone $item;
+					if (!$target->onFirstInteract($this, $ev->getItem(), $ev->getClickPosition())) {
+						if ($target instanceof Living) {
+							if ($this->isCreative()) {
+								$item = $oldItem;
+							}
+
+							if ($item->onInteractWithEntity($this, $target)) {
+								if (!$item->equalsExact($oldItem) && !$this->isCreative()) {
+									$this->inventory->setItemInHand($item);
+								}
+							}
+						}
+					} elseif (!$item->equalsExact($oldItem)) {
+						$this->inventory->setItemInHand($ev->getItem());
+					}
+				}
+				break;
 			case InteractPacket::ACTION_LEFT_CLICK:
 				if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
 					return $this->attackEntity($target);
@@ -4595,7 +4229,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				}
 
 				if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
-					$this->releaseHeldItem();
+					$this->releaseItem($this->inventory->getItemInHand());
 				}
 
 				break;
@@ -4758,11 +4392,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		return true;
 	}
 
-	public function toggleCrawl(bool $crawling) : bool
-	{
+	public function toggleCrawl(bool $crawling) : bool{
 		$ev = new PlayerToggleCrawlEvent($this, $crawling);
 		$ev->call();
-		if ($ev->isCancelled()) {
+		if($ev->isCancelled()){
 			$this->sendData($this);
 			return false;
 		}
@@ -4777,20 +4410,28 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return true;
 		}
 
-		if ($packet->actorRuntimeId !== $this->getId()) {
-			throw new PacketHandlingException("Wrong actorRuntimeId");
+		if ($packet->entityRuntimeId !== $this->getId()) {
+			$this->close($this->getLeaveMessage(), "Bad packet: AnimatePacket");
+			$this->getServer()->getNetwork()->blockAddress($this->getAddress());
+			return false;
 		}
 
-		$this->animateLimiter->update();
+		$ev = new PlayerAnimationEvent($this, $packet->action);
+		$ev->call();
+		if ($ev->isCancelled()) {
+			return true;
+		}
 
-		if ($packet->action === AnimatePacket::ACTION_ROW_RIGHT || $packet->action === AnimatePacket::ACTION_ROW_LEFT) {
-			$riding = $this->getRidingEntity();
-			if ($riding instanceof Boat) {
+		$riding = $this->getRidingEntity();
+		if ($riding instanceof Boat) {
+			if ($packet->action === AnimatePacket::ACTION_ROW_RIGHT) {
 				$riding->setPaddleTimeRight($packet->rowingTime);
+			} elseif ($packet->action === AnimatePacket::ACTION_ROW_LEFT) {
+				$riding->setPaddleTimeLeft($packet->rowingTime);
 			}
-		} elseif ($packet->action === AnimatePacket::ACTION_SWING_ARM) {
-			$this->server->broadcastPacket($this->getViewers(), $packet);
 		}
+
+		$this->server->broadcastPacket($this->getViewers(), $packet);
 
 		return true;
 	}
@@ -4809,27 +4450,55 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		return false;
 	}
 
-	public function useItem(Vector3 $pos, Vector3 $clickOffset, Item $item, int $face) : void
+	public function useItem(Vector3 $blockVector, Vector3 $clickPos, Item $item, int $face) : void
 	{
-		$this->useTimeLimiter->update();
+		$time = time();
+		if ($time !== $this->useItemLast) {
+			$this->useItemCounter = 0;
+		}
+
+		if (++$this->useItemCounter > 100) {
+			$this->getServer()->getNetwork()->blockAddress($this->getAddress());
+			$this->useItemLast = $time;
+			return;
+		}
+
+		$this->useItemLast = $time;
 
 		if ($face >= 0 && $face <= 5) { //Use Block, place
 			$this->setUsingItem(false);
 
-			if ($this->canInteract($pos->add(0.5, 0.5, 0.5), $this->isCreative() ? self::MAX_REACH_DISTANCE_CREATIVE : self::MAX_REACH_DISTANCE_SURVIVAL)) {
-				$item = $this->inventory->getItemInHand(); //this is a copy of the real item
+			if (!$this->canInteract($blockVector->add(0.5, 0.5, 0.5), 13) || $this->isSpectator()) {
+			} elseif ($this->isCreative()) {
+				$item = $this->inventory->getItemInHand();
+				if ($this->level->useItemOn($blockVector, $item, $face, $clickPos, $this, true)) {
+					return;
+				}
+			} elseif (!$this->inventory->getItemInHand()->equals($item)) {
+				$this->inventory->sendHeldItem($this);
+			} else {
+				$item = $this->inventory->getItemInHand();
 				$oldItem = clone $item;
-				if ($this->level->useItemOn($pos, $item, $face, $clickOffset, $this, true)) {
-					$this->returnItemsFromAction($oldItem, $item, $item->getReturnedItems());
+				if ($this->level->useItemOn($blockVector, $item, $face, $clickPos, $this, true)) {
+					if (!$item->equalsExact($oldItem)) {
+						$this->inventory->sendHeldItem($this->hasSpawned);
+						$this->inventory->setItemInHand($item);
+						if ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
+							$this->inventory->sendContents($this);
+						}
+					}
+
 					return;
 				}
 			}
 
-			if ($pos->distanceSquared($this) > 10000) {
+			$this->inventory->sendHeldItem($this);
+
+			if ($blockVector->distanceSquared($this) > 10000) {
 				return;
 			}
 
-			$target = $this->level->getBlock($pos);
+			$target = $this->level->getBlock($blockVector);
 			$block = $target->getSide($face);
 
 			$this->level->sendBlocks([$this], [$target, $block], UpdateBlockPacket::FLAG_ALL_PRIORITY);
@@ -4845,10 +4514,8 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				$item = $this->inventory->getItemInHand();
 			}
 
-			$oldItem = clone $item;
-
 			$ev = new PlayerInteractEvent($this, $item, null, $directionVector, $face, PlayerInteractEvent::RIGHT_CLICK_AIR);
-			if ($this->hasItemCooldown($item) || $this->isSpectator()) {
+			if ($this->hasItemCooldown($item)) {
 				$ev->setCancelled();
 			}
 
@@ -4864,8 +4531,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			}
 
 			if ($item->onClickAir($this, $directionVector)) {
-				$this->resetItemCooldown($oldItem);
-				$this->returnItemsFromAction($oldItem, $item, $item->getReturnedItems());
+				$this->resetItemCooldown($item);
+				if ($this->isSurvival()) {
+					$this->inventory->setItemInHand($item);
+				}
 			}
 
 			$this->setUsingItem($item instanceof Releasable && $item->canStartUsingItem($this));
@@ -4878,13 +4547,41 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return true;
 		}
 
-		$item = TypeConverter::getInstance()->netItemStackToCore($packet->item, $this->getProtocolVersion());
-		if ($item->getId() === ItemIds::AIR) {
+		$item = $packet->item->getItemStack();
+
+		if ($item->getId() === Item::AIR) {
 			// Windows 10 Edition drops the contents of the crafting grid on container close - including air.
 			return true;
 		}
 
-		$this->addInventoryTransactionActions(new ContainerDropItemAction($item));
+		$isRemoveItem = true;
+		if($this->craftingGrid->contains($item)){
+			$this->craftingGrid->removeItem($item);
+		} elseif($this->inventory->contains($item)){
+			$isRemoveItem = false;
+		} elseif ($this->isCreative()) {
+			if (!$this->creativeInventory->contains($item)) {
+				return false;
+			}
+		}else{
+			return false;
+		}
+
+		if(!$this->dropItem($item)){
+			if ($isRemoveItem) {
+				$this->inventory->addItem($item);
+			} else {
+				$this->inventory->sendContents($this);
+			}
+			return true;
+		}
+
+		if (!$isRemoveItem) {
+			$this->inventory->removeItem($item);
+		}
+
+		$this->inventory->sendHeldItem($this);
+		$this->inventory->sendHeldItem($this->hasSpawned);
 		return true;
 	}
 
@@ -4906,7 +4603,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		$ev = new PlayerDropItemEvent($this, $item);
 		$ev->call();
-		if ($ev->isCancelled()) {
+		if($ev->isCancelled()){
 			return false;
 		}
 
@@ -4916,21 +4613,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		$this->setUsingItem(false);
 		return true;
-	}
-
-	public function getCurrentWindowId() : int
-	{
-		return $this->currentWindowId;
-	}
-
-	public function setCurrentWindowId(int $windowId) : void
-	{
-		$this->currentWindowId = $windowId;
-	}
-
-	public function getCurrentWindow() : ?Inventory
-	{
-		return $this->getWindow($this->currentWindowId);
 	}
 
 	public function getCurrentWindowType() : ?int
@@ -4950,7 +4632,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 	public function handleContainerClose(ContainerClosePacket $packet) : bool
 	{
-		if (!$this->spawned || ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_407 && $packet->windowId === ContainerIds::INVENTORY)) {
+		if(!$this->spawned || ($this->getProtocolVersion() < ProtocolInfo::PROTOCOL_407 && $packet->windowId === ContainerIds::INVENTORY)){
 			return true;
 		}
 
@@ -4973,7 +4655,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$this->sendDataPacket($pk);
 		}
 
-		if (isset($this->windowIndex[$packet->windowId])) {
+		if(isset($this->windowIndex[$packet->windowId])){
 			$this->closingWindowId = $windowId;
 			$this->removeWindow($this->windowIndex[$windowId]);
 			$this->closingWindowId = null;
@@ -4988,13 +4670,13 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return true;
 		}
 
-		$slot = $packet->inventorySlot;
+		$slot = $packet->slot;
 
 		if ($slot < 0) {
 			return false;
 		}
 
-		switch ($packet->windowId) {
+		switch ($packet->windowid) {
 			case ContainerIds::INVENTORY:
 				if ($slot >= $this->inventory->getSize()) {
 					return false;
@@ -5014,7 +4696,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				$this->inventory->setHotbarSlotIndex($packet->hotbarSlot, $slot - 9);
 				return true;
 			default:
-				$inventory = $this->getWindow($packet->windowId);
+				$inventory = $this->getWindow($packet->windowid);
 				if (!($inventory instanceof Inventory)) {
 					return false;
 				}
@@ -5026,13 +4708,11 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				break;
 		}
 
-		$this->addInventoryTransactionActions(new ContainerSlotChangeAction(
-			$inventory,
-			$slot,
-			$inventory->getItem($slot),
-			TypeConverter::getInstance()->netItemStackToCore($packet->item, $this->getProtocolVersion()))
-		);
-		return true;
+		$transaction = new InventoryTransaction($this, [
+			new ContainerSlotChangeAction($inventory, $slot, $inventory->getItem($slot), $packet->item->getItemStack())
+		]);
+		$transaction->setSkipValidation(true);
+		return $this->executeInventoryTransaction($transaction);
 	}
 
 	public function handleAdventureSettings(AdventureSettingsPacket $packet) : bool
@@ -5041,14 +4721,13 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return true; //no longer used, but the client still sends it for flight changes
 		}
 
-		$data = $packet->getAdventureSettingsData();
-		if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137 && $data->getEntityUniqueId() !== $this->getId()) {
+		if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137 && $packet->entityUniqueId !== $this->getId()) {
 			return false; //TODO
 		}
 
 		$handled = false;
 
-		$isFlying = $data->getFlag(AdventureSettingsData::FLYING);
+		$isFlying = $packet->getFlag(AdventureSettingsPacket::FLYING);
 		if ($isFlying && !$this->allowFlight) {
 			$this->kick($this->server->getLanguage()->translateString("kick.reason.cheat", ["%ability.flight"]));
 			return true;
@@ -5065,7 +4744,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$handled = true;
 		}
 
-		if ($data->getFlag(AdventureSettingsData::NO_CLIP) && !$this->allowMovementCheats && !$this->isSpectator()) {
+		if ($packet->getFlag(AdventureSettingsPacket::NO_CLIP) && !$this->allowMovementCheats && !$this->isSpectator()) {
 			$this->kick($this->server->getLanguage()->translateString("kick.reason.cheat", ["%ability.noclip"]));
 			return true;
 		}
@@ -5080,8 +4759,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		if (!$this->spawned || !$this->isAlive()) {
 			return true;
 		}
-
-		$this->blockActorDataLimiter->update();
 
 		$this->doCloseInventory();
 
@@ -5145,10 +4822,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 	public function handleResourcePackChunkRequest(ResourcePackChunkRequestPacket $packet) : bool
 	{
-		if ($this->resourceStackDone) {
+		if ($this->resourcePacksDone) {
 			return false;
 		}
-
 		$manager = $this->server->getResourcePackManager($this->getProtocolVersion());
 		$pack = $manager->getPackById($packet->packId);
 		if (!($pack instanceof ResourcePack)) {
@@ -5158,7 +4834,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return false;
 		}
 
-		$packId = $pack->getPackId(); //use this because case may be different
+		$packId = $pack->getPackId();
 
 		if (isset($this->downloadedChunks[$packId][$packet->chunkIndex])) {
 			$this->close("", "disconnectionScreen.resourcePack", true);
@@ -5186,7 +4862,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$pk->chunkIndex = $packet->chunkIndex;
 		$pk->data = $pack->getPackChunk($offset, self::RESOURCE_PACK_CHUNK_SIZE);
 		$pk->progress = $offset;
-		$this->sendDataPacket($pk);
+		$this->dataPacket($pk);
 		return true;
 	}
 
@@ -5262,6 +4938,8 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return;
 		}
 
+		$this->server->getLogger()->info("Handling encoded packet from " . $this->getName() . " (len: " . strlen($payload) . ")");
+
 		Timings::$playerNetworkReceive->startTiming();
 		try {
 			$this->packetBatchLimiter->decrement();
@@ -5306,25 +4984,26 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				$decompressed = $payload;
 			}
 
-			try {
+			try{
 				$stream = new BinaryStream($decompressed);
-				foreach (PacketBatch::decodeRaw($stream) as $buffer) {
+				foreach(PacketBatch::decodeRaw($stream) as $buffer){
 					$packet = PacketPool::getPacket($buffer, $this->getProtocolVersion());
-					if ($packet instanceof UnknownPacket) {
+					$this->server->getLogger()->info("Received packet " . $packet->getName() . " (ID: " . $packet->pid() . ") from " . $this->getName() . " (Protocol: " . $this->getProtocolVersion() . ")");
+					if($packet instanceof UnknownPacket){
 						$this->server->getLogger()->debug($this->getName() . " Unknown packet: " . base64_encode($buffer));
 						throw new PacketHandlingException("Unknown packet received");
 					}
 
 					$packet->setProtocol($this->getProtocolVersion());
 
-					try {
+					try{
 						$this->handleDataPacket($packet);
-					} catch (PacketHandlingException $e) {
+					}catch(PacketHandlingException $e){
 						$this->server->getLogger()->debug($this->getName() . " " . $packet->getName() . ": " . base64_encode($buffer));
 						throw PacketHandlingException::wrap($e, "Error processing " . $packet->getName());
 					}
 				}
-			} catch (PacketDecodeException|BinaryDataException $e) {
+			}catch(PacketDecodeException|BinaryDataException $e){
 				$this->server->getLogger()->debug($this->getName() . " " . $e);
 				throw PacketHandlingException::wrap($e, "Packet batch decode error");
 			}
@@ -5350,6 +5029,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	{
 		if (!$this->connected) {
 			return false;
+		}
+
+		if ($packet instanceof BatchPacket) {
+			return true;
 		}
 
 		//Basic safety restriction. TODO: improve this
@@ -5463,14 +5146,13 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$this->sendBuffer[] = $buffer;
 	}
 
-	public static function encodePacketTimed(DataPacket $packet) : string
-	{
+	public static function encodePacketTimed(DataPacket $packet) : string{
 		$timings = Timings::getEncodeDataPacketTimings($packet);
 		$timings->startTiming();
-		try {
+		try{
 			$packet->encode();
 			return $packet->getBuffer();
-		} finally {
+		}finally{
 			$timings->stopTiming();
 		}
 	}
@@ -5581,7 +5263,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 *
 	 * @param TextContainer|string $quitMessage
 	 */
-	public function kick(string $reason = "", bool $isAdmin = true, $quitMessage = null, int $reasonType = DisconnectFailReason::DISCONNECTED) : bool
+	public function kick(string $reason = "", bool $isAdmin = true, $quitMessage = null) : bool
 	{
 		$ev = new PlayerKickEvent($this, $reason, $quitMessage ?? $this->getLeaveMessage());
 		$ev->call();
@@ -5597,7 +5279,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 					$message = "disconnectionScreen.noReason";
 				}
 			}
-			$this->close($ev->getQuitMessage(), $message, true, $reasonType);
+			$this->close($ev->getQuitMessage(), $message);
 
 			return true;
 		}
@@ -5754,8 +5436,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$this->dataPacket($pk);
 	}
 
-	public function sendMessagef(string $format, mixed ...$args) : void
-	{
+	public function sendMessagef(string $format, mixed ...$args) : void{
 		$this->sendMessage(sprintf($format, ...$args));
 	}
 
@@ -5892,12 +5573,12 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 * @param TextContainer|string $message Message to be broadcasted
 	 * @param string               $reason  Reason showed in console
 	 */
-	final public function close($message = "", string $reason = "generic reason", bool $notify = true, int $reasonType = DisconnectFailReason::DISCONNECTED) : void
+	final public function close($message = "", string $reason = "generic reason", bool $notify = true) : void
 	{
 		if ($this->connected && !$this->closed) {
 			if ($notify && strlen($reason) > 0) {
 				$pk = new DisconnectPacket();
-				$pk->reason = $reasonType;
+				$pk->reason = 0;
 				$pk->message = $reason;
 				$this->sendDataPacket($pk, false, true);
 			}
@@ -6138,23 +5819,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		$this->server->getLogger()->debug("Respawn position located, completing respawnfor " . $this->getName());
 
 		$ev = new PlayerRespawnEvent($this, $spawn);
-
-		$spawnPosition = $ev->getRespawnPosition();
-		$spawnBlock = $spawnPosition->level->getBlock($spawnPosition);
-		if ($spawnBlock instanceof RespawnAnchor) {
-			if ($spawnBlock->getDamage() > 0) {
-				$spawnPosition->level->setBlock($spawnPosition, $spawnBlock->setDamage($spawnBlock->getDamage() - 1));
-				$spawnPosition->level->addSound(new RespawnAnchorDepleteSound($this));
-			} else {
-				$defaultSpawn = $this->server->getDefaultLevel()?->getSpawnLocation();
-				if ($defaultSpawn !== null) {
-					$this->setSpawn($defaultSpawn);
-					$ev->setRespawnPosition($defaultSpawn);
-					$this->sendMessage(new TranslationContainer(TextFormat::GRAY . "%tile.respawn_anchor.notValid"));
-				}
-			}
-		}
-
 		$ev->call();
 
 		$realSpawn = Position::fromObject($ev->getRespawnPosition()->add(0.5, 0, 0.5), $ev->getRespawnPosition()->getLevel());
@@ -6221,31 +5885,13 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		parent::attack($source);
 	}
 
-	public function broadcastEntityEvent(int $eventId, ?int $eventData = null, ?array $targets = null) : void
+	public function broadcastEntityEvent(int $eventId, ?int $eventData = null, ?array $players = null) : void
 	{
-		if ($this->spawned && $targets === null) {
-			$targets = $this->getViewers();
-			$targets[] = $this;
+		if ($this->spawned && $players === null) {
+			$players = $this->getViewers();
+			$players[] = $this;
 		}
-		parent::broadcastEntityEvent($eventId, $eventData, $targets);
-	}
-
-	public function broadcastAnimation(int $animationId, ?array $targets = null) : void
-	{
-		if ($this->spawned && $targets === null) {
-			$targets = $this->getViewers();
-			$targets[] = $this;
-		}
-		parent::broadcastAnimation($animationId, $targets);
-	}
-
-	public function broadcastSound(Sound $sound, ?array $targets = null) : void
-	{
-		if ($this->spawned && $targets === null) {
-			$targets = $this->getViewers();
-			$targets[] = $this;
-		}
-		parent::broadcastSound($sound, $targets);
+		parent::broadcastEntityEvent($eventId, $eventData, $players);
 	}
 
 	public function getOffsetPosition(Vector3 $vector3) : Vector3
@@ -6328,6 +5974,8 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 		$this->craftingGrid = new CraftingGrid($this, CraftingGrid::SIZE_SMALL);
 
+		$this->creativeInventory = new CreativeInventory($this);
+
 		//TODO: more windows
 	}
 
@@ -6337,6 +5985,11 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	public function getCursorInventory() : PlayerCursorInventory
 	{
 		return $this->cursorInventory;
+	}
+
+	public function getCreativeInventory() : CreativeInventory
+	{
+		return $this->creativeInventory;
 	}
 
 	public function getUIInventory() : PlayerUIInventory
@@ -6425,7 +6078,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		}
 
 		if ($forceId === null) {
-			$cnt = $this->getNewWindowId();
+			$this->windowCnt = $cnt = $this->getNewWindowId();
 		} else {
 			$cnt = $forceId;
 			if (isset($this->windowIndex[$cnt])) {
@@ -6494,116 +6147,6 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 		foreach ($this->windowIndex as $id => $inventory) {
 			$inventory->sendContents($this);
 		}
-	}
-
-	public function sendInventorySlotPackets(int $windowId, int $netSlot, Item|ItemStackWrapper $itemStackWrapper) : void
-	{
-		if ($itemStackWrapper instanceof Item) {
-			$itemStackWrapper = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($itemStackWrapper, $this->getProtocolVersion()));
-		}
-
-		if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
-			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_594) {
-				/*
-				 * TODO: HACK!
-				 * As of 1.20.12, the client ignores change of itemstackID in some cases when the old item == the new item.
-				 * Notably, this happens with armor, offhand and enchanting tables, but not with main inventory.
-				 * While we could track the items previously sent to the client, that's a waste of memory and would
-				 * cost performance. Instead, clear the slot(s) first, then send the new item(s).
-				 * The network cost of doing this is fortunately minimal, as an air itemstack is only 1 byte.
-				 */
-				if ($itemStackWrapper->getStackId() !== 0) {
-					$this->sendDataPacket(InventorySlotPacket::create(
-						$windowId,
-						$netSlot,
-						new FullContainerName($this->currentWindowType),
-						new ItemStackWrapper(0, ItemStack::null()),
-						new ItemStackWrapper(0, ItemStack::null())
-					));
-				}
-			}
-
-			//now send the real contents
-			$this->sendDataPacket(InventorySlotPacket::create(
-				$windowId,
-				$netSlot,
-				new FullContainerName($this->currentWindowType),
-				new ItemStackWrapper(0, ItemStack::null()),
-				$itemStackWrapper
-			));
-		} else {
-			$this->sendDataPacket(ContainerSetSlotPacket::create($windowId, $netSlot, 0, $itemStackWrapper->getItemStack(), 0));
-		}
-	}
-
-	/**
-	 * @param Item|ItemStackWrapper[] $itemStackWrappers
-	 * @param int[]                   $hotbarSlots
-	 */
-	public function sendInventoryContentPackets(int $windowId, array $itemStackWrappers, array $hotbarSlots = []) : void
-	{
-		foreach ($itemStackWrappers as $slotId => $itemStackWrapper) {
-			if ($itemStackWrapper instanceof Item) {
-				$itemStackWrappers[$slotId] = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($itemStackWrapper, $this->getProtocolVersion()));
-			}
-		}
-
-		if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
-			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_594) {
-				/*
-				 * TODO: HACK!
-				 * As of 1.20.12, the client ignores change of itemstackID in some cases when the old item == the new item.
-				 * Notably, this happens with armor, offhand and enchanting tables, but not with main inventory.
-				 * While we could track the items previously sent to the client, that's a waste of memory and would
-				 * cost performance. Instead, clear the slot(s) first, then send the new item(s).
-				 * The network cost of doing this is fortunately minimal, as an air itemstack is only 1 byte.
-				 */
-				$this->sendDataPacket(InventoryContentPacket::create(
-					$windowId,
-					array_fill_keys(array_keys($itemStackWrappers), new ItemStackWrapper(0, ItemStack::null())),
-					new FullContainerName($this->currentWindowType),
-					new ItemStackWrapper(0, ItemStack::null())
-				));
-			}
-
-			//now send the real contents
-			$this->sendDataPacket(InventoryContentPacket::create($windowId, $itemStackWrappers, new FullContainerName($this->currentWindowType), new ItemStackWrapper(0, ItemStack::null())));
-		} else {
-			$this->sendDataPacket(ContainerSetContentPacket::create($windowId, $this->getId(), array_map(fn(ItemStackWrapper $itemStackWrapper) => $itemStackWrapper->getItemStack(), $itemStackWrappers), $hotbarSlots));
-		}
-	}
-
-	/**
-	 * @phpstan-return array{Inventory, int}|null
-	 */
-	public function locateWindowAndSlot(int $windowId, int $netSlot) : ?array
-	{
-		$window = null;
-		if ($windowId === ContainerIds::UI && $netSlot > 0) {
-			if ($netSlot === UIInventorySlotOffset::CREATED_ITEM_OUTPUT) {
-				return null; //useless noise
-			}
-
-			$slot = UIInventorySlotOffset::CRAFTING2X2_INPUT[$netSlot] ?? UIInventorySlotOffset::CRAFTING3X3_INPUT[$netSlot] ?? null;
-			if ($slot !== null) {
-				$window = $this->craftingGrid;
-			} elseif (($current = $this->getCurrentWindow()) !== null) {
-				$slotMap = null;
-				if ($current instanceof FakeInventory) {
-					$slotMap = $current->getUIOffsets($this);
-				}
-
-				if ($slotMap !== null) {
-					$window = $current;
-					$slot = $slotMap[$netSlot] ?? null;
-				}
-			}
-		} else {
-			$window = $this->getWindow($windowId);
-			$slot = $netSlot;
-		}
-
-		return ($window !== null && $window->slotExists($slot)) ? [$window, $slot] : null;
 	}
 
 	public function onChunkChanged(Chunk $chunk) : void
@@ -6721,42 +6264,33 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 	public function getNewWindowId() : int
 	{
-		$this->currentWindowId = max(ContainerIds::FIRST, ($this->currentWindowId + 1) % ContainerIds::LAST);
-		return $this->currentWindowId;
+		$this->windowCnt = max(ContainerIds::FIRST, ($this->windowCnt + 1) % ContainerIds::LAST);
+		return $this->windowCnt;
 	}
 
-	public function getServerAddress() : string
-	{
+	public function getServerAddress() : string {
 		return $this->serverAddress;
 	}
 
 	/**
 	 * @deprecated
 	 */
-	public function getTransactionActions() : array
-	{
-		return $this->transactionActions;
+	public function getFaultyOldTransactionActions() : array {
+		return $this->faultyOldTransactionActions;
 	}
 
 	/**
 	 * @param InventoryAction[] $actions
 	 * @deprecated
 	 */
-	public function setTransactionActions(array $actions) : void
-	{
-		$this->transactionActions = $actions;
+	public function setFaultyOldTransactionActions(array $actions) : void {
+		$this->faultyOldTransactionActions = $actions;
 	}
 
 	/**
 	 * @deprecated
 	 */
-	public function addInventoryTransactionActions(InventoryAction $action) : void
-	{
-		$this->transactionActions[] = $action;
-	}
-
-	public function isEnableNewInventorySystem() : bool
-	{
-		return $this->getProtocolVersion() >= self::ENABLE_NEW_INVENTORY_SYSTEM_PROTOCOL;
+	public function addInventoryTransactionActions(InventoryAction $action) : void {
+		$this->faultyOldTransactionActions[] = $action;
 	}
 }

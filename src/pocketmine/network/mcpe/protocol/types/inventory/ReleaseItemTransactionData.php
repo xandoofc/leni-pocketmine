@@ -65,7 +65,7 @@ class ReleaseItemTransactionData extends TransactionData
 	{
 		$this->actionType = $stream->getUnsignedVarInt();
 		$this->hotbarSlot = $stream->getVarInt();
-		$this->itemInHand = $stream->getItemStackWrapper($playerProtocol);
+		$this->itemInHand = $stream->getSlot($playerProtocol);
 		$this->headPosition = $stream->getVector3();
 	}
 
@@ -73,7 +73,7 @@ class ReleaseItemTransactionData extends TransactionData
 	{
 		$stream->putUnsignedVarInt($this->actionType);
 		$stream->putVarInt($this->hotbarSlot);
-		$stream->putItemStackWrapper($this->itemInHand, $playerProtocol);
+		$stream->putSlot($this->itemInHand, $playerProtocol);
 		$stream->putVector3($this->headPosition);
 	}
 

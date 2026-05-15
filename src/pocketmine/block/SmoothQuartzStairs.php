@@ -59,11 +59,11 @@ class SmoothQuartzStairs extends Stair
 		return "Smooth Quartz Stairs";
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::QUARTZ_STAIRS, $this->meta);
+			return Block::get(Block::QUARTZ_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

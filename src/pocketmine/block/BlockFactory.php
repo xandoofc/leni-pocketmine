@@ -73,21 +73,21 @@ class BlockFactory
 	/** @var SplFixedArray */
 	public static $hasEntityCollision = null;
 
-	/**
-	 * Initializes the block factory. By default this is called only once on server start, however you may wish to use
-	 * this if you need to reset the block factory back to its original defaults for whatever reason.
-	 */
+		 /**
+		  * Initializes the block factory. By default this is called only once on server start, however you may wish to use
+		  * this if you need to reset the block factory back to its original defaults for whatever reason.
+		  */
 	public static function init() : void
 	{
 		if (self::$fullList === null) {
-			self::$fullList = new SplFixedArray(1280 << Block::INTERNAL_METADATA_BITS);
-			self::$mappedStateIds = new SplFixedArray(1280 << Block::INTERNAL_METADATA_BITS);
+			self::$fullList = new SplFixedArray(2048 << Block::INTERNAL_METADATA_BITS);
+			self::$mappedStateIds = new SplFixedArray(2048 << Block::INTERNAL_METADATA_BITS);
 
-			self::$light = SplFixedArray::fromArray(array_fill(0, 1280 << Block::INTERNAL_METADATA_BITS, 0));
-			self::$lightFilter = SplFixedArray::fromArray(array_fill(0, 1280 << Block::INTERNAL_METADATA_BITS, 1));
-			self::$diffusesSkyLight = SplFixedArray::fromArray(array_fill(0, 1280 << Block::INTERNAL_METADATA_BITS, false));
-			self::$blastResistance = SplFixedArray::fromArray(array_fill(0, 1280 << Block::INTERNAL_METADATA_BITS, 0.0));
-			self::$hasEntityCollision = SplFixedArray::fromArray(array_fill(0, 1280 << Block::INTERNAL_METADATA_BITS, false));
+			self::$light = SplFixedArray::fromArray(array_fill(0, 2048 << Block::INTERNAL_METADATA_BITS, 0));
+			self::$lightFilter = SplFixedArray::fromArray(array_fill(0, 2048 << Block::INTERNAL_METADATA_BITS, 1));
+			self::$diffusesSkyLight = SplFixedArray::fromArray(array_fill(0, 2048 << Block::INTERNAL_METADATA_BITS, false));
+			self::$blastResistance = SplFixedArray::fromArray(array_fill(0, 2048 << Block::INTERNAL_METADATA_BITS, 0.0));
+			self::$hasEntityCollision = SplFixedArray::fromArray(array_fill(0, 2048 << Block::INTERNAL_METADATA_BITS, false));
 
 			self::registerBlock(new Air());
 			self::registerBlock(new Stone());
@@ -298,7 +298,7 @@ class BlockFactory
 			//TODO: END_GATEWAY
 			//TODO: ALLOW
 			//TODO: DENY
-			//TODO: BORDER_BLOCK
+			//TODO: BORDER_BLOCM
 			self::registerBlock(new Magma());
 			self::registerBlock(new NetherWartBlock());
 			self::registerBlock(new NetherBrick(Block::RED_NETHER_BRICK, 0, "Red Nether Bricks"));
@@ -345,12 +345,12 @@ class BlockFactory
 			self::registerBlock(new PrismarineStairs());
 			self::registerBlock(new DarkPrismarineStairs());
 			self::registerBlock(new PrismarineBricksStairs());
-			self::registerBlock(new StrippedLog(Block::STRIPPED_SPRUCE_LOG, 0, "Spruce"));
-			self::registerBlock(new StrippedLog(Block::STRIPPED_BIRCH_LOG, 0, "Birch"));
-			self::registerBlock(new StrippedLog(Block::STRIPPED_JUNGLE_LOG, 0, "Jungle"));
-			self::registerBlock(new StrippedLog(Block::STRIPPED_ACACIA_LOG, 0, "Acacia"));
-			self::registerBlock(new StrippedLog(Block::STRIPPED_DARK_OAK_LOG, 0, "Dark Oak"));
-			self::registerBlock(new StrippedLog(Block::STRIPPED_OAK_LOG, 0, "Oak"));
+			self::registerBlock(new StrippedLog(Block::STRIPPED_SPRUCE_LOG, 0, "Stripped Spruce Log"));
+			self::registerBlock(new StrippedLog(Block::STRIPPED_BIRCH_LOG, 0, "Stripped Birch Log"));
+			self::registerBlock(new StrippedLog(Block::STRIPPED_JUNGLE_LOG, 0, "Stripped Jungle Log"));
+			self::registerBlock(new StrippedLog(Block::STRIPPED_ACACIA_LOG, 0, "Stripped Acacia Log"));
+			self::registerBlock(new StrippedLog(Block::STRIPPED_DARK_OAK_LOG, 0, "Stripped Dark Oak Log"));
+			self::registerBlock(new StrippedLog(Block::STRIPPED_OAK_LOG, 0, "Stripped Oak Log"));
 			self::registerBlock(new BlueIce());
 			self::registerBlock(new Element(Block::ELEMENT_1, 0, "Hydrogen"));
 			self::registerBlock(new Element(Block::ELEMENT_2, 0, "Helium"));
@@ -563,8 +563,8 @@ class BlockFactory
 			//TODO: LODESTONE
 			//TODO: CRIMSON_ROOTS
 			//TODO: WARPED_ROOTS
-			self::registerBlock(new CrimsonStem());
-			self::registerBlock(new WarpedStem());
+			//TODO: CRIMSON_STEM
+			//TODO: WARPED_STEM
 			//TODO: WARPED_WART_BLOCK
 			//TODO: CRIMSON_FUNGUS
 			//TODO: WARPED_FUNGUS
@@ -575,137 +575,136 @@ class BlockFactory
 			//TODO: BASALT
 			//TODO: POLISHED_BASALT
 			//TODO: SOUL_SOIL
-			self::registerBlock(new SoulFire());
+			//TODO: SOUL_FIRE
 			//TODO: NETHER_SPROUTS
 			//TODO: TARGET
-			self::registerBlock(new StrippedCrimsonStem(BlockIds::STRIPPED_CRIMSON_STEM, 0, "Crimson"));
-			self::registerBlock(new StrippedWarpedStem(BlockIds::STRIPPED_WARPED_STEM, 0, "Warped"));
-			self::registerBlock(new CrimsonPlanks());
-			self::registerBlock(new WarpedPlanks());
-			self::registerBlock(new CrimsonDoor());
-			self::registerBlock(new WarpedDoor());
-			self::registerBlock(new CrimsonTrapdoor());
-			self::registerBlock(new WarpedTrapdoor());
-			self::registerBlock(new CrimsonSignPost());
-			self::registerBlock(new WarpedSignPost());
-			self::registerBlock(new CrimsonWallSign());
-			self::registerBlock(new WarpedWallSign());
-			self::registerBlock(new CrimsonStairs());
-			self::registerBlock(new WarpedStairs());
-			self::registerBlock(new CrimsonFence());
-			self::registerBlock(new WarpedFence());
-			self::registerBlock(new CrimsonFenceGate());
-			self::registerBlock(new WarpedFenceGate());
-			self::registerBlock(new CrimsonButton());
-			self::registerBlock(new WarpedButton());
-			self::registerBlock(new CrimsonPressurePlate());
-			self::registerBlock(new WarpedPressurePlate());
-			self::registerBlock(new CrimsonSlab());
-			self::registerBlock(new WarpedSlab());
-			self::registerBlock(new CrimsonDoubleSlab());
-			self::registerBlock(new WarpedDoubleSlab());
-			self::registerBlock(new SoulTorch());
-			self::registerBlock(new SoulLantern());
-			self::registerBlock(new NetheriteBlock());
+			//TODO: STRIPPED_CRIMSON_STEM
+			//TODO: STRIPPED_WARPED_STEM
+			//TODO: CRIMSON_PLANKS
+			//TODO: WARPED_PLANKS
+			//TODO: CRIMSON_DOOR
+			//TODO: WARPED_DOOR
+			//TODO: CRIMSON_TRAPDOOR
+			//TODO: WARPED_TRAPDOOR
+			//TODO: CRIMSON_STANDING_SIGN
+			//TODO: WARPED_STANDING_SIGN
+			//TODO: CRIMSON_WALL_SIGN
+			//TODO: WARPED_WALL_SIGN
+			//TODO: CRIMSON_STAIRS
+			//TODO: WARPED_STAIRS
+			//TODO: CRIMSON_FENCE
+			//TODO: WARPED_FENCE
+			//TODO: CRIMSON_FENCE_GATE
+			//TODO: WARPED_FENCE_GATE
+			//TODO: CRIMSON_BUTTON
+			//TODO: WARPED_BUTTON
+			//TODO: CRIMSON_PRESSURE_PLATE
+			//TODO: WARPED_PRESSURE_PLATE
+			//TODO: CRIMSON_SLAB
+			//TODO: WARPED_SLAB
+			//TODO: CRIMSON_DOUBLE_SLAB
+			//TODO: WARPED_DOUBLE_SLAB
+			//TODO: SOUL_TORCH
+			//TODO: SOUL_LANTERN
+			//TODO: NETHERITE_BLOCK
 			self::registerBlock(new AncientDebris());
-			self::registerBlock(new RespawnAnchor());
-			self::registerBlock(new Blackstone(BlockIds::BLACKSTONE, 0, "Blackstone"));
-			self::registerBlock(new Blackstone(BlockIds::POLISHED_BLACKSTONE_BRICKS, 0, "Polished Blackstone Bricks"));
-			self::registerBlock(new BlackstoneStairs(BlockIds::POLISHED_BLACKSTONE_BRICK_STAIRS, 0, "Polished Blackstone Brick Stairs"));
-			self::registerBlock(new BlackstoneStairs(BlockIds::BLACKSTONE_STAIRS, 0, "Blackstone Stairs"));
+			//TODO: RESPAWN_ANCHOR
+			//TODO: BLACKSTONE
+			//TODO: POLISHED_BLACKSTONE_BRICKS
+			//TODO: POLISHED_BLACKSTONE_BRICK_STAIRS
+			//TODO: BLACKSTONE_STAIRS
 			//TODO: BLACKSTONE_WALL
 			//TODO: POLISHED_BLACKSTONE_BRICK_WALL
-			self::registerBlock(new Blackstone(BlockIds::CHISELED_POLISHED_BLACKSTONE, 0, "Chiseled Polished Blackstone"));
-			self::registerBlock(new Blackstone(BlockIds::CRACKED_POLISHED_BLACKSTONE_BRICKS, 0, "Cracked Chiseled Polished Blackstone"));
-			self::registerBlock(new GildedBlackstone());
-			self::registerBlock(new BlackstoneSlab(BlockIds::BLACKSTONE_SLAB, 0, "Blackstone Slab", BlockIds::BLACKSTONE_DOUBLE_SLAB));
-			self::registerBlock(new BlackstoneDoubleSlab(BlockIds::BLACKSTONE_DOUBLE_SLAB, 0, BlockIds::BLACKSTONE_SLAB));
-			self::registerBlock(new BlackstoneSlab(BlockIds::POLISHED_BLACKSTONE_BRICK_SLAB, 0, "Polished Blackstone Brick Slab", BlockIds::POLISHED_BLACKSTONE_BRICK_DOUBLE_SLAB));
-			self::registerBlock(new BlackstoneDoubleSlab(BlockIds::POLISHED_BLACKSTONE_BRICK_DOUBLE_SLAB, 0, BlockIds::POLISHED_BLACKSTONE_BRICK_SLAB));
+			//TODO: CHISELED_POLISHED_BLACKSTONE
+			//TODO: CRACKED_POLISHED_BLACKSTONE_BRICKS
+			//TODO: GILDED_BLACKSTONE
+			//TODO: BLACKSTONE_SLAB
+			//TODO: BLACKSTONE_DOUBLE_SLAB
+			//TODO: POLISHED_BLACKSTONE_BRICK_SLAB
+			//TODO: POLISHED_BLACKSTONE_BRICK_DOUBLE_SLAB
 			//TODO: CHAIN
 			//TODO: TWISTING_VINES
-			self::registerBlock(new NetherGoldOre());
-			self::registerBlock(new CryingObsidian());
+			//TODO: NETHER_GOLD_ORE
+			//TODO: CRYING_OBSIDIAN
 			//TODO: SOUL_CAMPFIRE
-			self::registerBlock(new Blackstone(BlockIds::POLISHED_BLACKSTONE, 0, "Polished Blackstone"));
-			self::registerBlock(new BlackstoneStairs(BlockIds::POLISHED_BLACKSTONE_STAIRS, 0, "Polished Blackstone Stairs"));
-			self::registerBlock(new BlackstoneSlab(BlockIds::POLISHED_BLACKSTONE_SLAB, 0, "Polished Blackstone Slab", BlockIds::POLISHED_BLACKSTONE_DOUBLE_SLAB));
-			self::registerBlock(new BlackstoneDoubleSlab(BlockIds::POLISHED_BLACKSTONE_DOUBLE_SLAB, 0, BlockIds::POLISHED_BLACKSTONE_SLAB));
-			self::registerBlock(new PolishedBlackstonePressurePlate());
-			self::registerBlock(new PolishedBlackstoneButton());
+			//TODO: POLISHED_BLACKSTONE
+			//TODO: POLISHED_BLACKSTONE_STAIRS
+			//TODO: POLISHED_BLACKSTONE_DOUBLE_SLAB
+			//TODO: POLISHED_BLACKSTONE_PRESSURE_PLATE
+			//TODO: POLISHED_BLACKSTONE_BUTTON
 			//TODO: POLISHED_BLACKSTONE_WALL
-			self::registerBlock(new WarpedHyphae());
-			self::registerBlock(new CrimsonHyphae());
-			self::registerBlock(new StrippedWarpedHyphae());
-			self::registerBlock(new StrippedCrimsonHyphae());
-			self::registerBlock(new ChiseledNetherBricks());
-			self::registerBlock(new CrackedNetherBricks());
-			self::registerBlock(new QuartzBricks());
+			//TODO: WARPED_HYPHAE
+			//TODO: CRIMSON_HYPHAE
+			//TODO: STRIPPED_CRIMSON_HYPHAE
+			//TODO: STRIPPED_WARPED_HYPHAE
+			//TODO: CHISELED_NETHER_BRICKS
+			//TODO: CRACKED_NETHER_BRICKS
+			//TODO: QUARTZ_BRICKS
 			//TODO: UNKNOWN
-			self::registerBlock(new PowderSnow());
-			self::registerBlock(new SculkSensor());
+			//TODO: POWDER_SNOW
+			//TODO: SCULK_SENSOR
 			//TODO: POINTED_DRIPSTONE
-			self::registerBlock(new CopperOre());
-			self::registerBlock(new LightningRod());
-			self::registerBlock(new Dripstone());
-			self::registerBlock(new DirtWithRoots());
+			//TODO: COPPER_ORE
+			//TODO: LIGHTNING_ROD
+			//TODO: DRIPSTONE_BLOCK
+			//TODO: DIRT_WITH_ROOTS
 			//TODO: HANGING_ROOTS
-			self::registerBlock(new Moss());
-			self::registerBlock(new SporeBlossom());
+			//TODO: MOSS_BLOCK
+			//TODO: SPORE_BLOSSOM
 			//TODO: CAVE_VINES
 			//TODO: BIG_DRIPLEAF
-			self::registerBlock(new AzaleaLeaves());
-			self::registerBlock(new AzaleaLeavesFlowered());
-			self::registerBlock(new Calcite());
-			self::registerBlock(new Amethyst());
-			self::registerBlock(new BuddingAmethyst());
-			self::registerBlock(new AmethystCluster());
-			self::registerBlock(new AmethystBudLarge());
-			self::registerBlock(new AmethystBudMedium());
-			self::registerBlock(new AmethystBudSmall());
-			self::registerBlock(new Tuff());
-			self::registerBlock(new TintedGlass());
-			self::registerBlock(new MossCarpet());
+			//TODO: AZALEA_LEAVES
+			//TODO: AZALEA_LEAVES_FLOWERED
+			//TODO: CALCITE
+			//TODO: AMETHYST_BLOCK
+			//TODO: BUDDING_AMETHYST
+			//TODO: AMETHYST_CLUSTER
+			//TODO: LARGE_AMETHYST_BUD
+			//TODO: MEDIUM_AMETHYST_BUD
+			//TODO: SMALL_AMETHYST_BUD
+			//TODO: TUFF
+			//TODO: TINTED_GLASS
+			//TODO: MOSS_CARPET
 			//TODO: SMALL_DRIPLEAF_BLOCK
-			self::registerBlock(new Azalea());
-			self::registerBlock(new FloweringAzalea());
-			self::registerBlock(new GlowFrame());
-			self::registerBlock(new CopperBlock(BlockIds::COPPER_BLOCK, 0, "Copper"));
-			self::registerBlock(new CopperBlock(BlockIds::EXPOSED_COPPER, 0, "Exposed Copper"));
-			self::registerBlock(new CopperBlock(BlockIds::WEATHERED_COPPER, 0, "Weathered Copper"));
-			self::registerBlock(new CopperBlock(BlockIds::OXIDIZED_COPPER, 0, "Oxidized Copper"));
-			self::registerBlock(new CopperBlock(BlockIds::WAXED_COPPER, 0, "Waxed Copper"));
-			self::registerBlock(new CopperBlock(BlockIds::WAXED_EXPOSED_COPPER, 0, "Waxed Exposed Copper"));
-			self::registerBlock(new CopperBlock(BlockIds::WAXED_WEATHERED_COPPER, 0, "Waxed Weathered Copper"));
-			self::registerBlock(new CutCopper(BlockIds::CUT_COPPER, 0, "Cut Copper"));
-			self::registerBlock(new CutCopper(BlockIds::EXPOSED_CUT_COPPER, 0, "Exposed Cut Copper"));
-			self::registerBlock(new CutCopper(BlockIds::WEATHERED_CUT_COPPER, 0, "Weathered Cut Copper"));
-			self::registerBlock(new CutCopper(BlockIds::OXIDIZED_CUT_COPPER, 0, "Oxidized Cut Copper"));
-			self::registerBlock(new CutCopper(BlockIds::WAXED_CUT_COPPER, 0, "Waxed Copper"));
-			self::registerBlock(new CutCopper(BlockIds::WAXED_EXPOSED_CUT_COPPER, 0, "Waxed Exposed Cut Copper"));
-			self::registerBlock(new CutCopper(BlockIds::WAXED_WEATHERED_CUT_COPPER, 0, "Waxed Weathered Cut Copper"));
-			self::registerBlock(new CutCopperStairs(BlockIds::CUT_COPPER_STAIRS, 0, "Cut Copper Stairs"));
-			self::registerBlock(new CutCopperStairs(BlockIds::EXPOSED_CUT_COPPER_STAIRS, 0, "Exposed Cut Copper Stairs"));
-			self::registerBlock(new CutCopperStairs(BlockIds::WEATHERED_CUT_COPPER_STAIRS, 0, "Weathered Cut Copper Stairs"));
-			self::registerBlock(new CutCopperStairs(BlockIds::OXIDIZED_CUT_COPPER_STAIRS, 0, "Oxidized Cut Copper Stairs"));
-			self::registerBlock(new CutCopperStairs(BlockIds::WAXED_CUT_COPPER_STAIRS, 0, "Waxed Copper Stairs"));
-			self::registerBlock(new CutCopperStairs(BlockIds::WAXED_EXPOSED_CUT_COPPER_STAIRS, 0, "Waxed Exposed Cut Copper Stairs"));
-			self::registerBlock(new CutCopperStairs(BlockIds::WAXED_WEATHERED_CUT_COPPER_STAIRS, 0, "Waxed Weathered Cut Copper Stairs"));
+			//TODO: AZALEA
+			//TODO: FLOWERING_AZALEA
+			//TODO: GLOW_FRAME
+			//TODO: COPPER_BLOCK
+			//TODO: EXPOSED_COPPER
+			//TODO: WEATHERED_COPPER
+			//TODO: OXIDIZED_COPPER
+			//TODO: WAXED_COPPER
+			//TODO: WAXED_EXPOSED_COPPER
+			//TODO: WAXED_WEATHERED_COPPER
+			//TODO: CUT_COPPER
+			//TODO: EXPOSED_CUT_COPPER
+			//TODO: WEATHERED_CUT_COPPER
+			//TODO: OXIDIZED_CUT_COPPER
+			//TODO: WAXED_CUT_COPPER
+			//TODO: WAXED_EXPOSED_CUT_COPPER
+			//TODO: WAXED_WEATHERED_CUT_COPPER
+			//TODO: CUT_COPPER_STAIRS
+			//TODO: EXPOSED_CUT_COPPER_STAIRS
+			//TODO: WEATHERED_CUT_COPPER_STAIRS
+			//TODO: OXIDIZED_CUT_COPPER_STAIRS
+			//TODO: WAXED_CUT_COPPER_STAIRS
+			//TODO: WAXED_EXPOSED_CUT_COPPER_STAIRS
+			//TODO: WAXED_WEATHERED_CUT_COPPER_STAIRS
 			//TODO: OXIDIZED_DOUBLE_CUT_COPPER_SLAB
-			self::registerBlock(new CutCopperSlab(BlockIds::CUT_COPPER_SLAB, 0, "Cut Copper Slab", BlockIds::DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperSlab(BlockIds::EXPOSED_CUT_COPPER_SLAB, 0, "Exposed Cut Copper Slab", BlockIds::EXPOSED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperSlab(BlockIds::WEATHERED_CUT_COPPER_SLAB, 0, "Weathered Cut Copper Slab", BlockIds::WEATHERED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperSlab(BlockIds::OXIDIZED_CUT_COPPER_SLAB, 0, "Oxidized Cut Copper Slab", BlockIds::OXIDIZED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperSlab(BlockIds::WAXED_CUT_COPPER_SLAB, 0, "Waxed Cut Copper Slab", BlockIds::WAXED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperSlab(BlockIds::WAXED_EXPOSED_CUT_COPPER_SLAB, 0, "Waxed Exposed Cut Copper Slab", BlockIds::WAXED_EXPOSED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperSlab(BlockIds::WAXED_WEATHERED_CUT_COPPER_SLAB, 0, "Waxed Weathered Cut Copper Slab", BlockIds::WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::EXPOSED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::EXPOSED_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::WEATHERED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::WEATHERED_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::OXIDIZED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::OXIDIZED_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::WAXED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::WAXED_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::WAXED_EXPOSED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::WAXED_EXPOSED_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::WAXED_WEATHERED_CUT_COPPER_SLAB));
+			//TODO: CUT_COPPER_SLAB
+			//TODO: EXPOSED_CUT_COPPER_SLAB
+			//TODO: WEATHERED_CUT_COPPER_SLAB
+			//TODO: OXIDIZED_CUT_COPPER_SLAB
+			//TODO: WAXED_CUT_COPPER_SLAB
+			//TODO: WAXED_EXPOSED_CUT_COPPER_SLAB
+			//TODO: WAXED_WEATHERED_CUT_COPPER_SLAB
+			//TODO: DOUBLE_CUT_COPPER_SLAB
+			//TODO: EXPOSED_DOUBLE_CUT_COPPER_SLAB
+			//TODO: WEATHERED_DOUBLE_CUT_COPPER_SLAB
+			//TODO: OXIDIZED_DOUBLE_CUT_COPPER_SLAB
+			//TODO: WAXED_DOUBLE_CUT_COPPER_SLAB
+			//TODO: WAXED_EXPOSED_DOUBLE_CUT_COPPER_SLAB
+			//TODO: WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB
 			//TODO: CAVE_VINES_BODY_WITH_BERRIES
 			//TODO: CAVE_VINES_HEAD_WITH_BERRIES
 			//TODO: SMOOTH_BASALT
@@ -743,50 +742,50 @@ class BlockFactory
 			//TODO: CRACKED_DEEPSLATE_TILES
 			//TODO: CRACKED_DEEPSLATE_BRICKS
 			//TODO: GLOW_LICHEN
-			self::registerBlock(new Candle(BlockIds::CANDLE, 0, "Candle", null, BlockIds::CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::WHITE_CANDLE, 0, "White Candle", null, BlockIds::WHITE_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::ORANGE_CANDLE, 0, "Orange Candle", null, BlockIds::ORANGE_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::MAGENTA_CANDLE, 0, "Magenta Candle", null, BlockIds::MAGENTA_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::LIGHT_BLUE_CANDLE, 0, "Light Blue Candle", null, BlockIds::LIGHT_BLUE_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::YELLOW_CANDLE, 0, "Yellow Candle", null, BlockIds::YELLOW_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::LIME_CANDLE, 0, "Lime Candle", null, BlockIds::LIME_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::PINK_CANDLE, 0, "Pink Candle", null, BlockIds::PINK_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::GRAY_CANDLE, 0, "Gray Candle", null, BlockIds::GRAY_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::LIGHT_GRAY_CANDLE, 0, "Light Gray Candle", null, BlockIds::LIGHT_GRAY_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::CYAN_CANDLE, 0, "Cyan Candle", null, BlockIds::CYAN_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::PURPLE_CANDLE, 0, "Purple Candle", null, BlockIds::PURPLE_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::BLUE_CANDLE, 0, "Blue Candle", null, BlockIds::BLUE_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::BROWN_CANDLE, 0, "Brown Candle", null, BlockIds::BROWN_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::GREEN_CANDLE, 0, "Green Candle", null, BlockIds::GREEN_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::RED_CANDLE, 0, "Red Candle", null, BlockIds::RED_CANDLE_CAKE));
-			self::registerBlock(new Candle(BlockIds::BLACK_CANDLE, 0, "Black Candle", null, BlockIds::BLACK_CANDLE_CAKE));
-			self::registerBlock(new CandleCake(BlockIds::CANDLE_CAKE, 0, "Candle Cake", null, BlockIds::CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::WHITE_CANDLE_CAKE, 0, "White Candle Cake", null, BlockIds::WHITE_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::ORANGE_CANDLE_CAKE, 0, "Orange Candle Cake", null, BlockIds::ORANGE_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::MAGENTA_CANDLE_CAKE, 0, "Magenta Candle Cake", null, BlockIds::MAGENTA_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::LIGHT_BLUE_CANDLE_CAKE, 0, "Light Blue Candle Cake", null, BlockIds::LIGHT_BLUE_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::YELLOW_CANDLE_CAKE, 0, "Yellow Candle Cake", null, BlockIds::YELLOW_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::LIME_CANDLE_CAKE, 0, "Lime Candle Cake", null, BlockIds::LIME_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::PINK_CANDLE_CAKE, 0, "Pink Candle Cake", null, BlockIds::PINK_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::GRAY_CANDLE_CAKE, 0, "Gray Candle Cake", null, BlockIds::GRAY_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::LIGHT_GRAY_CANDLE_CAKE, 0, "Light Gray Candle Cake", null, BlockIds::LIGHT_GRAY_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::CYAN_CANDLE_CAKE, 0, "Cyan Candle Cake", null, BlockIds::CYAN_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::PURPLE_CANDLE_CAKE, 0, "Purple Candle Cake", null, BlockIds::PURPLE_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::BLUE_CANDLE_CAKE, 0, "Blue Candle Cake", null, BlockIds::BLUE_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::BROWN_CANDLE_CAKE, 0, "Brown Candle Cake", null, BlockIds::BROWN_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::GREEN_CANDLE_CAKE, 0, "Green Candle Cake", null, BlockIds::GREEN_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::RED_CANDLE_CAKE, 0, "Red Candle Cake", null, BlockIds::RED_CANDLE));
-			self::registerBlock(new CandleCake(BlockIds::BLACK_CANDLE_CAKE, 0, "Black Candle Cake", null, BlockIds::BLACK_CANDLE));
-			self::registerBlock(new CopperBlock(BlockIds::WAXED_OXIDIZED_COPPER, 0, "Waxed Oxidized Copper Door"));
-			self::registerBlock(new CutCopper(BlockIds::WAXED_OXIDIZED_CUT_COPPER, 0, "Waxed Oxidized Cut Copper"));
-			self::registerBlock(new CutCopperStairs(BlockIds::WAXED_OXIDIZED_CUT_COPPER_STAIRS, 0, "Waxed Oxidized Cut Copper Stairs"));
-			self::registerBlock(new CutCopperSlab(BlockIds::WAXED_OXIDIZED_CUT_COPPER_SLAB, 0, "Waxed Oxidized Cut Copper Slab", BlockIds::WAXED_OXIDIZED_DOUBLE_CUT_COPPER_SLAB));
-			self::registerBlock(new CutCopperDoubleSlab(BlockIds::WAXED_OXIDIZED_DOUBLE_CUT_COPPER_SLAB, 0, BlockIds::WAXED_OXIDIZED_CUT_COPPER_SLAB));
+			//TODO: CANDLE
+			//TODO: WHITE_CANDLE
+			//TODO: ORANGE_CANDLE
+			//TODO: MAGENTA_CANDLE
+			//TODO: LIGHT_BLUE_CANDLE
+			//TODO: YELLOW_CANDLE
+			//TODO: LIME_CANDLE
+			//TODO: PINK_CANDLE
+			//TODO: GRAY_CANDLE
+			//TODO: LIGHT_GRAY_CANDLE
+			//TODO: CYAN_CANDLE
+			//TODO: PURPLE_CANDLE
+			//TODO: BLUE_CANDLE
+			//TODO: BROWN_CANDLE
+			//TODO: GREEN_CANDLE
+			//TODO: RED_CANDLE
+			//TODO: BLACK_CANDLE
+			//TODO: CANDLE_CAKE
+			//TODO: WHITE_CANDLE_CAKE
+			//TODO: ORANGE_CANDLE_CAKE
+			//TODO: MAGENTA_CANDLE_CAKE
+			//TODO: LIGHT_BLUE_CANDLE_CAKE
+			//TODO: YELLOW_CANDLE_CAKE
+			//TODO: LIME_CANDLE_CAKE
+			//TODO: PINK_CANDLE_CAKE
+			//TODO: GRAY_CANDLE_CAKE
+			//TODO: LIGHT_GRAY_CANDLE_CAKE
+			//TODO: CYAN_CANDLE_CAKE
+			//TODO: PURPLE_CANDLE_CAKE
+			//TODO: BLUE_CANDLE_CAKE
+			//TODO: BROWN_CANDLE_CAKE
+			//TODO: GREEN_CANDLE_CAKE
+			//TODO: RED_CANDLE_CAKE
+			//TODO: BLACK_CANDLE_CAKE
+			//TODO: WAXED_OXIDIZED_COPPER
+			//TODO: WAXED_OXIDIZED_CUT_COPPER
+			//TODO: WAXED_OXIDIZED_CUT_COPPER_STAIRS
+			//TODO: WAXED_OXIDIZED_CUT_COPPER_SLAB
+			//TODO: WAXED_OXIDIZED_DOUBLE_CUT_COPPER_SLAB
 			//TODO: RAW_IRON_BLOCK
 			//TODO: RAW_COPPER_BLOCK
 			//TODO: RAW_GOLD_BLOCK
 			//TODO: INFESTED_DEEPSLATE
-			self::registerBlock(new BambooDoor());
+			//TODO: BAMBOO_DOOR
 			//TODO: SCULK
 			//TODO: SCULK_VEIN
 			//TODO: SCULK_CATALYST
@@ -798,7 +797,7 @@ class BlockFactory
 			//TODO: PEARLESCENT_FROGLIGHT
 			//TODO: VERDANT_FROGLIGHT
 			//TODO: OCHRE_FROGLIGHT
-			self::registerBlock(new MangroveLeaves());
+			//TODO: MANGROVE_LEAVES
 			//TODO: MANGROVE_PROPAGULE
 
 			//TODO: MUD
@@ -809,40 +808,39 @@ class BlockFactory
 			//TODO: MUD_BRICKS
 			//TODO: PACKED_MUD
 			//TODO: REINFORCED_DEEPSLATE
-			self::registerBlock(new MangroveDoor());
-			self::registerBlock(new MangroveButton());
-			self::registerBlock(new MangroveDoubleSlab());
-			self::registerBlock(new MangroveFence());
-			self::registerBlock(new MangroveFenceGate());
-			self::registerBlock(new MangroveLog());
-			self::registerBlock(new MangrovePlanks());
-			self::registerBlock(new MangrovePressurePlate());
+			//TODO: MANGROVE_DOOR
+			//TODO: MANGROVE_BUTTON
+			//TODO: MANGROVE_DOUBLE_SLAB
+			//TODO: MANGROVE_FENCE
+			//TODO: MANGROVE_FENCE_GATE
+			//TODO: MANGROVE_LOG
+			//TODO: MANGROVE_PLANKS
+			//TODO: MANGROVE_PRESSURE_PLATE
 			//TODO: MANGROVE_ROOTS
-			self::registerBlock(new MangroveSlab());
-			self::registerBlock(new MangroveStairs());
-			self::registerBlock(new MangroveSignPost());
+			//TODO: MANGROVE_SLAB
+			//TODO: MANGROVE_STAIRS
+			//TODO: MANGROVE_STANDING_SIGN
 			//TODO: MANGROVE_TRAPDOOR
-			self::registerBlock(new MangroveWallSign());
-			self::registerBlock(new MangroveWood());
+			//TODO: MANGROVE_WALL_SIGN
+			//TODO: MANGROVE_WOOD
 			//TODO: MUDDY_MANGROVE_ROOTS
-			self::registerBlock(new StrippedMangroveLog(BlockIds::STRIPPED_MANGROVE_LOG, 0, "Mangrove"));
-			self::registerBlock(new StrippedMangroveWood());
-			self::registerBlock(new BambooButton());
-			self::registerBlock(new BambooDoubleSlab());
-			self::registerBlock(new BambooFence());
-			self::registerBlock(new BambooFenceGate());
+			//TODO: STRIPPED_MANGROVE_LOG
+			//TODO: STRIPPED_MANGROVE_WOOD
+			//TODO: BAMBOO_BUTTON
+			//TODO: BAMBOO_DOUBLE_SLAB
+			//TODO: BAMBOO_FENCE
 			//TODO: BAMBOO_HANGING_SIGN
-			self::registerBlock(new BambooMosaic());
-			self::registerBlock(new BambooMosaicDoubleSlab());
-			self::registerBlock(new BambooMosaicSlab());
-			self::registerBlock(new BambooMosaicStairs());
-			self::registerBlock(new BambooPlanks());
-			self::registerBlock(new BambooPressurePlate());
-			self::registerBlock(new BambooSlab());
-			self::registerBlock(new BambooStairs());
-			self::registerBlock(new BambooSignPost());
-			self::registerBlock(new BambooWallSign());
-			self::registerBlock(new BambooTrapdoor());
+			//TODO: BAMBOO_MOSAIC
+			//TODO: BAMBOO_MOSAIC_DOUBLE_SLAB
+			//TODO: BAMBOO_MOSAIC_SLAB
+			//TODO: BAMBOO_MOSAIC_STAIRS
+			//TODO: BAMBOO_PLANKS
+			//TODO: BAMBOO_PRESSURE_PLATE
+			//TODO: BAMBOO_SLAB
+			//TODO: BAMBOO_STAIRS
+			//TODO: BAMBOO_STANDING_SIGN
+			//TODO: BAMBOO_WALL_SIGN
+			//TODO: BAMBOO_TRAPDOOR
 			//TODO: BIRCH_HANGING_SIGN
 			//TODO: CHISELED_BOOKSHELF
 			//TODO: CRIMSON_HANGING_SIGN
@@ -853,32 +851,32 @@ class BlockFactory
 
 			//TODO: WARPED_HANGING_SIGN
 			//TODO: SPRUCE_HANGING_SIGN
-			self::registerBlock(new BambooBlock());
-			self::registerBlock(new StrippedBambooBlock(BlockIds::STRIPPED_BAMBOO_BLOCK, 0, "Bamboo"));
+			//TODO: BAMBOO_BLOCK
+			//TODO: STRIPPED_BAMBOO_BLOCK
 			//TODO: DECORATED_POT
 			//TODO: SUSPICIOUS_SAND
 			//TODO: TORCHFLOWER
 			//TODO: TORCHFLOWER_CROP
 			//TODO: CALIBRATED_SCULK_SENSOR
-			self::registerBlock(new CherryButton());
-			self::registerBlock(new CherryDoubleSlab());
-			self::registerBlock(new CherryFence());
-			self::registerBlock(new CherryFenceGate());
+			//TODO: CHERRY_BUTTON
+			//TODO: CHERRY_DOUBLE_SLAB
+			//TODO: CHERRY_FENCE
+			//TODO: CHERRY_FENCE_GATE
 			//TODO: CHERRY_HANGING_SIGN
-			self::registerBlock(new CherryLeaves()); //сделать наследником листвы
-			self::registerBlock(new CherryLog());
-			self::registerBlock(new CherryPlanks());
-			self::registerBlock(new CherryPressurePlate());
-			self::registerBlock(new CherrySapling());
-			self::registerBlock(new CherrySlab());
-			self::registerBlock(new CherryStairs());
-			self::registerBlock(new CherrySignPost());
-			self::registerBlock(new CherryTrapdoor());
-			self::registerBlock(new CherryWallSign());
-			self::registerBlock(new CherryWood());
+			//TODO: CHERRY_LEAVES
+			//TODO: CHERRY_LOG
+			//TODO: CHERRY_PLANKS
+			//TODO: CHERRY_PRESSURE_PLATE
+			//TODO: CHERRY_SAPLING
+			//TODO: CHERRY_SLAB
+			//TODO: CHERRY_STAIRS
+			//TODO: CHERRY_STANDING_SIGN
+			//TODO: CHERRY_TRAPDOOR
+			//TODO: CHERRY_WALL_SIGN
+			//TODO: CHERRY_WOOD
 			//TODO: PINK_PETALS
-			self::registerBlock(new StrippedCherryWood());
-			self::registerBlock(new StrippedCherryLog(BlockIds::STRIPPED_CHERRY_LOG, 0, "Cherry"));
+			//TODO: STRIPPED_CHERRY_WOOD
+			//TODO: STRIPPED_CHERRY_LOG
 			//TODO: SUSPICIOUS_GRAVEL
 			//TODO: PITCHER_CROP
 			//TODO: PITCHER_PLANT
@@ -942,19 +940,6 @@ class BlockFactory
 			self::registerBlock(new CherryDoor());
 			//TODO: RESIN_CLUMP
 			//TODO: ACACIA_HANGING_SIGN
-			self::registerBlock(new MossyCobblestoneWall());
-			self::registerBlock(new GraniteWall());
-			self::registerBlock(new DioriteWall());
-			self::registerBlock(new AndesiteWall());
-			self::registerBlock(new SandstoneWall());
-			self::registerBlock(new BrickWall());
-			self::registerBlock(new StoneBrickWall());
-			self::registerBlock(new MossyStoneBrickWall());
-			self::registerBlock(new NetherBrickWall());
-			self::registerBlock(new EndStoneBrickWall());
-			self::registerBlock(new PrismarineWall());
-			self::registerBlock(new RedSandstoneWall());
-			self::registerBlock(new RedNetherBrickWall());
 
 			//TODO: TRIAL_SPAWNER
 			//TODO: VAULT
@@ -983,16 +968,16 @@ class BlockFactory
 			self::registerBlock(new PaleOakSapling());
 			self::registerBlock(new PaleOakSlab());
 			self::registerBlock(new PaleOakStairs());
-			self::registerBlock(new PaleOakSignPost());
+			self::registerBlock(new SignPost(Block::PALE_OAK_STANDING_SIGN, 0, "Pale Oak Sign Post", Item::PALE_OAK_SIGN, Block::PALE_OAK_WALL_SIGN));
 			self::registerBlock(new PaleOakTrapdoor());
-			self::registerBlock(new PaleOakWallSign());
+			self::registerBlock(new WallSign(Block::PALE_OAK_WALL_SIGN, 0, "Pale Oak Sign Post", Item::PALE_OAK_SIGN, Block::PALE_OAK_WALL_SIGN));
 			self::registerBlock(new PaleOakWood());
 			self::registerBlock(new Resin());
 			self::registerBlock(new ResinBrickDoubleSlab());
 			self::registerBlock(new ResinBrickSlab());
 			self::registerBlock(new ResinBrickStairs());
 			self::registerBlock(new ResinBricks());
-			self::registerBlock(new StrippedPaleOakLog(BlockIds::STRIPPED_PALE_OAK_LOG, 0, "Pale Oak"));
+			self::registerBlock(new StrippedPaleOakLog());
 			self::registerBlock(new StrippedPaleOakWood());
 			//TODO: RESIN_BRICK_WALL
 			self::registerBlock(new Bush());
@@ -1010,6 +995,12 @@ class BlockFactory
 			//TODO: WAXED_OXIDDIZED_COPPER_CHEST
 			//TODO: WAXED_WEATHERED_COPPER_CHEST
 			//TODO: WEATHERED_COPPER_CHEST
+
+			for ($id = 0, $size = self::$fullList->getSize() >> Block::INTERNAL_METADATA_BITS; $id < $size; ++$id) {
+				if (self::$fullList[$id << Block::INTERNAL_METADATA_BITS] === null) {
+					self::registerBlock(new UnknownBlock($id));
+				}
+			}
 		}
 	}
 
@@ -1039,7 +1030,7 @@ class BlockFactory
 			throw new RuntimeException("Trying to overwrite an already registered block");
 		}
 
-		for ($meta = 0; $meta < (1 << Block::INTERNAL_METADATA_BITS); ++$meta) {
+		for ($meta = 0; $meta < 16; ++$meta) {
 			$variant = clone $block;
 			$variant->setDamage($meta);
 
@@ -1063,19 +1054,18 @@ class BlockFactory
 	 */
 	public static function get(int $id, int $meta = 0, Position $pos = null) : Block
 	{
-		if($meta < 0 || $meta >= (1 << Block::INTERNAL_METADATA_BITS)){
-			throw new InvalidArgumentException("Block meta value $meta is out of bounds");
+		if ($meta < 0 || $meta > 0xf) {
+			$meta = 0;
 		}
 
-		$index = ($id << Block::INTERNAL_METADATA_BITS) | $meta;
-		if($index < 0 || $index >= self::$fullList->getSize()){
+		try {
+			if (self::$fullList === null) {
+				$block = new UnknownBlock($id, $meta);
+			} else {
+				$block = clone (self::$fullList[self::getListOffset($id, $meta)] ?? new UnknownBlock($id, $meta));
+			}
+		} catch (RuntimeException $e) {
 			throw new InvalidArgumentException("Block ID $id is out of bounds");
-		}
-
-		if(self::$fullList[$index] !== null){
-			$block = clone self::$fullList[$index];
-		}else{
-			$block = new UnknownBlock($id, $meta);
 		}
 
 		if ($pos !== null) {
@@ -1119,8 +1109,7 @@ class BlockFactory
 		return self::$mappedStateIds[$fullState] ?? $fullState;
 	}
 
-	public static function getListOffset(int $id, int $meta) : int
-	{
+	public static function getListOffset(int $id, int $meta) : int{
 		return $id << Block::INTERNAL_METADATA_BITS | $meta;
 	}
 }

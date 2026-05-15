@@ -24,6 +24,7 @@ namespace pocketmine\inventory\transaction\action;
 
 use pocketmine\event\inventory\InventoryClickEvent;
 use pocketmine\inventory\Inventory;
+use pocketmine\inventory\transaction\InventoryTransaction;
 use pocketmine\item\Item;
 use pocketmine\Player;
 
@@ -79,21 +80,36 @@ class SlotChangeAction extends InventoryAction
 	}
 
 	/**
-	 * Sets the item into the target inventory.
+	 * Adds this action's target inventory to the transaction's inventory list.
 	 */
-	public function execute(Player $source) : void
+	public function onAddToTransaction(InventoryTransaction $transaction) : void
 	{
-		if ($this->inventory->setItem($this->inventorySlot, $this->targetItem, false)) {
-			$viewers = $this->inventory->getViewers();
-			unset($viewers[spl_object_hash($source)]);
-			$this->inventory->sendSlot($this->inventorySlot, $viewers);
-		} else {
-			$this->inventory->sendSlot($this->inventorySlot, $source);
-		}
+		$transaction->addInventory($this->inventory);
 	}
 
-	public function revert(Player $source) : void
+	/**
+	 * Sets the item into the target inventory.
+	 */
+	public function execute(Player $source) : bool
 	{
-		$this->inventory->sendContents($source);
+		return $this->inventory->setItem($this->inventorySlot, $this->targetItem, false);
+	}
+
+	/**
+	 * Sends slot changes to other viewers of the inventory. This will not send any change back to the source Player.
+	 */
+	public function onExecuteSuccess(Player $source) : void
+	{
+		$viewers = $this->inventory->getViewers();
+		unset($viewers[spl_object_hash($source)]);
+		$this->inventory->sendSlot($this->inventorySlot, $viewers);
+	}
+
+	/**
+	 * Sends the original slot contents to the source player to revert the action.
+	 */
+	public function onExecuteFail(Player $source) : void
+	{
+		$this->inventory->sendSlot($this->inventorySlot, $source);
 	}
 }

@@ -24,7 +24,6 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-
 use function count;
 
 /**

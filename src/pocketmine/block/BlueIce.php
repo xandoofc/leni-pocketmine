@@ -72,9 +72,8 @@ class BlueIce extends Transparent
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return BlockFactory::get(BlockIds::ICE, $this->meta);
+			return BlockFactory::get(Block::ICE, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

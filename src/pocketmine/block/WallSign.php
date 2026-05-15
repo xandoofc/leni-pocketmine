@@ -26,6 +26,11 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class WallSign extends SignPost
 {
+	public function getName() : string
+	{
+		return "Wall Sign";
+	}
+
 	public function onNearbyBlockChange() : void
 	{
 		if ($this->getSide($this->meta ^ 0x01)->getId() === self::AIR) {
@@ -35,10 +40,12 @@ class WallSign extends SignPost
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::WALL_SIGN, $this->meta);
+		if (
+			($playerProtocol < ProtocolInfo::PROTOCOL_766 && $this->id === self::PALE_OAK_WALL_SIGN) ||
+			$playerProtocol < ProtocolInfo::PROTOCOL_332
+		) {
+			return Block::get(Block::WALL_SIGN, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

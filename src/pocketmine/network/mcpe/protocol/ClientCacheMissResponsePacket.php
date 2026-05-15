@@ -32,7 +32,7 @@ class ClientCacheMissResponsePacket extends DataPacket
 	public const NETWORK_ID = ProtocolInfo::CLIENT_CACHE_MISS_RESPONSE_PACKET;
 
 	/** @var ChunkCacheBlob[] */
-	private array $blobs = [];
+	private $blobs = [];
 
 	/**
 	 * @param ChunkCacheBlob[] $blobs

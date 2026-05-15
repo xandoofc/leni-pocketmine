@@ -33,17 +33,15 @@ class PaleOakButton extends WoodenButton
 		$this->meta = $meta;
 	}
 
-	public function getName() : string
-	{
+	public function getName() : string{
 		return "Pale Oak Button";
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::WOODEN_BUTTON, $this->meta);
+			return BlockFactory::get(Block::WOODEN_BUTTON, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

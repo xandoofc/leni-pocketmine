@@ -50,7 +50,6 @@ use pocketmine\tile\Cauldron as TileCauldron;
 use pocketmine\tile\Tile;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Color;
-
 use function min;
 
 class Cauldron extends Solid

@@ -36,7 +36,6 @@ use function openssl_digest;
 use function openssl_error_string;
 use function openssl_pkey_derive;
 use function str_pad;
-
 use const STR_PAD_LEFT;
 
 final class EncryptionUtils

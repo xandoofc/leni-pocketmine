@@ -22,6 +22,8 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
+#include <rules/DataPacket.h>
+
 use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\NetworkSession;
@@ -30,7 +32,8 @@ class SyncActorPropertyPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::SYNC_ACTOR_PROPERTY_PACKET;
 
-	private CompoundTag $data;
+	/** @var CompoundTag */
+	private $data;
 
 	public static function create(CompoundTag $data) : self
 	{

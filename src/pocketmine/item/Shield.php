@@ -43,12 +43,11 @@ class Shield extends Item
 		return 1;
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_340) {
-			return new TranslatedItemData(ItemIds::PAPER, $this->getDamage());
+			return Item::get(Item::PAPER, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

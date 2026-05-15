@@ -32,7 +32,6 @@ use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
@@ -99,19 +98,17 @@ class HorseInventory extends AbstractHorseInventory
 
 	public function sendArmor(Player $player) : void
 	{
-		$protocolVersion = $player->getProtocolVersion();
-		$typeConverter = TypeConverter::getInstance();
+		$air = ItemFactory::get(Item::AIR);
 
-		$airItemStack = $typeConverter->coreItemStackToNet(ItemFactory::air(), $protocolVersion);
+		$pk = new MobArmorEquipmentPacket();
+		$pk->entityRuntimeId = $this->getHolder()->getId();
+		$pk->head = ItemStackWrapper::legacy($air);
+		$pk->chest = ItemStackWrapper::legacy($this->getItem(1));
+		$pk->legs = ItemStackWrapper::legacy($air);
+		$pk->feet = ItemStackWrapper::legacy($air);
+		$pk->body = ItemStackWrapper::legacy($air);
 
-		$player->sendDataPacket(MobArmorEquipmentPacket::create(
-			$this->getHolder()->getId(),
-			ItemStackWrapper::legacy(clone $airItemStack),
-			ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getItem(1), $protocolVersion)),
-			ItemStackWrapper::legacy(clone $airItemStack),
-			ItemStackWrapper::legacy(clone $airItemStack),
-			ItemStackWrapper::legacy(clone $airItemStack)
-		));
+		$player->sendDataPacket($pk);
 	}
 
 	public function onOpen(Player $who) : void

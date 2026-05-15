@@ -76,6 +76,7 @@ class TextPacket extends DataPacket
 		switch ($this->type) {
 			case self::TYPE_CHAT:
 			case self::TYPE_WHISPER:
+				// no break
 			case self::TYPE_ANNOUNCEMENT:
 				$this->sourceName = $this->getString();
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_223 && $this->getProtocol() < ProtocolInfo::PROTOCOL_291) {
@@ -132,6 +133,7 @@ class TextPacket extends DataPacket
 		switch ($this->type) {
 			case self::TYPE_CHAT:
 			case self::TYPE_WHISPER:
+			// no break
 			case self::TYPE_ANNOUNCEMENT:
 				$this->putString($this->sourceName);
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_223 && $this->getProtocol() < ProtocolInfo::PROTOCOL_291) {

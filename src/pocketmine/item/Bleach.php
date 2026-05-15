@@ -26,12 +26,11 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class Bleach extends Item
 {
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return new TranslatedItemData(Item::POTION, $this->getDamage());
+			return ItemFactory::get(Item::POTION, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 

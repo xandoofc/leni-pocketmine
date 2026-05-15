@@ -44,30 +44,23 @@ use pocketmine\item\Item;
 use pocketmine\item\MaybeConsumable;
 use pocketmine\item\Totem;
 use pocketmine\level\Level;
-use pocketmine\level\sound\TotemUseSound;
-use pocketmine\level\sound\XpCollectSound;
-use pocketmine\level\sound\XpLevelUpSound;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\ByteArrayTag;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\StringTag;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
+use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\AbilitiesData;
 use pocketmine\network\mcpe\protocol\types\AbilitiesLayer;
-use pocketmine\network\mcpe\protocol\types\AdventureSettingsData;
-use pocketmine\network\mcpe\protocol\types\command\CommandPermissions;
-use pocketmine\network\mcpe\protocol\types\DeviceOS;
 use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
-use pocketmine\network\mcpe\protocol\types\EntityLink;
-use pocketmine\network\mcpe\protocol\types\GameMode;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\PlayerPermissions;
@@ -78,7 +71,6 @@ use ReflectionClass;
 
 use function array_fill;
 use function array_filter;
-use function array_map;
 use function array_merge;
 use function array_rand;
 use function array_values;
@@ -86,6 +78,7 @@ use function ceil;
 use function count;
 use function max;
 use function min;
+use function mt_rand;
 
 use function random_int;
 use const INT32_MAX;
@@ -345,8 +338,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder
 	 * Returns whether the Human can eat food. This may return a different result than {@link HungerManager::isHungry()},
 	 * as HungerManager only handles the hunger bar.
 	 */
-	public function canEat() : bool
-	{
+	public function canEat() : bool{
 		return $this->isHungry() || $this->level->getDifficulty() === Level::DIFFICULTY_PEACEFUL;
 	}
 
@@ -355,7 +347,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder
 		if ($consumable instanceof MaybeConsumable && !$consumable->canBeConsumed()) {
 			return false;
 		}
-		if ($consumable instanceof FoodSource && $consumable->requiresHunger() && !$this->canEat()) {
+		if ($consumable instanceof FoodSource && $consumable->requiresHunger() && !$this->isHungry()) {
 			return false;
 		}
 
@@ -398,7 +390,6 @@ class Human extends Creature implements ProjectileSource, InventoryHolder
 			if ($playSound) {
 				$newLevel = $this->getXpLevel();
 				if ((int) ($newLevel / 5) > (int) ($oldLevel / 5)) {
-					$this->broadcastSound(new XpLevelUpSound($this, $newLevel));
 					$this->playLevelUpSound($newLevel);
 				}
 			}
@@ -485,9 +476,9 @@ class Human extends Creature implements ProjectileSource, InventoryHolder
 			if ($playSound) {
 				$newLevel = $this->getXpLevel();
 				if ((int) ($newLevel / 5) > (int) ($oldLevel / 5)) {
-					$this->broadcastSound(new XpLevelUpSound($this, $newLevel));
+					$this->playLevelUpSound($newLevel);
 				} elseif ($this->getCurrentTotalXp() > $oldTotal) {
-					$this->broadcastSound(new XpCollectSound($this));
+					$this->level->broadcastLevelEvent($this, LevelEventPacket::EVENT_SOUND_ORB, mt_rand());
 				}
 			}
 
@@ -826,7 +817,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder
 				$this->addEffect(new EffectInstance(Effect::getEffect(Effect::ABSORPTION), 5 * 20, 1));
 
 				$this->broadcastEntityEvent(ActorEventPacket::CONSUME_TOTEM);
-				$this->broadcastSound(new TotemUseSound($this));
+				$this->level->broadcastLevelEvent($this->add(0, $this->eyeHeight, 0), LevelEventPacket::EVENT_SOUND_TOTEM);
 
 				$hand = $this->inventory->getItemInHand();
 				if ($hand instanceof Totem) {
@@ -933,48 +924,27 @@ class Human extends Creature implements ProjectileSource, InventoryHolder
 			$player->dataPacket($pk);
 		}
 
-		$links = [];
-		if (count($this->passengers) !== 0) {
-			foreach ($this->getPassengers() as $passenger) {
-				$passenger->spawnTo($player);
-			}
-
-			$links = array_map(function (int $entityId) {
-				return new EntityLink($this->getId(), $entityId, EntityLink::TYPE_RIDER, true, false);
-			}, $this->passengers);
-		}
-
-		$player->sendDataPacket(AddPlayerPacket::create(
-			$this->getUniqueId(),
-			$this->getNameTag(),
-			"",
-			0,
-			$this->getId(),
-			$this->getId(),
-			"",
-			$this->asVector3(),
-			$this->getMotion(),
-			$this->pitch,
-			$this->yaw,
-			$this->yaw,
-			ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->getInventory()->getItemInHand(), $player->getProtocolVersion())),
-			GameMode::SURVIVAL,
-			$this->propertyManager->getAll(),
-			new PropertySyncData([], []),
-			new AbilitiesData(CommandPermissions::NORMAL, PlayerPermissions::VISITOR, $this->getId() /* TODO: this should be unique ID */, [
-				new AbilitiesLayer(
-					AbilitiesLayer::LAYER_BASE,
-					array_fill(0, AbilitiesLayer::NUMBER_OF_ABILITIES, false),
-					0.0,
-					0.0,
-					0.0
-				)
-			]),
-			new AdventureSettingsData(0, 0, 0, 0, 0, 0),
-			$links,
-			"",
-			DeviceOS::UNKNOWN
-		));
+		$pk = new AddPlayerPacket();
+		$pk->uuid = $this->getUniqueId();
+		$pk->username = $this->getName();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->position = $this->asVector3();
+		$pk->motion = $this->getMotion();
+		$pk->yaw = $this->yaw;
+		$pk->pitch = $this->pitch;
+		$pk->item = ItemStackWrapper::legacy($this->getInventory()->getItemInHand());
+		$pk->metadata = $this->propertyManager->getAll();
+		$pk->syncedProperties = new PropertySyncData([], []);
+		$pk->abilitiesData = new AbilitiesData(AdventureSettingsPacket::PERMISSION_NORMAL, PlayerPermissions::VISITOR, $this->getId() /* TODO: this should be unique ID */, [
+			new AbilitiesLayer(
+				AbilitiesLayer::LAYER_BASE,
+				array_fill(0, AbilitiesLayer::NUMBER_OF_ABILITIES, false),
+				0.0,
+				0.0,
+				0.0
+			)
+		]);
+		$player->dataPacket($pk);
 
 		if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_223) {
 			//TODO: Hack for MCPE 1.2.13: DATA_NAMETAG is useless in AddPlayerPacket, so it has to be sent separately

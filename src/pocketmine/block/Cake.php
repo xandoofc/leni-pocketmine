@@ -26,11 +26,9 @@ use pocketmine\entity\EffectInstance;
 use pocketmine\entity\Living;
 use pocketmine\item\FoodSource;
 use pocketmine\item\Item;
-use pocketmine\item\ItemBlock;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 
 class Cake extends Transparent implements FoodSource
@@ -100,16 +98,6 @@ class Cake extends Transparent implements FoodSource
 
 	public function onActivate(Item $item, Player $player = null) : bool
 	{
-		if ($this->meta === 0 && $item instanceof ItemBlock) {
-			$block = $item->getBlock();
-			if ($block instanceof Candle) {
-				$this->level->broadcastLevelSoundEvent($this, LevelSoundEventPacket::SOUND_CAKE_ADD_CANDLE);
-				$this->level->setBlock($this, BlockFactory::get($block->getCandleCakeId()));
-				$item->pop();
-				return true;
-			}
-		}
-
 		if ($player !== null) {
 			$player->consumeObject($this);
 			return true;

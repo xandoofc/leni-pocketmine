@@ -25,30 +25,26 @@ namespace pocketmine\level;
 use InvalidArgumentException;
 use pocketmine\block\Block;
 use pocketmine\block\BlockFactory;
-use pocketmine\block\BlockIds;
 use pocketmine\block\TNT;
 use pocketmine\entity\Entity;
-use pocketmine\event\block\BlockExplodeEvent;
 use pocketmine\event\block\BlockUpdateEvent;
 use pocketmine\event\entity\EntityDamageByBlockEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityExplodeEvent;
+use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
-use pocketmine\item\ItemIds;
 use pocketmine\level\format\Chunk;
 use pocketmine\level\particle\HugeExplodeParticle;
-use pocketmine\level\sound\ExplodeSound;
 use pocketmine\level\utils\SubChunkIteratorManager;
 use pocketmine\math\AxisAlignedBB;
-use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\ExplodePacket;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\tile\Chest;
 use pocketmine\tile\Container;
 use pocketmine\tile\Tile;
-use pocketmine\utils\Utils;
 
 use function ceil;
 use function count;
@@ -57,37 +53,42 @@ use function mt_rand;
 
 class Explosion
 {
-	public const DEFAULT_FIRE_CHANCE = 1.0 / 3.0;
-
-	private int $rays = 16;
-	public Level $level;
+	/** @var int */
+	private $rays = 16;
+	/** @var Level */
+	public $level;
+	/** @var Position */
+	public $source;
+	/** @var float */
+	public $size;
 
 	/** @var Block[] */
-	public array $affectedBlocks = [];
-	public float $stepLen = 0.3;
-	/** @var Block[] */
-	private array $fireIgnitions = [];
+	public $affectedBlocks = [];
+	/** @var float */
+	public $stepLen = 0.3;
+	/** @var Entity|Block */
+	private $what;
 
-	private SubChunkIteratorManager $subChunkHandler;
+	/** @var SubChunkIteratorManager */
+	private $subChunkHandler;
 
-	public function __construct(
-		public Position $source,
-		public float $size,
-		private Entity|Block|null $what = null,
-		private float $fireChance = 0.0
-	) {
-		if (!$source->isValid()) {
+	/**
+	 * @param Entity|Block $what
+	 */
+	public function __construct(Position $center, float $size, $what = null)
+	{
+		if (!$center->isValid()) {
 			throw new InvalidArgumentException("Position does not have a valid world");
 		}
-		$this->level = $source->getLevel();
-		Utils::checkFloatNotInfOrNaN("fireChance", $fireChance);
-		if ($fireChance < 0.0 || $fireChance > 1.0) {
-			throw new InvalidArgumentException("Fire chance must be a number between 0 and 1.");
-		}
+		$this->source = $center;
+		$this->level = $center->getLevel();
+
 		if ($size <= 0) {
 			throw new InvalidArgumentException("Explosion radius must be greater than 0, got $size");
 		}
+		$this->size = $size;
 
+		$this->what = $what;
 		$this->subChunkHandler = new SubChunkIteratorManager($this->level, false);
 	}
 
@@ -105,7 +106,6 @@ class Explosion
 		$vBlock = new Position(0, 0, 0, $this->level);
 
 		$mRays = (int) ($this->rays - 1);
-		$incendiary = $this->fireChance > 0;
 		for ($i = 0; $i < $this->rays; ++$i) {
 			for ($j = 0; $j < $this->rays; ++$j) {
 				for ($k = 0; $k < $this->rays; ++$k) {
@@ -124,10 +124,6 @@ class Explosion
 							$vBlock->y = $pointerY >= $y ? $y : $y - 1;
 							$vBlock->z = $pointerZ >= $z ? $z : $z - 1;
 
-							$pointerX += $vector->x;
-							$pointerY += $vector->y;
-							$pointerZ += $vector->z;
-
 							if (!$this->subChunkHandler->moveTo($vBlock->x, $vBlock->y, $vBlock->z)) {
 								continue;
 							}
@@ -137,16 +133,15 @@ class Explosion
 							if ($fullId !== 0) {
 								$blastForce -= (BlockFactory::$blastResistance[$fullId] / 5 + 0.3) * $this->stepLen;
 								if ($blastForce > 0) {
-									if (!isset($this->affectedBlocks[$index = Level::blockHash($vBlock->x, $vBlock->y, $vBlock->z)])) {
-										$block = BlockFactory::fromFullBlock($fullId, $vBlock);
-										$this->affectedBlocks[$index] = $block;
-
-										if ($incendiary && Utils::getRandomFloat() <= $this->fireChance) {
-											$this->fireIgnitions[$index] = $block;
-										}
+									if (!isset($this->affectedBlocks[$index = ((($vBlock->x) & 0xFFFFFFF) << 36) | ((($vBlock->y) & 0xff) << 28) | (($vBlock->z) & 0xFFFFFFF)])) {
+										$this->affectedBlocks[$index] = BlockFactory::fromFullBlock($fullId, $vBlock);
 									}
 								}
 							}
+
+							$pointerX += $vector->x;
+							$pointerY += $vector->y;
+							$pointerZ += $vector->z;
 						}
 					}
 				}
@@ -169,33 +164,14 @@ class Explosion
 		$yield = (1 / $this->size) * 100;
 
 		if ($this->what instanceof Entity) {
-			$ev = new EntityExplodeEvent($this->what, $this->source, $this->affectedBlocks, $yield, $this->fireIgnitions);
-
+			$ev = new EntityExplodeEvent($this->what, $this->source, $this->affectedBlocks, $yield);
 			$ev->call();
 			if ($ev->isCancelled()) {
 				return false;
+			} else {
+				$yield = $ev->getYield();
+				$this->affectedBlocks = $ev->getBlockList();
 			}
-
-			$yield = $ev->getYield();
-			$this->affectedBlocks = $ev->getBlockList();
-			$this->fireIgnitions = $ev->getIgnitions();
-		} elseif ($this->what instanceof Block) {
-			$ev = new BlockExplodeEvent(
-				$this->what,
-				$this->source,
-				$this->affectedBlocks,
-				$yield,
-				$this->fireIgnitions,
-			);
-
-			$ev->call();
-			if ($ev->isCancelled()) {
-				return false;
-			}
-
-			$yield = $ev->getYield();
-			$this->affectedBlocks = $ev->getAffectedBlocks();
-			$this->fireIgnitions = $ev->getIgnitions();
 		}
 
 		$explosionSize = $this->size * 2;
@@ -232,11 +208,9 @@ class Explosion
 			}
 		}
 
-		$air = ItemFactory::get(ItemIds::AIR);
-		$fireBlock = BlockFactory::get(BlockIds::FIRE);
-		$airBlock = BlockFactory::get(BlockIds::AIR);
+		$air = ItemFactory::get(Item::AIR);
 
-		foreach ($this->affectedBlocks as $index => $block) {
+		foreach ($this->affectedBlocks as $block) {
 			$yieldDrops = false;
 
 			if ($block instanceof TNT) {
@@ -247,12 +221,7 @@ class Explosion
 				}
 			}
 
-			$targetBlock =
-				isset($this->fireIgnitions[$index]) &&
-				$block->getSide(Facing::DOWN)->isSolid() ?
-					$fireBlock :
-					$airBlock;
-			$this->level->setBlockAt($block->x, $block->y, $block->z, $targetBlock);
+			$this->level->setBlockAt($block->x, $block->y, $block->z, Block::get(Block::AIR));
 
 			$t = $this->level->getTileAt($block->x, $block->y, $block->z);
 			if ($t instanceof Tile) {
@@ -273,7 +242,7 @@ class Explosion
 				if (!$this->level->isInWorld($sideBlock->x, $sideBlock->y, $sideBlock->z)) {
 					continue;
 				}
-				if (!isset($this->affectedBlocks[$index = Level::blockHash($sideBlock->x, $sideBlock->y, $sideBlock->z)]) && !isset($updateBlocks[$index])) {
+				if (!isset($this->affectedBlocks[$index = ((($sideBlock->x) & 0xFFFFFFF) << 36) | ((($sideBlock->y) & 0xff) << 28) | (($sideBlock->z) & 0xFFFFFFF)]) && !isset($updateBlocks[$index])) {
 					$ev = new BlockUpdateEvent($this->level->getBlockAt($sideBlock->x, $sideBlock->y, $sideBlock->z));
 					$ev->call();
 					if (!$ev->isCancelled()) {
@@ -285,7 +254,6 @@ class Explosion
 					$updateBlocks[$index] = true;
 				}
 			}
-
 			$send[] = new Vector3($block->x - $source->x, $block->y - $source->y, $block->z - $source->z);
 		}
 
@@ -304,23 +272,8 @@ class Explosion
 		}
 
 		$this->level->addParticle(new HugeExplodeParticle($source));
-		$this->level->addSound(new ExplodeSound($source));
+		$this->level->broadcastLevelSoundEvent($source, LevelSoundEventPacket::SOUND_EXPLODE);
 
 		return true;
-	}
-
-	/**
-	 * Sets a chance between 0 and 1 of creating a fire.
-	 * For example, if the chance is 1/3, then that amount of affected blocks will be ignited.
-	 *
-	 * @param float $fireChance 0 ... 1
-	 */
-	public function setFireChance(float $fireChance) : void
-	{
-		Utils::checkFloatNotInfOrNaN("fireChance", $fireChance);
-		if ($fireChance < 0.0 || $fireChance > 1.0) {
-			throw new InvalidArgumentException("Fire chance must be a number between 0 and 1.");
-		}
-		$this->fireChance = $fireChance;
 	}
 }

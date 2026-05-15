@@ -22,14 +22,11 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\item\Item;
-use pocketmine\math\Facing;
-use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\Player;
 
-class Wood extends Log
+class Wood extends Solid
 {
+
 	public const OAK = 0;
 	public const SPRUCE = 1;
 	public const BIRCH = 2;
@@ -67,46 +64,39 @@ class Wood extends Log
 			self::STRIPPED_ACACIA => "Stripped Acacia Wood",
 			self::STRIPPED_DARK_OAK => "Stripped Dark Oak Wood",
 		];
-		return $names[$this->getVariant()] ?? "Unknown";
+		return $names[$this->getDamage()] ?? "Unknown";
 	}
 
-	public function getVariantBitmask() : int{
-		return -1;
+	public function getHardness() : float
+	{
+		return 2;
 	}
 
-	public function getFaces() : array {
-		$meta = $this->meta;
-		return match ($meta) {
-			self::OAK => [Facing::DOWN => self::OAK, Facing::NORTH => 35, Facing::WEST => 34],
-			self::SPRUCE => [Facing::DOWN => self::SPRUCE, Facing::NORTH => 39, Facing::WEST => 38],
-			self::BIRCH => [Facing::DOWN => self::BIRCH, Facing::NORTH => 25, Facing::WEST => 24],
-			self::JUNGLE => [Facing::DOWN => self::JUNGLE, Facing::NORTH => 27, Facing::WEST => 26],
-			self::ACACIA => [Facing::DOWN => self::ACACIA, Facing::NORTH => 37, Facing::WEST => 36],
-			self::DARK_OAK => [Facing::DOWN => self::DARK_OAK, Facing::NORTH => 17, Facing::WEST => 16],
-
-			self::STRIPPED_OAK => [Facing::DOWN => self::STRIPPED_OAK, Facing::NORTH => 31, Facing::WEST => 30],
-			self::STRIPPED_SPRUCE => [Facing::DOWN => self::STRIPPED_SPRUCE, Facing::NORTH => 23, Facing::WEST => 22],
-			self::STRIPPED_BIRCH => [Facing::DOWN => self::STRIPPED_BIRCH, Facing::NORTH => 29, Facing::WEST => 28],
-			self::STRIPPED_JUNGLE => [Facing::DOWN => self::STRIPPED_JUNGLE, Facing::NORTH => 21, Facing::WEST => 20],
-			self::STRIPPED_ACACIA => [Facing::DOWN => self::STRIPPED_ACACIA, Facing::NORTH => 19, Facing::WEST => 18],
-			self::STRIPPED_DARK_OAK => [Facing::DOWN => self::STRIPPED_DARK_OAK, Facing::NORTH => 33, Facing::WEST => 32],
-
-			default => [Facing::DOWN => $meta, Facing::NORTH => 0x02, Facing::WEST => 0x01],
-		};
+	public function getToolType() : int
+	{
+		return BlockToolType::TYPE_AXE;
 	}
 
-	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool{
-		$this->meta = $this->getFaces()[$face & ~0x01];
-
-		$this->getLevel()->setBlock($blockReplace, $this, true, true);
-		return true;
+	public function getFuelTime() : int
+	{
+		return 300;
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getFlameEncouragement() : int
+	{
+		return 5;
+	}
+
+	public function getFlammability() : int
+	{
+		return 5;
+	}
+
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_340) {
-			return BlockFactory::get(BlockIds::LOG, 12);
+			return Block::get(Block::LOG, 0);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

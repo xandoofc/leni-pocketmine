@@ -41,9 +41,8 @@ class PaleOakStairs extends WoodenStairs
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::WOODEN_STAIRS, $this->meta);
+			return Block::get(Block::WOODEN_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

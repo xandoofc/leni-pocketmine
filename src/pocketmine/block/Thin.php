@@ -30,21 +30,9 @@ use function count;
 
 abstract class Thin extends Transparent
 {
-	protected function recalculateBoundingBox() : ?AxisAlignedBB{
-		$width = 0.5 - 0.125 / 2;
-
-		return new AxisAlignedBB(
-			$this->x + ($this->canConnect($this->getSide(Facing::WEST)) ? 0 : $width),
-			$this->y,
-			$this->z + ($this->canConnect($this->getSide(Facing::NORTH)) ? 0 : $width),
-			$this->x + 1 - ($this->canConnect($this->getSide(Facing::EAST)) ? 0 : $width),
-			$this->y + 1,
-			$this->z + 1 - ($this->canConnect($this->getSide(Facing::SOUTH)) ? 0 : $width)
-		);
-	}
-
-	protected function recalculateCollisionBoxes() : array{
-		$inset = 0.5 - 0.125 / 2;
+	protected function recalculateCollisionBoxes() : array
+	{
+		$inset = 7 / 16;
 
 		/** @var AxisAlignedBB[] $bbs */
 		$bbs = [];
@@ -52,44 +40,35 @@ abstract class Thin extends Transparent
 		$connectWest = $this->canConnect($this->getSide(Facing::WEST));
 		$connectEast = $this->canConnect($this->getSide(Facing::EAST));
 
-		if($connectWest || $connectEast){
-			//X axis (west/east)
-			$bbs[] = new AxisAlignedBB(
-				$this->x + ($connectWest ? 0 : $inset),
-				$this->y,
-				$this->z + $inset,
-				$this->x + 1 - ($connectEast ? 0 : $inset),
-				$this->y + 1,
-				$this->z + 1 - $inset
-			);
+		if ($connectWest || $connectEast) {
+			$bb = AxisAlignedBB::one()->squash(Axis::Z, $inset);
+
+			if (!$connectWest) {
+				$bb->trim(Facing::WEST, $inset);
+			} elseif (!$connectEast) {
+				$bb->trim(Facing::EAST, $inset);
+			}
+			$bbs[] = $bb;
 		}
 
 		$connectNorth = $this->canConnect($this->getSide(Facing::NORTH));
 		$connectSouth = $this->canConnect($this->getSide(Facing::SOUTH));
 
-		if($connectNorth || $connectSouth){
-			//Z axis (north/south)
-			$bbs[] = new AxisAlignedBB(
-				$this->x + $inset,
-				$this->y,
-				$this->z + ($connectNorth ? 0 : $inset),
-				$this->x + 1 - $inset,
-				$this->y + 1,
-				$this->z + 1 - ($connectSouth ? 0 : $inset)
-			);
+		if ($connectNorth || $connectSouth) {
+			$bb = AxisAlignedBB::one()->squash(Axis::X, $inset);
+
+			if (!$connectNorth) {
+				$bb->trim(Facing::NORTH, $inset);
+			} elseif (!$connectSouth) {
+				$bb->trim(Facing::SOUTH, $inset);
+			}
+			$bbs[] = $bb;
 		}
 
-		if(count($bbs) === 0){
+		if (count($bbs) === 0) {
 			//centre post AABB (only needed if not connected on any axis - other BBs overlapping will do this if any connections are made)
 			return [
-				new AxisAlignedBB(
-					$this->x + $inset,
-					$this->y,
-					$this->z + $inset,
-					$this->x + 1 - $inset,
-					$this->y + 1,
-					$this->z + 1 - $inset
-				)
+				AxisAlignedBB::one()->contract($inset, 0, $inset)
 			];
 		}
 

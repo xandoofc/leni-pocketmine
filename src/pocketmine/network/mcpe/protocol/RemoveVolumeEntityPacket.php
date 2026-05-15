@@ -22,14 +22,18 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
+#include <rules/DataPacket.h>
+
 use pocketmine\network\mcpe\NetworkSession;
 
 class RemoveVolumeEntityPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::REMOVE_VOLUME_ENTITY_PACKET;
 
-	public int $entityNetId;
-	public int $dimension;
+	/** @var int */
+	private $entityNetId;
+	/** @var int */
+	private $dimension;
 
 	public static function create(int $entityNetId, int $dimension) : self
 	{

@@ -26,6 +26,7 @@ use pocketmine\event\block\BrewingFuelUseEvent;
 use pocketmine\event\block\BrewItemEvent;
 use pocketmine\inventory\BrewingRecipe;
 use pocketmine\inventory\BrewingStandInventory;
+use pocketmine\inventory\CraftingManager;
 use pocketmine\inventory\Inventory;
 use pocketmine\inventory\InventoryEventProcessor;
 use pocketmine\inventory\InventoryHolder;
@@ -37,7 +38,6 @@ use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\protocol\ContainerSetDataPacket;
 use pocketmine\Player;
-
 use function count;
 
 class BrewingStand extends Spawnable implements InventoryHolder, Container, Nameable
@@ -185,7 +185,7 @@ class BrewingStand extends Spawnable implements InventoryHolder, Container, Name
 				continue;
 			}
 
-			if (($recipe = $this->level->getServer()->getCraftingManager()->matchBrewingRecipe($input, $ingredient)) !== null) {
+			if (($recipe = CraftingManager::matchBrewingRecipe($input, $ingredient)) !== null) {
 				$recipes[$slot] = $recipe;
 			}
 		}

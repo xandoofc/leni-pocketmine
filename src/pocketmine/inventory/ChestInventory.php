@@ -98,12 +98,13 @@ class ChestInventory extends ContainerInventory
 	protected function broadcastBlockEventPacket(bool $isOpen) : void
 	{
 		$holder = $this->getHolder();
-		$holder->getLevel()->broadcastPacketToViewers($holder, BlockEventPacket::create(
-			(int) $holder->x,
-			(int) $holder->y,
-			(int) $holder->z,
-			BlockEventPacket::TYPE_CHEST,
-			$isOpen ? BlockEventPacket::DATA_CHEST_OPEN : BlockEventPacket::DATA_CHEST_CLOSED
-		));
+
+		$pk = new BlockEventPacket();
+		$pk->x = (int) $holder->x;
+		$pk->y = (int) $holder->y;
+		$pk->z = (int) $holder->z;
+		$pk->eventType = 1; //it's always 1 for a chest
+		$pk->eventData = $isOpen ? 1 : 0;
+		$holder->getLevel()->broadcastPacketToViewers($holder, $pk);
 	}
 }

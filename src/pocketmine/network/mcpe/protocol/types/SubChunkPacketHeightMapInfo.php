@@ -24,74 +24,62 @@ namespace pocketmine\network\mcpe\protocol\types;
 
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\utils\Binary;
-
 use function array_fill;
 use function count;
 
-class SubChunkPacketHeightMapInfo
-{
+class SubChunkPacketHeightMapInfo{
+
 	/**
 	 * @param int[] $heights ZZZZXXXX key bit order
 	 * @phpstan-param list<int> $heights
 	 */
-	public function __construct(private array $heights)
-	{
-		if (count($heights) !== 256) {
+	public function __construct(private array $heights){
+		if(count($heights) !== 256){
 			throw new \InvalidArgumentException("Expected exactly 256 heightmap values");
 		}
 	}
 
 	/** @return int[] */
-	public function getHeights() : array
-	{
-		return $this->heights;
-	}
+	public function getHeights() : array{ return $this->heights; }
 
-	public function getHeight(int $x, int $z) : int
-	{
+	public function getHeight(int $x, int $z) : int{
 		return $this->heights[(($z & 0xf) << 4) | ($x & 0xf)];
 	}
 
-	public static function read(NetworkBinaryStream $in) : self
-	{
+	public static function read(NetworkBinaryStream $in) : self{
 		$heights = [];
-		for ($i = 0; $i < 256; ++$i) {
+		for($i = 0; $i < 256; ++$i){
 			$heights[] = Binary::signByte($in->getByte());
 		}
 		return new self($heights);
 	}
 
-	public function write(NetworkBinaryStream $out) : void
-	{
-		for ($i = 0; $i < 256; ++$i) {
+	public function write(NetworkBinaryStream $out) : void{
+		for($i = 0; $i < 256; ++$i){
 			$out->putByte(Binary::unsignByte($this->heights[$i]));
 		}
 	}
 
-	public static function allTooLow() : self
-	{
+	public static function allTooLow() : self{
 		return new self(array_fill(0, 256, -1));
 	}
 
-	public static function allTooHigh() : self
-	{
+	public static function allTooHigh() : self{
 		return new self(array_fill(0, 256, 16));
 	}
 
-	public function isAllTooLow() : bool
-	{
-		foreach ($this->heights as $height) {
-			if ($height >= 0) {
+	public function isAllTooLow() : bool{
+		foreach($this->heights as $height){
+			if($height >= 0){
 				return false;
 			}
 		}
 		return true;
 	}
 
-	public function isAllTooHigh() : bool
-	{
-		foreach ($this->heights as $height) {
-			if ($height <= 15) {
+	public function isAllTooHigh() : bool{
+		foreach($this->heights as $height){
+			if($height <= 15){
 				return false;
 			}
 		}

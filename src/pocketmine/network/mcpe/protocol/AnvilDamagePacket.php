@@ -28,10 +28,14 @@ class AnvilDamagePacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ANVIL_DAMAGE_PACKET;
 
-	public int $x;
-	public int $y;
-	public int $z;
-	public int $damageAmount;
+	/** @var int */
+	private $x;
+	/** @var int */
+	private $y;
+	/** @var int */
+	private $z;
+	/** @var int */
+	private $damageAmount;
 
 	public static function create(int $x, int $y, int $z, int $damageAmount) : self
 	{

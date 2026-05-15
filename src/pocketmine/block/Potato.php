@@ -25,7 +25,6 @@ namespace pocketmine\block;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 
-use pocketmine\item\ItemIds;
 use function mt_rand;
 
 class Potato extends Crops
@@ -45,16 +44,16 @@ class Potato extends Crops
 	public function getDropsForCompatibleTool(Item $item) : array
 	{
 		$result = [
-			ItemFactory::get(ItemIds::POTATO, 0, $this->getDamage() >= 0x07 ? mt_rand(1, 5) : 1)
+			ItemFactory::get(Item::POTATO, 0, $this->getDamage() >= 0x07 ? mt_rand(1, 5) : 1)
 		];
 		if ($this->getDamage() >= 7 && mt_rand(0, 49) === 0) {
-			$result[] = ItemFactory::get(ItemIds::POISONOUS_POTATO);
+			$result[] = ItemFactory::get(Item::POISONOUS_POTATO);
 		}
 		return $result;
 	}
 
 	public function getPickedItem(bool $addUserData = false) : Item
 	{
-		return ItemFactory::get(ItemIds::POTATO);
+		return ItemFactory::get(Item::POTATO);
 	}
 }

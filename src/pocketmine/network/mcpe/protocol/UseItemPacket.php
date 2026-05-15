@@ -24,21 +24,30 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\NetworkSession;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 
 class UseItemPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::USE_ITEM_PACKET;
 
-	public int $x = 0;
-	public int $y = 0;
-	public int $z = 0;
-	public int $blockId;
-	public int $face;
-	public Vector3 $playerPos;
-	public Vector3 $clickPos;
-	public int $slot;
-	public ItemStack $item;
+	/** @var int */
+	public $x;
+	/** @var int */
+	public $y;
+	/** @var int */
+	public $z;
+	/** @var int */
+	public $blockId;
+	/** @var int */
+	public $face;
+	/** @var Vector3 */
+	public $playerPos;
+	/** @var Vector3 */
+	public $clickPos;
+	/** @var int */
+	public $slot;
+	/** @var ItemStackWrapper */
+	public $item;
 
 	protected function decodePayload() : void
 	{
@@ -48,7 +57,7 @@ class UseItemPacket extends DataPacket
 		$this->clickPos = $this->getVector3();
 		$this->playerPos = $this->getVector3();
 		$this->slot = $this->getVarInt();
-		$this->item = $this->getItemStackWithoutStackId($this->getProtocol());
+		$this->item = $this->getSlot($this->getProtocol());
 	}
 
 	protected function encodePayload() : void
@@ -59,7 +68,7 @@ class UseItemPacket extends DataPacket
 		$this->putVector3($this->clickPos);
 		$this->putVector3($this->playerPos);
 		$this->putVarInt($this->slot);
-		$this->putItemStackWithoutStackId($this->item, $this->getProtocol());
+		$this->putSlot($this->item, $this->getProtocol());
 	}
 
 	public function handle(NetworkSession $session) : bool

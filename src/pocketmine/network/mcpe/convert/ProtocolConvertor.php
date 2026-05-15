@@ -35,6 +35,11 @@ class ProtocolConvertor
 	use SingletonTrait;
 
 	public const array PROTOCOL_CHUNK_VERSIONS = [
+		ProtocolInfo::PROTOCOL_975,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_860,
 		ProtocolInfo::PROTOCOL_844,
 		ProtocolInfo::PROTOCOL_827,
 		ProtocolInfo::PROTOCOL_800,
@@ -97,6 +102,11 @@ class ProtocolConvertor
 	}
 
 	public const array PROTOCOL_CRAFTING_VERSIONS = [
+		ProtocolInfo::PROTOCOL_975,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_860,
 		ProtocolInfo::PROTOCOL_859,
 		ProtocolInfo::PROTOCOL_844,
 		ProtocolInfo::PROTOCOL_827,
@@ -158,6 +168,11 @@ class ProtocolConvertor
 	}
 
 	public const array PROTOCOL_BLOCK_PALETTE_VERSIONS = [
+		ProtocolInfo::PROTOCOL_975,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_860,
 		ProtocolInfo::PROTOCOL_844,
 		ProtocolInfo::PROTOCOL_827,
 		ProtocolInfo::PROTOCOL_800,
@@ -214,6 +229,11 @@ class ProtocolConvertor
 	}
 
 	public const array PROTOCOL_ITEM_PALETTE_VERSIONS = [
+		ProtocolInfo::PROTOCOL_975,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_860,
 		ProtocolInfo::PROTOCOL_859,
 		ProtocolInfo::PROTOCOL_844,
 		ProtocolInfo::PROTOCOL_827,
@@ -262,6 +282,11 @@ class ProtocolConvertor
 	}
 
 	public const array PROTOCOL_ITEM_LEGACY_VERSIONS = [
+		ProtocolInfo::PROTOCOL_975,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_860,
 		ProtocolInfo::PROTOCOL_844,
 		ProtocolInfo::PROTOCOL_827,
 		ProtocolInfo::PROTOCOL_819,
@@ -315,6 +340,11 @@ class ProtocolConvertor
 	}
 
 	public const array PROTOCOL_BLOCK_LEGACY_VERSIONS = [
+		ProtocolInfo::PROTOCOL_975,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_860,
 		ProtocolInfo::PROTOCOL_844,
 		ProtocolInfo::PROTOCOL_827,
 		ProtocolInfo::PROTOCOL_800,
@@ -380,7 +410,7 @@ class ProtocolConvertor
 		ProtocolInfo::PROTOCOL_110,
 	];
 
-	public function getItemMapProtocol(int $playerProtocol) : int
+	public function getMapProtocol(int $playerProtocol) : int
 	{
 		foreach (self::PROTOCOL_ITEM_MAP_VERSIONS as $protocol) {
 			if ($playerProtocol >= $protocol) {

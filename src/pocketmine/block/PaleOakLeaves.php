@@ -22,12 +22,9 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\item\Item;
-use pocketmine\item\ItemFactory;
-use pocketmine\item\ItemIds;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
-class PaleOakLeaves extends Leaves
+class PaleOakLeaves extends Transparent
 {
 	protected $id = self::PALE_OAK_LEAVES;
 
@@ -41,30 +38,12 @@ class PaleOakLeaves extends Leaves
 		return "Pale Oak Leaves";
 	}
 
-	public function getSaplingItem() : Item
-	{
-		return ItemFactory::get(ItemIds::PALE_OAK_SAPLING);
-	}
-
-	public function canDropApples() : bool
-	{
-		return false;
-	}
-
-	public function getCheckDecayBitmask() : int{
-		return 0x02;
-	}
-
-	public function getPersistentBitmask() : int{
-		return 0x01;
-	}
-
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::LEAVES);
+			return Block::get(Block::LEAVES, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

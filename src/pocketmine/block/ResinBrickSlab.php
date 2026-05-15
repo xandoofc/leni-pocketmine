@@ -49,14 +49,14 @@ class ResinBrickSlab extends Slab
 		return 0x00;
 	}
 
-	public function getTopBitmask() : int
+	public function getVariantTopBitmask() : int
 	{
 		return 0x01;
 	}
 
 	public function getName() : string
 	{
-		return ($this->isTop() ? "Upper " : "") . "Resin Brick Slab";
+		return (($this->meta & 0x01) > 0 ? "Upper " : "") . "Resin Brick Slab";
 	}
 
 	public function getToolType() : int
@@ -72,9 +72,8 @@ class ResinBrickSlab extends Slab
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::STONE_SLAB, ($this->isTop() ? 8 : 0));
+			return Block::get(Block::STONE_SLAB, (($this->meta & 0x01) > 0) ? 0 : 8);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

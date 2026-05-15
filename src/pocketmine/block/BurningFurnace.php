@@ -24,11 +24,11 @@ namespace pocketmine\block;
 
 use pocketmine\item\Item;
 use pocketmine\item\TieredTool;
+use pocketmine\level\sound\FurnaceSound;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\tile\Furnace as TileFurnace;
 use pocketmine\tile\Tile;
-
 use function mt_rand;
 
 class BurningFurnace extends Solid
@@ -115,7 +115,7 @@ class BurningFurnace extends Solid
 		$furnace = $level->getTile($this);
 		if ($furnace instanceof TileFurnace && $furnace->onUpdate()) {
 			if (mt_rand(1, 60) === 1) { //in vanilla this is between 1 and 5 seconds; try to average about 3
-				$level->addSound($furnace->getFurnaceType()->getCookSound($this));
+				$level->addSound(new FurnaceSound($this));
 			}
 			$level->scheduleDelayedBlockUpdate($this, 1); //TODO: check this
 		}

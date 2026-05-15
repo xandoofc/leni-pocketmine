@@ -68,10 +68,8 @@ use pocketmine\level\light\LightPopulationTask;
 use pocketmine\level\light\SkyLightUpdate;
 use pocketmine\level\particle\DestroyBlockParticle;
 use pocketmine\level\particle\Particle;
-use pocketmine\level\sound\BlockPlaceSound;
 use pocketmine\level\sound\Sound;
 use pocketmine\math\AxisAlignedBB;
-use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\math\VoxelRayTrace;
 use pocketmine\nbt\tag\ListTag;
@@ -121,10 +119,10 @@ use function max;
 use function microtime;
 use function min;
 use function mt_rand;
+
 use function spl_object_id;
 use function strtolower;
 use function trim;
-
 use const INT32_MAX;
 use const INT32_MIN;
 use const M_PI;
@@ -138,9 +136,6 @@ use const PHP_INT_MIN;
  */
 class Level implements ChunkManager
 {
-	//TODO: this could probably do with being a lot bigger
-	private const BLOCK_CACHE_SIZE_CAP = 2048;
-
 	private static int $levelIdCounter = 1;
 
 	public const Y_MASK = 0xFF;
@@ -193,12 +188,6 @@ class Level implements ChunkManager
 	 * @phpstan-var array<ChunkPosHash, array<ChunkBlockPosHash, Block>>
 	 */
 	private array $blockCache = [];
-	private int $blockCacheSize = 0;
-	/**
-	 * @var AxisAlignedBB[][][] chunkHash => [relativeBlockHash => AxisAlignedBB[]]
-	 * @phpstan-var array<ChunkPosHash, array<ChunkBlockPosHash, list<AxisAlignedBB>>>
-	 */
-	private array $blockCollisionBoxCache = [];
 
 	/** @var string[][] */
 	private array $chunkCache = [];
@@ -299,7 +288,9 @@ class Level implements ChunkManager
 
 	public LevelTimings $timings;
 
+	private int $tickRate = 1;
 	public float $tickRateTime = 0;
+	public int $tickRateCounter = 0;
 
 	private bool $doingTick = false;
 
@@ -457,9 +448,29 @@ class Level implements ChunkManager
 		}
 	}
 
+	public function getTickRate() : int
+	{
+		return $this->tickRate;
+	}
+
 	public function getTickRateTime() : float
 	{
 		return $this->tickRateTime;
+	}
+
+	public function getTickRateCounter() : float
+	{
+		return $this->tickRateCounter;
+	}
+
+	public function setTickRate(int $tickRate) : void
+	{
+		$this->tickRate = $tickRate;
+	}
+
+	public function setTickRateCounter(int $tickRateCounter) : void
+	{
+		$this->tickRateCounter = $tickRateCounter;
 	}
 
 	public function registerGeneratorToWorker(int $worker) : void
@@ -523,49 +534,23 @@ class Level implements ChunkManager
 
 		$this->provider->close();
 		$this->blockCache = [];
-		$this->blockCacheSize = 0;
-		$this->blockCollisionBoxCache = [];
 
 		$this->closed = true;
 	}
 
 	public function addSound(Sound $sound, array $players = null)
 	{
-		if ($sound->isUseProtocol()) {
-			$players = $players === null ? $this->getPlayers() : $players;
-			$targets = [];
-			foreach ($players as $player) {
-				if ($player->isConnected()) {
-					$targets[$player->getProtocolVersion()][] = $player;
+		$pk = $sound->encode();
+		if (!is_array($pk)) {
+			$pk = [$pk];
+		}
+		if (!empty($pk)) {
+			if ($players === null) {
+				foreach ($pk as $e) {
+					$this->broadcastPacketToViewers($sound, $e);
 				}
-			}
-
-			foreach ($targets as $protocolVersion => $players) {
-				$sound->setProtocol($protocolVersion);
-
-				$pk = $sound->encode();
-				if (!is_array($pk)) {
-					$pk = [$pk];
-				}
-
-				if (!empty($pk)) {
-					$this->server->batchPackets($players, $pk, false);
-				}
-			}
-		} else {
-			$pk = $sound->encode();
-			if (!is_array($pk)) {
-				$pk = [$pk];
-			}
-
-			if (!empty($pk)) {
-				if ($players === null) {
-					foreach ($pk as $e) {
-						$this->broadcastPacketToViewers($sound, $e);
-					}
-				} else {
-					$this->server->batchPackets($players, $pk, false);
-				}
+			} else {
+				$this->server->batchPackets($players, $pk, false);
 			}
 		}
 	}
@@ -941,7 +926,7 @@ class Level implements ChunkManager
 		if (!$this->stopTime && $this->gameRules->getBool(GameRules::RULE_DO_DAYLIGHT_CYCLE, true)) {
 			//this simulates an overflow, as would happen in any language which doesn't do stupid things to var types
 			if ($this->time === PHP_INT_MAX) {
-                $this->time = PHP_INT_MIN;
+				$this->time = PHP_INT_MIN;
 			} else {
 				$this->time++;
 			}
@@ -1063,7 +1048,7 @@ class Level implements ChunkManager
 						$this->sendBlocks($this->getChunkPlayers($chunkX, $chunkZ), $blocks, UpdateBlockPacket::FLAG_ALL);
 					}
 				}
-			} else {
+			}else{
 				$this->chunkCache = [];
 			}
 
@@ -1191,57 +1176,36 @@ class Level implements ChunkManager
 
 			$tile = $this->getTileAt($b->x, $b->y, $b->z);
 			if ($tile instanceof Spawnable) {
-				$packets[] = BlockActorDataPacket::create($b->x, $b->y, $b->z, $tile->getProtocolSerializedSpawnCompound($protocol));
+				$packet = new BlockActorDataPacket();
+				$packet->x = $b->x;
+				$packet->y = $b->y;
+				$packet->z = $b->z;
+				$packet->namedtag = $tile->getProtocolSerializedSpawnCompound($protocol);
+				$packets[] = $packet;
 			}
 		}
 
 		return $packets;
 	}
 
-	public function clearCache(bool $force = false) : void{
-		if($force){
-			$this->blockCache = [];
-			$this->blockCacheSize = 0;
-			$this->blockCollisionBoxCache = [];
-		}else{
-			//Recalculate this when we're asked - blockCacheSize may be higher than the real size
-			$this->blockCacheSize = 0;
-			foreach($this->blockCache as $list){
-				$this->blockCacheSize += count($list);
-				if($this->blockCacheSize > self::BLOCK_CACHE_SIZE_CAP){
-					$this->blockCache = [];
-					$this->blockCacheSize = 0;
-					break;
-				}
-			}
-
-			$count = 0;
-			foreach($this->blockCollisionBoxCache as $list){
-				$count += count($list);
-				if($count > self::BLOCK_CACHE_SIZE_CAP){
-					//TODO: Is this really the best logic?
-					$this->blockCollisionBoxCache = [];
-					break;
-				}
-			}
-		}
-	}
-
-	private function trimBlockCache() : void{
-		$before = $this->blockCacheSize;
-		//Since PHP maintains key order, earliest in foreach should be the oldest entries
-		//Older entries are less likely to be hot, so destroying these should usually have the lowest impact on performance
-		foreach($this->blockCache as $chunkHash => $blocks){
-			unset($this->blockCache[$chunkHash]);
-			$this->blockCacheSize -= count($blocks);
-			if($this->blockCacheSize < self::BLOCK_CACHE_SIZE_CAP){
-				break;
-			}
-		}
-	}
-
-	public function clearChunkCache(int $chunkX, int $chunkZ) : void
+	public function clearCache(bool $force = false) : void
 	{
+		if ($force) {
+			$this->chunkCache = [];
+			$this->blockCache = [];
+		} else {
+			$count = 0;
+			foreach ($this->blockCache as $list) {
+				$count += count($list);
+				if ($count > 2048) {
+					$this->blockCache = [];
+					break;
+				}
+			}
+		}
+	}
+
+	public function clearChunkCache(int $chunkX, int $chunkZ) : void{
 		unset($this->chunkCache[Level::chunkHash($chunkX, $chunkZ)]);
 	}
 
@@ -1520,9 +1484,8 @@ class Level implements ChunkManager
 
 	/**
 	 * @return AxisAlignedBB[]
-	 * @phpstan-return list<AxisAlignedBB>
 	 */
-	public function getBlockCollisionBoxes(AxisAlignedBB $bb) : array
+	public function getCollisionCubes(Entity $entity, AxisAlignedBB $bb, bool $entities = true) : array
 	{
 		$minX = (int) floor($bb->minX - 1);
 		$minY = (int) floor($bb->minY - 1);
@@ -1535,13 +1498,10 @@ class Level implements ChunkManager
 
 		for ($z = $minZ; $z <= $maxZ; ++$z) {
 			for ($x = $minX; $x <= $maxX; ++$x) {
-				$chunkPosHash = Level::chunkHash($x >> Chunk::COORD_BIT_SIZE, $z >> Chunk::COORD_BIT_SIZE);
 				for ($y = $minY; $y <= $maxY; ++$y) {
 					$block = $this->getBlockAt($x, $y, $z);
 					if (!$block->canPassThrough()) {
-						$relativeBlockHash = Level::chunkBlockHash($x, $y, $z);
-						$boxes = $this->blockCollisionBoxCache[$chunkPosHash][$relativeBlockHash] ??= $block->getCollisionBoxes();
-						foreach ($boxes as $blockBB) {
+						foreach ($block->getCollisionBoxes() as $blockBB) {
 							if ($blockBB->intersectsWith($bb)) {
 								$collides[] = $blockBB;
 							}
@@ -1551,15 +1511,6 @@ class Level implements ChunkManager
 			}
 		}
 
-		return $collides;
-	}
-
-	/**
-	 * @return AxisAlignedBB[]
-	 */
-	public function getCollisionCubes(Entity $entity, AxisAlignedBB $bb, bool $entities = true) : array
-	{
-		$collides = $this->getBlockCollisionBoxes($bb);
 		if ($entities) {
 			foreach ($this->getCollidingEntities($bb->expandedCopy(0.25, 0.25, 0.25), $entity) as $ent) {
 				$collides[] = clone $ent->boundingBox;
@@ -1878,12 +1829,8 @@ class Level implements ChunkManager
 		$block->z = $z;
 		$block->level = $this;
 
-		if($addToCache && $relativeBlockHash !== null){
+		if ($addToCache && $relativeBlockHash !== null) {
 			$this->blockCache[$chunkHash][$relativeBlockHash] = $block;
-
-			if(++$this->blockCacheSize >= self::BLOCK_CACHE_SIZE_CAP){
-				$this->trimBlockCache();
-			}
 		}
 
 		return $block;
@@ -1932,15 +1879,6 @@ class Level implements ChunkManager
 				$relativeBlockHash = Level::chunkBlockHash($x, $y, $z);
 
 				unset($this->blockCache[$chunkHash][$relativeBlockHash]);
-				$this->blockCacheSize--;
-				unset($this->blockCollisionBoxCache[$chunkHash][$relativeBlockHash]);
-				//blocks like fences have collision boxes that reach into neighbouring blocks, so we need to invalidate the
-				//caches for those blocks as well
-				foreach(Facing::OFFSET as [$offsetX, $offsetY, $offsetZ]){
-					$sideChunkPosHash = Level::chunkHash(($x + $offsetX) >> Chunk::COORD_BIT_SIZE, ($z + $offsetZ) >> Chunk::COORD_BIT_SIZE);
-					$sideChunkBlockHash = Level::chunkBlockHash($x + $offsetX, $y + $offsetY, $z + $offsetZ);
-					unset($this->blockCollisionBoxCache[$sideChunkPosHash][$sideChunkBlockHash]);
-				}
 
 				if ($direct) {
 					$this->sendBlocks($this->getChunkPlayers($chunkX, $chunkZ), [$block], UpdateBlockPacket::FLAG_ALL_PRIORITY);
@@ -2268,7 +2206,7 @@ class Level implements ChunkManager
 		}
 
 		if ($playSound) {
-			$this->addSound(new BlockPlaceSound($hand, $hand));
+			$this->broadcastLevelSoundEvent($hand, LevelSoundEventPacket::SOUND_PLACE, $hand->getId());
 		}
 
 		$item->pop();
@@ -2601,13 +2539,11 @@ class Level implements ChunkManager
 			$this->chunks[$chunkHash] = $chunk;
 		}
 
-		$this->blockCacheSize -= count($this->blockCache[$chunkHash] ?? []);
 		unset($this->blockCache[$chunkHash]);
-		unset($this->blockCollisionBoxCache[$chunkHash]);
 		unset($this->chunkCache[$chunkHash]);
 		unset($this->changedBlocks[$chunkHash]);
-		if (isset($this->chunkSendTasks[$chunkHash])) { //invalidate pending caches
-			foreach ($this->chunkSendTasks[$chunkHash] as $protocol => $chunkTask) {
+		if(isset($this->chunkSendTasks[$chunkHash])){ //invalidate pending caches
+			foreach($this->chunkSendTasks[$chunkHash] as $protocol => $chunkTask){
 				$chunkTask->cancelRun();
 			}
 			unset($this->chunkSendTasks[$chunkHash]);
@@ -2695,22 +2631,20 @@ class Level implements ChunkManager
 		}
 	}
 
-	public function requestChunk(int $x, int $z, Player $player) : void
-	{
+	public function requestChunk(int $x, int $z, Player $player) : void{
 		$index = Level::chunkHash($x, $z);
-		if (!isset($this->chunkSendQueue[$index])) {
+		if(!isset($this->chunkSendQueue[$index])){
 			$this->chunkSendQueue[$index] = [];
 		}
 
 		$this->chunkSendQueue[$index][$player->getChunkProtocol()][spl_object_id($player)] = $player;
 	}
 
-	private function sendChunkFromCache(int $x, int $z, int $protocol) : void
-	{
-		if (isset($this->chunkSendQueue[$index = Level::chunkHash($x, $z)][$protocol])) {
-			foreach ($this->chunkSendQueue[$index][$protocol] as $player) {
+	private function sendChunkFromCache(int $x, int $z, int $protocol) : void{
+		if(isset($this->chunkSendQueue[$index = Level::chunkHash($x, $z)][$protocol])){
+			foreach($this->chunkSendQueue[$index][$protocol] as $player){
 				/** @var Player $player */
-				if ($player->isConnected() && isset($player->usedChunks[$index]) && isset($this->chunkCache[$index][$protocol])) {
+				if($player->isConnected() && isset($player->usedChunks[$index]) && isset($this->chunkCache[$index][$protocol])){
 					$player->sendChunk($x, $z, $this->chunkCache[$index][$protocol]);
 				}
 			}
@@ -2718,31 +2652,30 @@ class Level implements ChunkManager
 		}
 	}
 
-	private function processChunkRequest() : void
-	{
-		if (count($this->chunkSendQueue) > 0) {
+	private function processChunkRequest() : void{
+		if(count($this->chunkSendQueue) > 0){
 			$this->timings->syncChunkSend->startTiming();
 
-			foreach ($this->chunkSendQueue as $index => $protocolPlayers) {
-				foreach ($protocolPlayers as $protocol => $players) {
+			foreach($this->chunkSendQueue as $index => $protocolPlayers){
+				foreach($protocolPlayers as $protocol => $players){
 					Level::getXZ($index, $x, $z);
-					if (isset($this->chunkSendTasks[$index][$protocol])) {
-						if ($this->chunkSendTasks[$index][$protocol]->isCrashed()) {
+					if(isset($this->chunkSendTasks[$index][$protocol])){
+						if($this->chunkSendTasks[$index][$protocol]->isCrashed()){
 							unset($this->chunkSendTasks[$index][$protocol]);
 							$this->server->getLogger()->error("Failed to prepare chunk $x $z for sending to players with protocol $protocol, retrying");
-						} else {
+						}else{
 							//Not ready for sending yet
 							continue;
 						}
 					}
-					if (isset($this->chunkCache[$index][$protocol])) {
+					if(isset($this->chunkCache[$index][$protocol])){
 						$this->sendChunkFromCache($x, $z, $protocol);
 						continue;
 					}
 					$this->timings->syncChunkSendPrepare->startTiming();
 
 					$chunk = $this->chunks[$index] ?? null;
-					if (!($chunk instanceof Chunk)) {
+					if(!($chunk instanceof Chunk)){
 						throw new ChunkException("Invalid Chunk sent");
 					}
 					assert($chunk->getX() === $x && $chunk->getZ() === $z, "Chunk coordinate mismatch: expected $x $z, but chunk has coordinates " . $chunk->getX() . " " . $chunk->getZ() . ", did you forget to clone a chunk before setting?");
@@ -2758,8 +2691,7 @@ class Level implements ChunkManager
 		}
 	}
 
-	public function chunkRequestCallback(int $x, int $z, int $protocol, string $buffer) : void
-	{
+	public function chunkRequestCallback(int $x, int $z, int $protocol, string $buffer) : void{
 		$this->timings->syncChunkSend->startTiming();
 
 		$index = Level::chunkHash($x, $z);
@@ -2767,7 +2699,7 @@ class Level implements ChunkManager
 
 		$this->chunkCache[$index][$protocol] = $buffer;
 		$this->sendChunkFromCache($x, $z, $protocol);
-		if (!$this->server->getMemoryManager()->canUseChunkCache()) {
+		if(!$this->server->getMemoryManager()->canUseChunkCache()){
 			unset($this->chunkCache[$index][$protocol]);
 		}
 
@@ -2900,10 +2832,7 @@ class Level implements ChunkManager
 		}
 
 		$this->chunks[$chunkHash] = $chunk;
-
-		$this->blockCacheSize -= count($this->blockCache[$chunkHash] ?? []);
 		unset($this->blockCache[$chunkHash]);
-		unset($this->blockCollisionBoxCache[$chunkHash]);
 
 		$chunk->initChunk($this);
 
@@ -3000,9 +2929,7 @@ class Level implements ChunkManager
 		unset($this->chunks[$chunkHash]);
 		unset($this->chunkTickList[$chunkHash]);
 		unset($this->chunkCache[$chunkHash]);
-		$this->blockCacheSize -= count($this->blockCache[$chunkHash] ?? []);
 		unset($this->blockCache[$chunkHash]);
-		unset($this->blockCollisionBoxCache[$chunkHash]);
 		unset($this->changedBlocks[$chunkHash]);
 		unset($this->chunkSendQueue[$chunkHash]);
 		unset($this->chunkSendTasks[$chunkHash]);

@@ -22,8 +22,6 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
-
 class Log2 extends Log
 {
 	public const ACACIA = 0;
@@ -38,14 +36,5 @@ class Log2 extends Log
 			1 => "Dark Oak Wood"
 		];
 		return $names[$this->getVariant()] ?? "Unknown";
-	}
-
-	public function getBlockProtocol(int $playerProtocol) : ?Block
-	{
-		if ($playerProtocol >= ProtocolInfo::PROTOCOL_340 && $this->meta >= 12) {
-			return BlockFactory::get(BlockIds::WOOD, 4 + $this->getVariant());
-		}
-
-		return null;
 	}
 }

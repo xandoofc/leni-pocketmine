@@ -164,29 +164,21 @@ class Painting extends Entity
 
 	protected function sendSpawnPacket(Player $player) : void
 	{
+		$pk = new AddPaintingPacket();
+		$pk->entityRuntimeId = $this->getId();
 		if ($player->getProtocolVersion() < ProtocolInfo::PROTOCOL_361) {
-			[$x, $y, $z] = [
-				$this->blockIn->x,
-				$this->blockIn->y,
-				$this->blockIn->z
-			];
+			$pk->x = (int) $this->blockIn->x;
+			$pk->y = (int) $this->blockIn->y;
+			$pk->z = (int) $this->blockIn->z;
 		} else {
-			[$x, $y, $z] = [
-				(($boundingBox = $this->boundingBox)->minX + $boundingBox->maxX) / 2,
-				($boundingBox->minY + $boundingBox->maxY) / 2,
-				($boundingBox->minZ + $boundingBox->maxZ) / 2
-			];
+			$pk->x = (int) ($this->boundingBox->minX + $this->boundingBox->maxX) / 2;
+			$pk->y = (int) ($this->boundingBox->minY + $this->boundingBox->maxY) / 2;
+			$pk->z = (int) ($this->boundingBox->minZ + $this->boundingBox->maxZ) / 2;
 		}
+		$pk->direction = $this->direction;
+		$pk->title = $this->motive;
 
-		$player->sendDataPacket(AddPaintingPacket::create(
-			$this->getId(),
-			$this->getId(),
-			(int) $x,
-			(int) $y,
-			(int) $z,
-			$this->direction,
-			$this->motive
-		));
+		$player->dataPacket($pk);
 	}
 
 	public function getPickedItem() : ?Item

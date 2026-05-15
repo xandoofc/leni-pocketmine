@@ -26,13 +26,12 @@ use function gc_collect_cycles;
 use function gc_enable;
 use function gc_mem_caches;
 
-class GarbageCollectionTask extends AsyncTask
-{
-	public function onRun() : void
-	{
+class GarbageCollectionTask extends AsyncTask{
+
+	public function onRun() : void{
 		gc_enable();
 		gc_collect_cycles();
-		gc_mem_caches();
+			gc_mem_caches();
 	}
 
 }

@@ -99,9 +99,9 @@ class Jukebox extends Solid
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_137) {
-			return BlockFactory::get(BlockIds::PLANKS);
+			return Block::get(Block::PLANKS);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

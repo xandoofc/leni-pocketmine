@@ -49,11 +49,11 @@ abstract class DataPacket extends NetworkBinaryStream
 	private const RECIPIENT_SUBCLIENT_ID_SHIFT = 12;
 
 	public bool $isEncoded = false;
-	public bool $wasDecoded = false;
 
 	public int $senderSubId = 0;
 	public int $recipientSubId = 0;
 	private ?int $packetProtocol = null;
+	public bool $wasDecoded = false;
 
 	public function pid() : int
 	{
@@ -80,6 +80,11 @@ abstract class DataPacket extends NetworkBinaryStream
 		if ($this->packetProtocol === null) {
 			throw new InvalidArgumentException('Protocol has not passed. Please use $packet->setProtocol(int $protocol)->... for fix it.');
 		}
+	}
+
+	public function canBeBatched() : bool
+	{
+		return true;
 	}
 
 	public function canBeSentBeforeLogin() : bool

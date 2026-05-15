@@ -36,9 +36,8 @@ class SmoothRedSandstoneStairs extends SandstoneStairs
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::RED_SANDSTONE_STAIRS, $this->meta);
+			return Block::get(Block::RED_SANDSTONE_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

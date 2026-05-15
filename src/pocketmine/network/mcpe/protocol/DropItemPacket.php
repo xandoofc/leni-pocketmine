@@ -23,25 +23,26 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\NetworkSession;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 
 class DropItemPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::DROP_ITEM_PACKET;
 
-	public int $type;
-	public ItemStack $item;
+	public $type;
+	/** @var ItemStackWrapper */
+	public $item;
 
 	protected function decodePayload() : void
 	{
 		$this->type = $this->getByte();
-		$this->item = $this->getItemStackWithoutStackId($this->getProtocol());
+		$this->item = $this->getSlot($this->getProtocol());
 	}
 
 	protected function encodePayload() : void
 	{
 		$this->putByte($this->type);
-		$this->putItemStackWithoutStackId($this->item, $this->getProtocol());
+		$this->putSlot($this->item, $this->getProtocol());
 	}
 
 	public function handle(NetworkSession $session) : bool

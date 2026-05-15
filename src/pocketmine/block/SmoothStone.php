@@ -69,9 +69,8 @@ class SmoothStone extends Solid
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::STONE);
+			return Block::get(Block::STONE);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

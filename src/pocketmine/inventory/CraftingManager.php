@@ -24,59 +24,295 @@ namespace pocketmine\inventory;
 
 use Generator;
 use pocketmine\item\Item;
+use pocketmine\item\ItemFactory;
+use pocketmine\item\ItemIds;
 use pocketmine\nbt\LittleEndianNBTStream;
-use pocketmine\network\mcpe\cache\CraftingDataCache;
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\network\mcpe\compression\NetworkCompression;
+use pocketmine\network\mcpe\protocol\CraftingDataPacket;
+use pocketmine\network\mcpe\protocol\serializer\PacketBatch;
+use pocketmine\network\mcpe\protocol\types\PotionContainerChangeRecipe as ProtocolPotionContainerChangeRecipe;
+use pocketmine\network\mcpe\protocol\types\PotionTypeRecipe as ProtocolPotionTypeRecipe;
+use pocketmine\timings\Timings;
+use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\BinaryStream;
-
+use function array_key_exists;
+use function array_map;
 use function count;
-use function ksort;
+use function file_get_contents;
+use function is_array;
+use function json_decode;
 use function usort;
+use const pocketmine\BEDROCK_DATA_PATH;
 
 class CraftingManager
 {
 
 	/**
-	 * @var ShapedRecipe[][][]
-	 * @phpstan-var array<int, array<string, list<ShapedRecipe>>>
+	 * @param Item[] $items
 	 */
-	protected array $shapedRecipes = [];
-	/**
-	 * @var ShapelessRecipe[][][]
-	 * @phpstan-var array<int, array<string, list<ShapelessRecipe>>>
-	 */
-	protected array $shapelessRecipes = [];
+	private static function containsUnknownOutputs(array $items) : bool
+	{
+		foreach ($items as $item) {
+			if ($item->hasAnyDamageValue()) {
+				throw new \InvalidArgumentException("Recipe outputs must not have wildcard meta values");
+			}
+			if (!ItemFactory::isRegistered($item->getId(), $item->getDamage())) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	/**
-	 * @var FurnaceRecipe[][][]
-	 * @phpstan-var array<int, array<string, list<FurnaceRecipe>>>
+	 * @var ShapedRecipe[][]
+	 * @phpstan-var array<string, list<ShapedRecipe>>
 	 */
-	protected array $furnaceRecipes = [];
+	private static array $shapedRecipes = [];
+	/**
+	 * @var ShapelessRecipe[][]
+	 * @phpstan-var array<string, list<ShapelessRecipe>>
+	 */
+	private static array $shapelessRecipes = [];
+	/** @var FurnaceRecipe[] */
+	private static array $furnaceRecipes = [];
 
 	/**
-	 * @var CraftingRecipe[][]
-	 * @phpstan-var array<int, array<int, CraftingRecipe>>
+	 * @var PotionTypeRecipe[][]
+	 * @phpstan-var array<string, array<string, PotionTypeRecipe>>
 	 */
-	private array $craftingRecipeIndex = [];
-
+	private static array $potionTypeRecipes = [];
 	/**
-	 * @var PotionTypeRecipe[][][]
-	 * @phpstan-var array<int, array<string, array<string, PotionTypeRecipe>>>
+	 * @var PotionContainerChangeRecipe[][]
+	 * @phpstan-var array<int, array<string, PotionContainerChangeRecipe>>
 	 */
-	protected array $potionTypeRecipes = [];
+	private static array $potionContainerChangeRecipes = [];
 
-	/**
-	 * @var PotionContainerChangeRecipe[][][]
-	 * @phpstan-var array<int, array<int, array<string, PotionContainerChangeRecipe>>>
-	 */
-	protected array $potionContainerChangeRecipes = [];
+	/** @var string[] */
+	private static array $craftingDataCache = [];
+
+	public static function init() : void{
+		$recipes = json_decode(file_get_contents(BEDROCK_DATA_PATH . "recipes.json"), true);
+		if (!is_array($recipes)) {
+			throw new AssumptionFailedError("recipes.json root should contain a map of recipe types");
+		}
+
+		$itemDeserializerFunc = Item::jsonDeserialize(...);
+
+		foreach ($recipes["shapeless"] as $recipe) {
+			if ($recipe["block"] !== "crafting_table") { //TODO: filter others out for now to avoid breaking economics
+				continue;
+			}
+			$output = array_map($itemDeserializerFunc, $recipe["output"]);
+			if (self::containsUnknownOutputs($output)) {
+				continue;
+			}
+			self::registerShapelessRecipe(new ShapelessRecipe(
+				array_map($itemDeserializerFunc, $recipe["input"]),
+				$output,
+				$recipe["priority"]
+			));
+		}
+		foreach ($recipes["shaped"] as $recipe) {
+			if ($recipe["block"] !== "crafting_table") { //TODO: filter others out for now to avoid breaking economics
+				continue;
+			}
+			$output = array_map($itemDeserializerFunc, $recipe["output"]);
+			if (self::containsUnknownOutputs($output)) {
+				continue;
+			}
+			$ingredients = array_map($itemDeserializerFunc, $recipe["input"]);
+			/** @var Item[] $ingredients */
+			foreach ($ingredients as $ingredient) {
+				if ($ingredient->getId() === ItemIds::PLANKS && $ingredient->getDamage() === -1) {
+
+					//TODO: crutch planks > 1.20.50
+
+					for ($meta = 0; $meta <= 5; ++$meta) {
+						$fixIngredients = array_map($itemDeserializerFunc, $recipe["input"]);
+						foreach ($ingredients as $key => $fixIngredient) {
+							if ($fixIngredient->getId() === ItemIds::PLANKS && $fixIngredient->getDamage() === -1) {
+								$fixIngredients[$key]->setDamage($meta);
+							}
+						}
+
+						self::registerShapedRecipe(new ShapedRecipe(
+							$recipe["shape"],
+							$fixIngredients,
+							$output,
+							$recipe["priority"]
+						));
+					}
+
+					//TODO: end crutch
+
+					continue 2;
+				}
+			}
+
+			self::registerShapedRecipe(new ShapedRecipe(
+				$recipe["shape"],
+				$ingredients,
+				$output,
+				$recipe["priority"]
+			));
+		}
+		foreach ($recipes["smelting"] as $recipe) {
+			if ($recipe["block"] !== "furnace") {
+				continue;
+			}
+			$output = Item::jsonDeserialize($recipe["output"]);
+			if (self::containsUnknownOutputs([$output])) {
+				continue;
+			}
+			self::registerFurnaceRecipe(
+				new FurnaceRecipe(
+					$output,
+					Item::jsonDeserialize($recipe["input"])
+				)
+			);
+		}
+		foreach ($recipes["potion_type"] as $recipe) {
+			$output = Item::jsonDeserialize($recipe["output"]);
+			if (self::containsUnknownOutputs([$output])) {
+				continue;
+			}
+			self::registerPotionTypeRecipe(new PotionTypeRecipe(
+				Item::jsonDeserialize($recipe["input"]),
+				Item::jsonDeserialize($recipe["ingredient"]),
+				$output
+			));
+		}
+		foreach ($recipes["potion_container_change"] as $recipe) {
+			if (!ItemFactory::isRegistered($recipe["output_item_id"])) {
+				continue;
+			}
+			self::registerPotionContainerChangeRecipe(new PotionContainerChangeRecipe(
+				$recipe["input_item_id"],
+				Item::jsonDeserialize($recipe["ingredient"]),
+				$recipe["output_item_id"]
+			));
+		}
+	}
+
+	public static function sync(array $newItems) : void{
+		$sources = [
+			&self::$shapedRecipes,
+			&self::$shapelessRecipes,
+			//TODO:
+			#&self::$furnaceRecipes,
+			#&self::$potionContainerChangeRecipes,
+			#&self::$potionTypeRecipes
+		];
+
+		foreach ($sources as &$source) {
+			foreach ($source as $hash => $list) {
+				/** @var BrewingRecipe $recipe */
+				foreach ($list as $recipeIdx => $recipe) {
+					if ($recipe instanceof CraftingRecipe) {
+						$ingredients = ($recipe instanceof ShapedRecipe) ? $recipe->getIngredientRawList() : $recipe->getIngredientList();
+
+						foreach ($ingredients as $idx => $ingredient) {
+							if (($new = $newItems[ItemFactory::getListOffset($ingredient->getId(), $ingredient->getDamage())] ?? null) !== null) {
+								$recipe->setIngredient($idx, $new);
+							}
+						}
+
+						$changes = [];
+
+						foreach ($recipe->getResults() as $idx => $item) {
+							if (($new = $newItems[ItemFactory::getListOffset($item->getId(), $item->getDamage())] ?? null) !== null) {
+								$changes[$idx] = $new;
+							}
+						}
+
+						if (count($changes) > 0) {
+							$recipe->setResults($changes + $recipe->getResults());
+
+							unset($source[$hash][$recipeIdx]);
+
+							$source[self::hashOutputs($recipe->getResults())][] = $recipe;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private static function buildCache(int $protocolVersion) : void
+	{
+		Timings::$craftingDataCacheRebuild->startTiming();
+
+		$pk = new CraftingDataPacket();
+		foreach (self::$shapelessRecipes as $list) {
+			foreach ($list as $recipe) {
+				$pk->addShapelessRecipe($recipe);
+			}
+		}
+
+		foreach (self::$shapedRecipes as $list) {
+			foreach ($list as $recipe) {
+				$pk->addShapedRecipe($recipe);
+			}
+		}
+
+		foreach (self::$furnaceRecipes as $recipe) {
+			$pk->addFurnaceRecipe($recipe);
+		}
+
+		foreach (self::$potionTypeRecipes as $recipes) {
+			foreach ($recipes as $recipe) {
+				$input = $recipe->getInput();
+				$ingredient = $recipe->getIngredient();
+				$output = $recipe->getOutput();
+
+				$pk->potionTypeRecipes[] = new ProtocolPotionTypeRecipe(
+					$input->getId(),
+					$input->getDamage(),
+					$ingredient->getId(),
+					$ingredient->getDamage(),
+					$output->getId(),
+					$output->getDamage(),
+				);
+			}
+		}
+
+		foreach (self::$potionContainerChangeRecipes as $recipes) {
+			foreach ($recipes as $recipe) {
+				$ingredient = $recipe->getIngredient();
+
+				$pk->potionContainerRecipes[] = new ProtocolPotionContainerChangeRecipe(
+					$recipe->getInputItemId(),
+					$ingredient->getId(),
+					$recipe->getInputItemId()
+				);
+			}
+		}
+
+		$pk->cleanRecipes = true;
+
+		$stream = new BinaryStream();
+		PacketBatch::encodePackets($stream, [$pk], $protocolVersion);
+
+		self::$craftingDataCache[$protocolVersion] = NetworkCompression::compress($stream->getBuffer(), $protocolVersion);
+		Timings::$craftingDataCacheRebuild->stopTiming();
+	}
+
+	public static function getCraftingDataPacket(int $craftingProtocol) : ?string
+	{
+		if (!array_key_exists($craftingProtocol, self::$craftingDataCache)) {
+			self::buildCache($craftingProtocol);
+		}
+		return self::$craftingDataCache[$craftingProtocol];
+	}
 
 	/**
 	 * Function used to arrange Shapeless Recipe ingredient lists into a consistent order.
 	 */
-	public static function sort(Item $i1, Item $i2) : int{
+	public static function sort(Item $i1, Item $i2) : int
+	{
 		//Use spaceship operator to compare each property, then try the next one if they are equivalent.
-		($retval = $i1->getId() <=> $i2->getId()) === 0 && ($retval = $i1->getDamage() <=> $i2->getDamage()) === 0 && ($retval = $i1->getCount() <=> $i2->getCount()) === 0;
+		($retval = $i1->getId() <=> $i2->getId()) === 0 && ($retval = $i1->getDamage() <=> $i2->getDamage()) === 0 && ($retval = $i1->getCount() <=> $i2->getCount());
 
 		return $retval;
 	}
@@ -86,13 +322,14 @@ class CraftingManager
 	 *
 	 * @return Item[]
 	 */
-	private static function pack(array $items) : array{
+	private static function pack(array $items) : array
+	{
 		/** @var Item[] $result */
 		$result = [];
 
-		foreach($items as $i => $item){
-			foreach($result as $otherItem){
-				if($item->canStackWith($otherItem)){
+		foreach ($items as $i => $item) {
+			foreach ($result as $otherItem) {
+				if ($item->equals($otherItem)) {
 					$otherItem->setCount($otherItem->getCount() + $item->getCount());
 					continue 2;
 				}
@@ -105,22 +342,19 @@ class CraftingManager
 		return $result;
 	}
 
-	/**
-	 * @param Item[] $outputs
-	 */
-	private static function hashOutputs(array $outputs) : string{
+	private static function hashOutputs(array $outputs) : string
+	{
 		$outputs = self::pack($outputs);
 		usort($outputs, [self::class, "sort"]);
 		$result = new BinaryStream();
-		foreach($outputs as $o){
+
+		foreach ($outputs as $o) {
 			//count is not written because the outputs might be from multiple repetitions of a single recipe
 			//this reduces the accuracy of the hash, but it won't matter in most cases.
 			$result->putVarInt($o->getId());
 			$result->putVarInt($o->getDamage());
 
-			$tags = $o->getNamedTag()->getValue();
-			ksort($tags);
-			$result->put((new LittleEndianNBTStream())->write($tags));
+			$result->put((new LittleEndianNBTStream())->write($o->getNamedTag()->ksort()));
 		}
 
 		return $result->getBuffer();
@@ -130,181 +364,106 @@ class CraftingManager
 	 * @return ShapelessRecipe[][]
 	 * @phpstan-return array<string, list<ShapelessRecipe>>
 	 */
-	public function getShapelessRecipes(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array{
-		foreach ($this->shapelessRecipes as $protocol => $shapelessRecipes) {
-			if ($protocolVersion >= $protocol) {
-				return $shapelessRecipes;
-			}
-		}
-
-		return [];
+	public static function getShapelessRecipes() : array
+	{
+		return self::$shapelessRecipes;
 	}
 
 	/**
 	 * @return ShapedRecipe[][]
 	 * @phpstan-return array<string, list<ShapedRecipe>>
 	 */
-	public function getShapedRecipes(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array{
-		foreach ($this->shapedRecipes as $protocol => $shapedRecipes) {
-			if ($protocolVersion >= $protocol) {
-				return $shapedRecipes;
-			}
-		}
-
-		return [];
+	public static function getShapedRecipes() : array
+	{
+		return self::$shapedRecipes;
 	}
 
 	/**
-	 * @return FurnaceRecipe[][]
-	 * @phpstan-return array<string, list<FurnaceRecipe>>
+	 * @return FurnaceRecipe[]
+	 * @phpstan-return array<string, FurnaceRecipe>
 	 */
-	public function getFurnaceRecipes(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array{
-		foreach ($this->furnaceRecipes as $protocol => $furnaceRecipes) {
-			if ($protocolVersion >= $protocol) {
-				return $furnaceRecipes;
-			}
-		}
-
-		return [];
-	}
-
-	/**
-	 * @return CraftingRecipe[]
-	 * @phpstan-return array<int, CraftingRecipe>
-	 */
-	public function getCraftingRecipeIndex(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array{
-		foreach ($this->craftingRecipeIndex as $protocol => $craftingRecipeIndexes) {
-			if ($protocolVersion >= $protocol) {
-				return $craftingRecipeIndexes;
-			}
-		}
-
-		return [];
-	}
-
-	public function getCraftingRecipeFromIndex(int $index, int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : ?CraftingRecipe{
-		return $this->getCraftingRecipeIndex($protocolVersion)[$index] ?? null;
+	public static function getFurnaceRecipes() : array
+	{
+		return self::$furnaceRecipes;
 	}
 
 	/**
 	 * @return PotionTypeRecipe[][]
 	 * @phpstan-return array<string, array<string, PotionTypeRecipe>>
 	 */
-	public function getPotionTypeRecipes(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array{
-		foreach ($this->potionTypeRecipes as $protocol => $potionTypeRecipes) {
-			if ($protocolVersion >= $protocol) {
-				return $potionTypeRecipes;
-			}
-		}
-
-		return [];
+	public static function getPotionTypeRecipes() : array
+	{
+		return self::$potionTypeRecipes;
 	}
 
 	/**
 	 * @return PotionContainerChangeRecipe[][]
 	 * @phpstan-return array<int, array<string, PotionContainerChangeRecipe>>
 	 */
-	public function getPotionContainerChangeRecipes(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array{
-		foreach ($this->potionContainerChangeRecipes as $protocol => $potionContainerChangeRecipes) {
-			if ($protocolVersion >= $protocol) {
-				return $potionContainerChangeRecipes;
-			}
-		}
-
-		return [];
+	public static function getPotionContainerChangeRecipes() : array
+	{
+		return self::$potionContainerChangeRecipes;
 	}
 
-	public function registerShapedRecipe(ShapedRecipe $recipe, ?int $protocolVersion = null) : void{
-		$outputHash = self::hashOutputs($recipe->getResults());
-		if ($protocolVersion === null) {
-			foreach ($this->shapedRecipes as $protocol => $shapedRecipes) {
-				$this->shapedRecipes[$protocol][$outputHash][] = $recipe;
-				$this->craftingRecipeIndex[$protocol][] = $recipe;
-			}
-		} else {
-			$this->shapedRecipes[$protocolVersion][$outputHash][] = $recipe;
-			$this->craftingRecipeIndex[$protocolVersion][] = $recipe;
-		}
+	public static function registerShapedRecipe(ShapedRecipe $recipe) : void
+	{
+		self::$shapedRecipes[self::hashOutputs($recipe->getResults())][] = $recipe;
 
-		CraftingDataCache::getInstance()->clearCache($this);
+		self::$craftingDataCache = [];
 	}
 
-	public function registerShapelessRecipe(ShapelessRecipe $recipe, ?int $protocolVersion = null) : void{
-		$outputHash = self::hashOutputs($recipe->getResults());
-		if ($protocolVersion === null) {
-			foreach ($this->shapelessRecipes as $protocol => $shapelessRecipes) {
-				$this->shapelessRecipes[$protocol][$outputHash][] = $recipe;
-				$this->craftingRecipeIndex[$protocol][] = $recipe;
-			}
-		} else {
-			$this->shapelessRecipes[$protocolVersion][$outputHash][] = $recipe;
-			$this->craftingRecipeIndex[$protocolVersion][] = $recipe;
-		}
+	public static function registerShapelessRecipe(ShapelessRecipe $recipe) : void
+	{
+		self::$shapelessRecipes[self::hashOutputs($recipe->getResults())][] = $recipe;
 
-		CraftingDataCache::getInstance()->clearCache($this);
+		self::$craftingDataCache = [];
 	}
 
-	public function registerFurnaceRecipe(FurnaceRecipe $recipe, ?int $protocolVersion = null, FurnaceType $furnaceType = FurnaceType::FURNACE) : void{
+	public static function registerFurnaceRecipe(FurnaceRecipe $recipe) : void
+	{
 		$input = $recipe->getInput();
-		if ($protocolVersion === null) {
-			foreach ($this->furnaceRecipes as $protocol => $furnaceRecipes) {
-				$this->furnaceRecipes[$protocol][$furnaceType->name()][$input->getId() . ":" . ($input->hasAnyDamageValue() ? "?" : $input->getDamage())] = $recipe;
-			}
-		} else {
-			$this->furnaceRecipes[$protocolVersion][$furnaceType->name()][$input->getId() . ":" . ($input->hasAnyDamageValue() ? "?" : $input->getDamage())] = $recipe;
-		}
+		self::$furnaceRecipes[$input->getId() . ":" . ($input->hasAnyDamageValue() ? "?" : $input->getDamage())] = $recipe;
 
-		CraftingDataCache::getInstance()->clearCache($this);
+		self::$craftingDataCache = [];
 	}
 
-	public function registerPotionTypeRecipe(PotionTypeRecipe $recipe, ?int $protocolVersion = null) : void{
+	public static function registerPotionTypeRecipe(PotionTypeRecipe $recipe) : void
+	{
 		$input = $recipe->getInput();
 		$ingredient = $recipe->getIngredient();
-		if ($protocolVersion === null) {
-			foreach ($this->potionTypeRecipes as $protocol => $potionTypeRecipes) {
-				$this->potionTypeRecipes[$protocol][$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":" . ($ingredient->hasAnyDamageValue() ? "?" : $ingredient->getDamage())] = $recipe;
-			}
-		} else {
-			$this->potionTypeRecipes[$protocolVersion][$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":" . ($ingredient->hasAnyDamageValue() ? "?" : $ingredient->getDamage())] = $recipe;
-		}
+		self::$potionTypeRecipes[$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":" . ($ingredient->hasAnyDamageValue() ? "?" : $ingredient->getDamage())] = $recipe;
 
-		CraftingDataCache::getInstance()->clearCache($this);
+		self::$craftingDataCache = [];
 	}
 
-	public function registerPotionContainerChangeRecipe(PotionContainerChangeRecipe $recipe, ?int $protocolVersion = null) : void{
+	public static function registerPotionContainerChangeRecipe(PotionContainerChangeRecipe $recipe) : void
+	{
 		$ingredient = $recipe->getIngredient();
-		if ($protocolVersion === null) {
-			foreach ($this->potionContainerChangeRecipes as $protocol => $potionContainerChangeRecipes) {
-				$this->potionContainerChangeRecipes[$protocol][$recipe->getInputItemId()][$ingredient->getId() . ":" . ($ingredient->hasAnyDamageValue() ? "?" : $ingredient->getDamage())] = $recipe;
-			}
-		} else {
-			$this->potionContainerChangeRecipes[$protocolVersion][$recipe->getInputItemId()][$ingredient->getId() . ":" . ($ingredient->hasAnyDamageValue() ? "?" : $ingredient->getDamage())] = $recipe;
-		}
+		self::$potionContainerChangeRecipes[$recipe->getInputItemId()][$ingredient->getId() . ":" . ($ingredient->hasAnyDamageValue() ? "?" : $ingredient->getDamage())] = $recipe;
 
-		CraftingDataCache::getInstance()->clearCache($this);
+		self::$craftingDataCache = [];
 	}
 
 	/**
 	 * @param Item[] $outputs
 	 */
-	public function matchRecipe(CraftingGrid $grid, array $outputs, int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : ?CraftingRecipe{
+	public static function matchRecipe(CraftingGrid $grid, array $outputs) : ?CraftingRecipe
+	{
 		//TODO: try to match special recipes before anything else (first they need to be implemented!)
 
 		$outputHash = self::hashOutputs($outputs);
 
-		$shapedRecipes = $this->getShapedRecipes($protocolVersion);
-		if(isset($shapedRecipes[$outputHash])){
-			foreach($shapedRecipes[$outputHash] as $recipe){
-				if($recipe->matchesCraftingGrid($grid)){
+		if (isset(self::$shapedRecipes[$outputHash])) {
+			foreach (self::$shapedRecipes[$outputHash] as $recipe) {
+				if ($recipe->matchesCraftingGrid($grid)) {
 					return $recipe;
 				}
 			}
 		}
 
-		$shapelessRecipes = $this->getShapelessRecipes($protocolVersion);
-		if(isset($shapelessRecipes[$outputHash])){
-			foreach($shapelessRecipes[$outputHash] as $recipe){
-				if($recipe->matchesCraftingGrid($grid)){
+		if (isset(self::$shapelessRecipes[$outputHash])) {
+			foreach (self::$shapelessRecipes[$outputHash] as $recipe) {
+				if ($recipe->matchesCraftingGrid($grid)) {
 					return $recipe;
 				}
 			}
@@ -315,41 +474,36 @@ class CraftingManager
 
 	/**
 	 * @param Item[] $outputs
-	 *
-	 * @return CraftingRecipe[]|Generator
-	 * @phpstan-return Generator<int, CraftingRecipe, void, void>
 	 */
-	public function matchRecipeByOutputs(array $outputs, int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : Generator{
+	public static function matchRecipeByOutputs(array $outputs) : Generator
+	{
 		//TODO: try to match special recipes before anything else (first they need to be implemented!)
 
 		$outputHash = self::hashOutputs($outputs);
 
-		$shapedRecipes = $this->getShapedRecipes($protocolVersion);
-		if(isset($shapedRecipes[$outputHash])){
-			foreach($shapedRecipes[$outputHash] as $recipe){
+		if (isset(self::$shapedRecipes[$outputHash])) {
+			foreach (self::$shapedRecipes[$outputHash] as $recipe) {
 				yield $recipe;
 			}
 		}
 
-		$shapelessRecipes = $this->getShapelessRecipes($protocolVersion);
-		if(isset($shapelessRecipes[$outputHash])){
-			foreach($shapelessRecipes[$outputHash] as $recipe){
+		if (isset(self::$shapelessRecipes[$outputHash])) {
+			foreach (self::$shapelessRecipes[$outputHash] as $recipe) {
 				yield $recipe;
 			}
 		}
 	}
 
-	public function matchFurnaceRecipe(Item $input, int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL, FurnaceType $furnaceType = FurnaceType::FURNACE) : ?FurnaceRecipe{
-		$furnaceRecipes = $this->getFurnaceRecipes($protocolVersion);
-		return $furnaceRecipes[$furnaceType->name()][$input->getId() . ":" . $input->getDamage()] ?? $furnaceRecipes[$furnaceType->name()][$input->getId() . ":?"] ?? null;
+	public static function matchFurnaceRecipe(Item $input) : ?FurnaceRecipe
+	{
+		return self::$furnaceRecipes[$input->getId() . ":" . $input->getDamage()] ?? self::$furnaceRecipes[$input->getId() . ":?"] ?? null;
 	}
 
-	public function matchBrewingRecipe(Item $input, Item $ingredient, int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : ?BrewingRecipe{
-		$potionTypeRecipes = $this->getPotionTypeRecipes($protocolVersion);
-		$potionContainerChangeRecipes = $this->getPotionContainerChangeRecipes($protocolVersion);
-		return $potionTypeRecipes[$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":" . $ingredient->getDamage()] ??
-			$potionTypeRecipes[$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":?"] ??
-			$potionContainerChangeRecipes[$input->getId()][$ingredient->getId() . ":" . $ingredient->getDamage()] ??
-			$potionContainerChangeRecipes[$input->getId()][$ingredient->getId() . ":?"] ?? null;
+	public static function matchBrewingRecipe(Item $input, Item $ingredient) : ?BrewingRecipe
+	{
+		return self::$potionTypeRecipes[$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":" . $ingredient->getDamage()] ??
+			self::$potionTypeRecipes[$input->getId() . ":" . $input->getDamage()][$ingredient->getId() . ":?"] ??
+			self::$potionContainerChangeRecipes[$input->getId()][$ingredient->getId() . ":" . $ingredient->getDamage()] ??
+			self::$potionContainerChangeRecipes[$input->getId()][$ingredient->getId() . ":?"] ?? null;
 	}
 }

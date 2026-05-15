@@ -25,7 +25,7 @@ namespace pocketmine\network\mcpe\protocol;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\biome\BiomeDefinitionData;
 use pocketmine\network\mcpe\protocol\types\biome\BiomeDefinitionEntry;
-use pocketmine\network\mcpe\protocol\types\biome\chunkgen\BiomeTagsData;
+use pocketmine\network\mcpe\protocol\types\biome\BiomeTagsData;
 use function array_map;
 use function count;
 
@@ -108,7 +108,6 @@ class BiomeDefinitionListPacket extends DataPacket
 					$data->getId(),
 					$data->getTemperature(),
 					$data->getDownfall(),
-					$data->getFoliageSnow(),
 					$data->getRedSporeDensity(),
 					$data->getBlueSporeDensity(),
 					$data->getAshDensity(),
@@ -151,7 +150,6 @@ class BiomeDefinitionListPacket extends DataPacket
 					$entry->getId(),
 					$entry->getTemperature(),
 					$entry->getDownfall(),
-					$entry->getFoliageSnow(),
 					$entry->getRedSporeDensity(),
 					$entry->getBlueSporeDensity(),
 					$entry->getAshDensity(),

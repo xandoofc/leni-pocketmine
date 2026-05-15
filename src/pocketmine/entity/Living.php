@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace pocketmine\entity;
 
 use pocketmine\block\Block;
-use pocketmine\block\BlockIds;
 use pocketmine\entity\object\LeashKnot;
 use pocketmine\event\entity\EntityDamageByChildEntityEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
@@ -37,14 +36,8 @@ use pocketmine\item\Armor;
 use pocketmine\item\Consumable;
 use pocketmine\item\Durable;
 use pocketmine\item\enchantment\Enchantment;
-use pocketmine\item\FoodSource;
 use pocketmine\item\Item;
 use pocketmine\item\MaybeConsumable;
-use pocketmine\level\sound\BurpSound;
-use pocketmine\level\sound\EntityLandSound;
-use pocketmine\level\sound\EntityLongFallSound;
-use pocketmine\level\sound\EntityShortFallSound;
-use pocketmine\level\sound\ItemBreakSound;
 use pocketmine\math\Vector3;
 use pocketmine\math\VoxelRayTrace;
 use pocketmine\nbt\tag\ByteTag;
@@ -55,6 +48,7 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\MobEffectPacket;
 use pocketmine\Player;
 use pocketmine\timings\Timings;
@@ -74,9 +68,9 @@ use function intval;
 use function max;
 use function min;
 use function mt_getrandmax;
+
 use function mt_rand;
 use function sqrt;
-
 use const M_PI;
 
 abstract class Living extends Entity implements Damageable
@@ -551,9 +545,6 @@ abstract class Living extends Entity implements Damageable
 		foreach ($consumable->getAdditionalEffects() as $effect) {
 			$this->addEffect($effect);
 		}
-		if ($consumable instanceof FoodSource) {
-			$this->broadcastSound(new BurpSound($this));
-		}
 
 		$consumable->onConsume($this);
 	}
@@ -582,23 +573,6 @@ abstract class Living extends Entity implements Damageable
 		if ($damage > 0) {
 			$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_FALL, $damage);
 			$this->attack($ev);
-
-			$this->level->addSound(
-				$damage > 4 ?
-				new EntityLongFallSound($this, $this) :
-				new EntityShortFallSound($this, $this)
-			);
-		} else {
-			$fallBlockPos = $this->floor();
-			$fallBlock = $this->level->getBlock($fallBlockPos);
-			if (count($fallBlock->getCollisionBoxes()) === 0) {
-				$fallBlockPos = $fallBlockPos->down();
-				$fallBlock = $this->level->getBlock($fallBlockPos);
-			}
-
-			if ($fallBlock->getId() !== BlockIds::AIR) {
-				$this->level->addSound(new EntityLandSound($this, $this, $fallBlock));
-			}
 		}
 	}
 
@@ -717,7 +691,7 @@ abstract class Living extends Entity implements Damageable
 	{
 		$item->applyDamage($durabilityRemoved);
 		if ($item->isBroken()) {
-			$this->broadcastSound(new ItemBreakSound($this));
+			$this->level->broadcastLevelSoundEvent($this, LevelSoundEventPacket::SOUND_BREAK);
 		}
 	}
 
@@ -750,8 +724,7 @@ abstract class Living extends Entity implements Damageable
 
 		if ($source instanceof EntityDamageByEntityEvent && (
 			$source->getCause() === EntityDamageEvent::CAUSE_BLOCK_EXPLOSION ||
-			$source->getCause() === EntityDamageEvent::CAUSE_ENTITY_EXPLOSION
-		)
+			$source->getCause() === EntityDamageEvent::CAUSE_ENTITY_EXPLOSION)
 		) {
 			//TODO: knockback should not just apply for entity damage sources
 			//this doesn't matter for TNT right now because the PrimedTNT entity is considered the source, not the block.
@@ -914,16 +887,6 @@ abstract class Living extends Entity implements Damageable
 
 			if ($this->doAirSupplyTick($tickDiff)) {
 				$hasUpdate = true;
-			}
-
-			foreach ($this->armorInventory->getContents() as $index => $item) {
-				$oldItem = clone $item;
-				if ($item->onTickWorn($this)) {
-					$hasUpdate = true;
-					if (!$item->equalsExact($oldItem)) {
-						$this->armorInventory->setItem($index, $item);
-					}
-				}
 			}
 		}
 
@@ -1238,23 +1201,22 @@ abstract class Living extends Entity implements Damageable
 		}
 	}
 
-	public function onFirstInteract(Player $player, Vector3 $clickPos) : bool
+	public function onFirstInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if ($this->isLeashed() && $this->getLeashedToEntity() === $player) {
 			$this->clearLeashed(true, !$player->isCreative());
 			return true;
 		} else {
-			$item = $player->getInventory()->getItemInHand();
 			if ($item->getId() === Item::LEAD && $this->allowLeashing()) {
 				$this->setLeashedToEntity($player);
 				$item->pop();
 				return true;
 			}
 		}
-		return $this->onInteract($player, $clickPos) || parent::onFirstInteract($player, $clickPos);
+		return $this->onInteract($player, $item, $clickPos) || parent::onFirstInteract($player, $item, $clickPos);
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		return false;
 	}

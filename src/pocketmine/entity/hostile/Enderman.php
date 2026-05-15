@@ -144,7 +144,10 @@ class Enderman extends Monster
 
 	public function onAttack(EntityDamageEvent $source) : void
 	{
-		$this->broadcastEntityEvent(ActorEventPacket::ARM_SWING);
+		$pk = new ActorEventPacket();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->event = ActorEventPacket::ARM_SWING;
+		$this->server->broadcastPacket($this->getViewers(), $pk);
 	}
 
 	protected function addBehaviors() : void
@@ -342,26 +345,26 @@ class Enderman extends Monster
 
 	public function sendSpawnPacket(Player $player) : void
 	{
-		$metadata = $this->propertyManager->getAll();
-		if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_419 && isset($metadata[self::DATA_ENDERMAN_HELD_ITEM_ID])) {
-			$metadata[self::DATA_ENDERMAN_HELD_ITEM_ID][1] = (ItemTranslator::getInstance($player->getProtocolVersion())->toNetworkIdQuiet($metadata[self::DATA_ENDERMAN_HELD_ITEM_ID][1], 0) ?? [0, 0])[0];
+		$pk = new AddActorPacket();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->type = static::NETWORK_ID;
+		$pk->position = $this->asVector3();
+		$pk->motion = $this->getMotion();
+		$pk->yaw = $this->yaw;
+		$pk->headYaw = $this->yaw; //TODO
+		$pk->pitch = $this->pitch;
+		$pk->attributes = $this->attributeMap->getAll();
+		$pk->metadata = $this->propertyManager->getAll();
+		$pk->syncedProperties = new PropertySyncData([], []);
+		if (isset($pk->metadata[self::DATA_ENDERMAN_HELD_ITEM_ID])) {
+			if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_419) {
+				[$id, ] = ItemTranslator::getInstance($player->getProtocolVersion())->toNetworkIdQuiet($pk->metadata[self::DATA_ENDERMAN_HELD_ITEM_ID][1], 0) ?? [0, 0];
+
+				$pk->metadata[self::DATA_ENDERMAN_HELD_ITEM_ID][1] = $id;
+			}
 		}
 
-		$player->sendDataPacket(AddActorPacket::create(
-			$this->getId(),
-			$this->getId(),
-			static::NETWORK_ID,
-			$this->asVector3(),
-			$this->getMotion(),
-			$this->pitch,
-			$this->yaw,
-			$this->yaw,
-			$this->yaw,
-			$this->attributeMap->getAll(),
-			$metadata,
-			new PropertySyncData([], []),
-			[]
-		));
+		$player->dataPacket($pk);
 	}
 
 	/**

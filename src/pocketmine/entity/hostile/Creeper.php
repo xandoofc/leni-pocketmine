@@ -40,8 +40,8 @@ use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\level\Explosion;
 use pocketmine\level\GameRules;
-use pocketmine\level\sound\IgniteSound;
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 use pocketmine\tile\Skull;
@@ -172,7 +172,7 @@ class Creeper extends Monster implements Ageable
 
 		if ($this->isIgnited()) {
 			if ($this->timeSinceIgnited === 0) {
-				$this->broadcastSound(new IgniteSound($this));
+				$this->level->broadcastLevelEvent($this, LevelEventPacket::EVENT_SOUND_IGNITE);
 				$this->propertyManager->setByte(self::DATA_CREEPER_SWELL_DIRECTION, 1);
 			}
 
@@ -213,9 +213,8 @@ class Creeper extends Monster implements Ageable
 		}
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
-		$item = $player->getInventory()->getItemInHand();
 		if ($item instanceof FlintSteel) {
 			$this->level->broadcastLevelSoundEvent($this, LevelSoundEventPacket::SOUND_IGNITE);
 
@@ -227,6 +226,6 @@ class Creeper extends Monster implements Ageable
 			}
 		}
 
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 }

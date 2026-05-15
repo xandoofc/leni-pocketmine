@@ -30,16 +30,26 @@ class EducationSettingsPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::EDUCATION_SETTINGS_PACKET;
 
-	public string $codeBuilderDefaultUri;
-	public string $codeBuilderTitle;
-	public bool $canResizeCodeBuilder;
-	public bool $disableLegacyTitleBar;
-	public string $postProcessFilter;
-	public string $screenshotBorderResourcePath;
-	public ?EducationSettingsAgentCapabilities $agentCapabilities;
-	public ?string $codeBuilderOverrideUri;
-	public bool $hasQuiz;
-	public ?EducationSettingsExternalLinkSettings $linkSettings;
+	/** @var string */
+	private $codeBuilderDefaultUri;
+	/** @var string */
+	private $codeBuilderTitle;
+	/** @var bool */
+	private $canResizeCodeBuilder;
+	/** @var bool */
+	private $disableLegacyTitleBar;
+	/** @var string */
+	private $postProcessFilter;
+	/** @var string */
+	private $screenshotBorderResourcePath;
+	/** @var EducationSettingsAgentCapabilities|null */
+	private $agentCapabilities;
+	/** @var string|null */
+	private $codeBuilderOverrideUri;
+	/** @var bool */
+	private $hasQuiz;
+	/** @var EducationSettingsExternalLinkSettings|null */
+	private $linkSettings;
 
 	public static function create(
 		string $codeBuilderDefaultUri,

@@ -23,13 +23,11 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe;
 
 use pocketmine\network\PacketHandlingException;
-
 use function hrtime;
 use function intdiv;
 use function min;
 
-final class PacketRateLimiter
-{
+final class PacketRateLimiter{
 	/**
 	 * At most this many more packets can be received. If this reaches zero, any additional packets received will cause
 	 * the player to be kicked from the server.
@@ -44,7 +42,7 @@ final class PacketRateLimiter
 		private int $averagePerTick,
 		int $maxBufferTicks,
 		private int $updateFrequencyNs = 50_000_000,
-	) {
+	){
 		$this->maxBudget = $this->averagePerTick * $maxBufferTicks;
 		$this->budget = $this->maxBudget;
 		$this->lastUpdateTimeNs = hrtime(true);
@@ -53,22 +51,20 @@ final class PacketRateLimiter
 	/**
 	 * @throws PacketHandlingException if the rate limit has been exceeded
 	 */
-	public function decrement(int $amount = 1) : void
-	{
-		if ($this->budget <= 0) {
+	public function decrement(int $amount = 1) : void{
+		if($this->budget <= 0){
 			$this->update();
-			if ($this->budget <= 0) {
+			if($this->budget <= 0){
 				throw new PacketHandlingException("Exceeded rate limit for \"$this->name\"");
 			}
 		}
 		$this->budget -= $amount;
 	}
 
-	public function update() : void
-	{
+	public function update() : void{
 		$nowNs = hrtime(true);
 		$timeSinceLastUpdateNs = $nowNs - $this->lastUpdateTimeNs;
-		if ($timeSinceLastUpdateNs > $this->updateFrequencyNs) {
+		if($timeSinceLastUpdateNs > $this->updateFrequencyNs){
 			$ticksSinceLastUpdate = intdiv($timeSinceLastUpdateNs, $this->updateFrequencyNs);
 			/*
 			 * If the server takes an abnormally long time to process a tick, add the budget for time difference to

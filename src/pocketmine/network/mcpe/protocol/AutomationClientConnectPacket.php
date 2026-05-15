@@ -28,16 +28,8 @@ class AutomationClientConnectPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::AUTOMATION_CLIENT_CONNECT_PACKET;
 
-	public string $serverUri;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(string $serverUri) : self{
-		$result = new self();
-		$result->serverUri = $serverUri;
-		return $result;
-	}
+	/** @var string */
+	public $serverUri;
 
 	protected function decodePayload() : void
 	{

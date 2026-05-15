@@ -25,7 +25,7 @@ namespace pocketmine\level\sound;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 
-final class PistonInSound extends Sound
+class PistonInSound extends Sound
 {
 	public function __construct(Vector3 $pos)
 	{
@@ -34,6 +34,10 @@ final class PistonInSound extends Sound
 
 	public function encode()
 	{
-		return [LevelSoundEventPacket::nonActorSound(LevelSoundEventPacket::SOUND_PISTON_IN, $this, false)];
+		$pk = new LevelSoundEventPacket();
+		$pk->sound = LevelSoundEventPacket::SOUND_PISTON_IN;
+		$pk->position = $this;
+
+		return $pk;
 	}
 }

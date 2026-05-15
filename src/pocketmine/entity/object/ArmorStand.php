@@ -31,7 +31,6 @@ use pocketmine\inventory\AltayEntityEquipment;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\inventory\utils\EquipmentSlot;
 use pocketmine\item\Armor;
-use pocketmine\item\ArmorSlot;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\math\Vector3;
@@ -111,7 +110,7 @@ class ArmorStand extends Living
 		return $this->propertyManager->getInt(self::DATA_ARMOR_STAND_POSE_INDEX);
 	}
 
-	public function onFirstInteract(Player $player, Vector3 $clickPos) : bool
+	public function onFirstInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if ($player->isSneaking()) {
 			$this->setPose(($this->getPose() + 1) % 13);
@@ -119,7 +118,6 @@ class ArmorStand extends Living
 		}
 
 		if ($this->isValid() && !$player->isSpectator()) {
-			$item = $player->getInventory()->getItemInHand();
 			$targetSlot = EquipmentSlot::MAINHAND;
 			$isArmorSlot = false;
 
@@ -127,22 +125,22 @@ class ArmorStand extends Living
 				$targetSlot = $item->getArmorSlot();
 				$isArmorSlot = true;
 			} elseif ($item->getId() === Item::SKULL || $item->getId() === Item::PUMPKIN) {
-				$targetSlot = ArmorSlot::SLOT_HELMET;
+				$targetSlot = Armor::SLOT_HELMET;
 				$isArmorSlot = true;
 			} elseif ($item->isNull()) {
 				$clickOffset = $clickPos->y - $this->y;
 
 				if ($clickOffset >= 0.1 && $clickOffset < 0.55 && !$this->armorInventory->getItem(ArmorInventory::SLOT_FEET)->isNull()) {
-					$targetSlot = ArmorSlot::SLOT_BOOTS;
+					$targetSlot = Armor::SLOT_BOOTS;
 					$isArmorSlot = true;
 				} elseif ($clickOffset >= 0.9 && $clickOffset < 1.6 && !$this->armorInventory->getItem(ArmorInventory::SLOT_CHEST)->isNull()) {
-					$targetSlot = ArmorSlot::SLOT_CHESTPLATE;
+					$targetSlot = Armor::SLOT_CHESTPLATE;
 					$isArmorSlot = true;
 				} elseif ($clickOffset >= 0.4 && $clickOffset < 1.2 && !$this->armorInventory->getItem(ArmorInventory::SLOT_LEGS)->isNull()) {
-					$targetSlot = ArmorSlot::SLOT_LEGGINGS;
+					$targetSlot = Armor::SLOT_LEGGINGS;
 					$isArmorSlot = true;
 				} elseif ($clickOffset >= 1.6 && !$this->armorInventory->getItem(ArmorInventory::SLOT_HEAD)->isNull()) {
-					$targetSlot = ArmorSlot::SLOT_HELMET;
+					$targetSlot = Armor::SLOT_HELMET;
 					$isArmorSlot = true;
 				}
 			}

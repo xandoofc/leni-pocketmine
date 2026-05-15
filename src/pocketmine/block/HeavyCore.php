@@ -49,8 +49,7 @@ class HeavyCore extends Flowable
 		return BlockToolType::TYPE_PICKAXE;
 	}
 
-	public function isSolid() : bool
-	{
+	public function isSolid() : bool{
 		return false;
 	}
 
@@ -69,9 +68,8 @@ class HeavyCore extends Flowable
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_671) {
-			return BlockFactory::get(BlockIds::SKULL_BLOCK);
+			return BlockFactory::get(Block::SKULL_BLOCK);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

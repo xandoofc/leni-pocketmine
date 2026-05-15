@@ -33,19 +33,4 @@ class WoodenDoor extends Door
 	{
 		return BlockToolType::TYPE_AXE;
 	}
-
-	public function getFuelTime() : int
-	{
-		return 200;
-	}
-
-	public function getFlameEncouragement() : int
-	{
-		return 5;
-	}
-
-	public function getFlammability() : int
-	{
-		return 20;
-	}
 }

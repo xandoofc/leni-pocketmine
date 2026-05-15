@@ -45,24 +45,27 @@ class InventoryTransactionPacket extends DataPacket
 	public const TYPE_USE_ITEM_ON_ENTITY = 3;
 	public const TYPE_RELEASE_ITEM = 4;
 
-	public int $requestId = 0;
+	/** @var int */
+	public $requestId = 0;
 	/** @var InventoryTransactionChangedSlotsHack[] */
-	public array $requestChangedSlots = [];
-	public TransactionData $trData;
+	public $requestChangedSlots;
+	/** @var TransactionData */
+	public $trData;
 
 	protected function decodePayload() : void
 	{
+		$in = $this;
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_407) {
-			$this->requestId = $this->readLegacyItemStackRequestId();
+			$this->requestId = $in->readLegacyItemStackRequestId();
 			$this->requestChangedSlots = [];
 			if ($this->requestId !== 0) {
-				for ($i = 0, $len = $this->getUnsignedVarInt(); $i < $len; ++$i) {
-					$this->requestChangedSlots[] = InventoryTransactionChangedSlotsHack::read($this);
+				for ($i = 0, $len = $in->getUnsignedVarInt(); $i < $len; ++$i) {
+					$this->requestChangedSlots[] = InventoryTransactionChangedSlotsHack::read($in);
 				}
 			}
 		}
 
-		$transactionType = $this->getUnsignedVarInt();
+		$transactionType = $in->getUnsignedVarInt();
 		$this->trData = match ($transactionType) {
 			self::TYPE_NORMAL => new NormalTransactionData(),
 			self::TYPE_MISMATCH => new MismatchTransactionData(),
@@ -72,23 +75,24 @@ class InventoryTransactionPacket extends DataPacket
 			default => throw new PacketDecodeException("Unknown transaction type $transactionType"),
 		};
 
-		$this->trData->decode($this, $this->getProtocol());
+		$this->trData->decode($in, $this->getProtocol());
 	}
 
 	protected function encodePayload() : void
 	{
+		$out = $this;
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_407) {
-			$this->writeLegacyItemStackRequestId($this->requestId);
+			$out->writeLegacyItemStackRequestId($this->requestId);
 			if ($this->requestId !== 0) {
-				$this->putUnsignedVarInt(count($this->requestChangedSlots));
+				$out->putUnsignedVarInt(count($this->requestChangedSlots));
 				foreach ($this->requestChangedSlots as $changedSlots) {
-					$changedSlots->write($this);
+					$changedSlots->write($out);
 				}
 			}
 		}
 
-		$this->putUnsignedVarInt($this->trData->getTypeId());
-		$this->trData->encode($this, $this->getProtocol());
+		$out->putUnsignedVarInt($this->trData->getTypeId());
+		$this->trData->encode($out, $this->getProtocol());
 	}
 
 	public function handle(PacketHandlerInterface $session) : bool

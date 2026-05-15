@@ -48,9 +48,9 @@ use function http_build_query;
 use function implode;
 use function is_array;
 use function json_decode;
+
 use function mkdir;
 use function strtolower;
-
 use const CURLOPT_AUTOREFERER;
 use const CURLOPT_FOLLOWLOCATION;
 use const CURLOPT_HTTPHEADER;

@@ -32,7 +32,6 @@ use pocketmine\level\Level;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\Player;
-
 use function array_filter;
 use function in_array;
 

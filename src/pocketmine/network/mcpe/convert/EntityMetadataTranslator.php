@@ -27,17 +27,14 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\utils\SingletonTrait;
-
 use function decbin;
 use function strlen;
 use function strrev;
 
-class EntityMetadataTranslator
-{
+class EntityMetadataTranslator {
 	use SingletonTrait;
 
-	public function fromNetworkIds(array $translateMetadata, int $protocolVersion) : array
-	{
+	public function fromNetworkIds(array $translateMetadata, int $protocolVersion) : array{
 		$metadata = [];
 
 		$properties = ConstantTranslator::getInstance()->fromNetworkIds(EntityMetadataProperties::class, $protocolVersion);
@@ -98,8 +95,7 @@ class EntityMetadataTranslator
 		return $metadata;
 	}
 
-	public function toNetworkIds(array $translateMetadata, int $protocolVersion) : array
-	{
+	public function toNetworkIds(array $translateMetadata, int $protocolVersion) : array{
 		$metadata = [];
 
 		$flags = $flags2 = null;

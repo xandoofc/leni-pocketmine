@@ -51,8 +51,7 @@ class DriedGhast extends Solid
 		return "Dried Ghast";
 	}
 
-	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
-	{
+	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool{
 		$faces = [
 			0 => 1,
 			1 => 2,
@@ -69,11 +68,12 @@ class DriedGhast extends Solid
 		return 0;
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_800) {
-			return BlockFactory::get(BlockIds::SKULL_BLOCK);
+			return Block::get(Block::SKULL_BLOCK);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -28,7 +28,6 @@ use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\LongTag;
 use pocketmine\Player;
-
 use function boolval;
 use function intval;
 

@@ -51,9 +51,8 @@ class PaleMoss extends Solid
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::DIRT);
+			return BlockFactory::get(Block::DIRT);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

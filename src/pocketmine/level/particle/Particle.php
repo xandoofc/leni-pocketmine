@@ -120,12 +120,7 @@ abstract class Particle extends Vector3
 	public const TYPE_VAULT_CONNECTION = 90;
 	public const TYPE_WIND_EXPLOSION = 91;
 	public const TYPE_WOLF_ARMOR_CRACK = 92;
-	public const TYPE_OMINOUS_ITEM_SPAWNER = 93;
-	public const TYPE_CREAKING_CRUMBLE = 94;
-	public const TYPE_PALE_OAK_LEAVES = 95;
-	public const TYPE_EYEBLOSSOM_OPEN = 96;
-	public const TYPE_EYEBLOSSOM_CLOSE = 97;
-	public const TYPE_GREEN_FLAME = 98;
+	public const OMINOUS_ITEM_SPAWNER = 93;
 
 	protected int $protocol = ProtocolInfo::CURRENT_PROTOCOL;
 

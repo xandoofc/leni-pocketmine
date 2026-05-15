@@ -34,22 +34,10 @@ class InventorySlotPacket extends DataPacket
 	public int $inventorySlot;
 	public int $isNullItem;
 	public FullContainerName $containerName;
+	public int $dynamicContainerSize = 0;//??
+	public int $dynamicContainerId = 0;//??
 	public ItemStackWrapper $storage;
 	public ItemStackWrapper $item;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(int $windowId, int $inventorySlot, FullContainerName $containerName, ItemStackWrapper $storage, ItemStackWrapper $item) : self
-	{
-		$result = new self();
-		$result->windowId = $windowId;
-		$result->inventorySlot = $inventorySlot;
-		$result->containerName = $containerName;
-		$result->storage = $storage;
-		$result->item = $item;
-		return $result;
-	}
 
 	protected function decodePayload() : void
 	{
@@ -62,15 +50,16 @@ class InventorySlotPacket extends DataPacket
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_729) {
 				$this->containerName = FullContainerName::read($this, $this->getProtocol());
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_748) {
-					$this->storage = $this->getItemStackWrapper($this->getProtocol());
+					$this->storage = $this->getSlot($this->getProtocol());
 				} else {
-					$this->getUnsignedVarInt(); //TODO: dynamicContainerSize, WTF?
+					$this->putUnsignedVarInt($this->dynamicContainerSize);
 				}
 			} else {
-				$this->containerName = new FullContainerName($this->getUnsignedVarInt());
+				$this->containerName = new FullContainerName(0);
+				$this->dynamicContainerId = $this->getUnsignedVarInt();
 			}
 		}
-		$this->item = $this->getItemStackWrapper($this->getProtocol());
+		$this->item = $this->getSlot($this->getProtocol());
 	}
 
 	protected function encodePayload() : void
@@ -84,15 +73,15 @@ class InventorySlotPacket extends DataPacket
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_729) {
 				($this->containerName ?? new FullContainerName(0))->write($this, $this->getProtocol());
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_748) {
-					$this->putItemStackWrapper($this->storage, $this->getProtocol());
+					$this->putSlot($this->storage, $this->getProtocol());
 				} else {
-					$this->putUnsignedVarInt(0); //TODO: dynamicContainerSize, WTF?
+					$this->putUnsignedVarInt($this->dynamicContainerSize);
 				}
 			} else {
-				$this->putUnsignedVarInt(($this->containerName ?? new FullContainerName(0))->getContainerId());
+				$this->putUnsignedVarInt($this->dynamicContainerId);
 			}
 		}
-		$this->putItemStackWrapper($this->item, $this->getProtocol());
+		$this->putSlot($this->item, $this->getProtocol());
 	}
 
 	public function mustBeDecoded() : bool

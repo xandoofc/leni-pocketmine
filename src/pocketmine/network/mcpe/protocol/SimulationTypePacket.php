@@ -30,11 +30,11 @@ class SimulationTypePacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::SIMULATION_TYPE_PACKET;
 
-	public const int GAME = 0;
-	public const int EDITOR = 1;
-	public const int TEST = 2;
+	public const GAME = 0;
+	public const EDITOR = 1;
+	public const TEST = 2;
 
-	private int $type;
+	private $type;
 
 	public static function create(int $type) : self
 	{

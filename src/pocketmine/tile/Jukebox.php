@@ -29,7 +29,6 @@ use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\Player;
-
 use function str_ireplace;
 use function ucwords;
 

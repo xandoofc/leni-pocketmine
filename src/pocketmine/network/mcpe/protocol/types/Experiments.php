@@ -32,8 +32,9 @@ final class Experiments
 	 * @var bool[]
 	 * @phpstan-var array<string, bool>
 	 */
-	public array $experiments;
-	public bool $hasPreviouslyUsedExperiments;
+	private $experiments;
+	/** @var bool */
+	private $hasPreviouslyUsedExperiments;
 
 	/**
 	 * @param bool[] $experiments

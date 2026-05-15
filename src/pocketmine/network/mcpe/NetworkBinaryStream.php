@@ -22,35 +22,33 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe;
 
+use pocketmine\block\BlockIds;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Skin;
+use pocketmine\item\Durable;
 use pocketmine\item\Item;
+use pocketmine\item\ItemFactory;
 use pocketmine\item\ItemIds;
 use pocketmine\math\Vector2;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\nbt\tag\IntTag;
+use pocketmine\nbt\tag\LongTag;
 use pocketmine\nbt\tag\NamedTag;
+use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\mcpe\convert\EntityMetadataTranslator;
 use pocketmine\network\mcpe\convert\ItemTranslator;
-use pocketmine\network\mcpe\convert\TypeConverter;
-use pocketmine\network\mcpe\protocol\PacketDecodeException;
+use pocketmine\network\mcpe\convert\LegacyItemIdToStringIdMap;
+use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\command\CommandOriginData;
 use pocketmine\network\mcpe\protocol\types\entity\AttributeModifier;
 use pocketmine\network\mcpe\protocol\types\EntityLink;
 use pocketmine\network\mcpe\protocol\types\GameRuleType;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
-use pocketmine\network\mcpe\protocol\types\recipe\ComplexAliasItemDescriptor;
-use pocketmine\network\mcpe\protocol\types\recipe\IntIdMetaItemDescriptor;
-use pocketmine\network\mcpe\protocol\types\recipe\ItemDescriptorType;
-use pocketmine\network\mcpe\protocol\types\recipe\MolangItemDescriptor;
-use pocketmine\network\mcpe\protocol\types\recipe\RecipeIngredient;
-use pocketmine\network\mcpe\protocol\types\recipe\StringIdMetaItemDescriptor;
-use pocketmine\network\mcpe\protocol\types\recipe\TagItemDescriptor;
 use pocketmine\network\mcpe\protocol\types\skin\PersonaPieceTintColor;
 use pocketmine\network\mcpe\protocol\types\skin\PersonaSkinPiece;
 use pocketmine\network\mcpe\protocol\types\skin\SerializedSkin;
@@ -75,9 +73,10 @@ use function strlen;
 
 class NetworkBinaryStream extends BinaryStream
 {
-
-	/** @var int[] */
-	public static array $shieldItemRuntimeIds = [];
+	private const DAMAGE_TAG = "Damage"; //TAG_Int
+	private const DAMAGE_TAG_CONFLICT_RESOLUTION = "___Damage_ProtocolCollisionResolution___";
+	private const PM_ID_TAG = "___Id___";
+	private const PM_META_TAG = "___Meta___";
 
 	public function getString() : string
 	{
@@ -276,339 +275,506 @@ class NetworkBinaryStream extends BinaryStream
 		$this->putString($image->getData());
 	}
 
-	/**
-	 * @return int[]
-	 * @phpstan-return array{0: int, 1: int, 2: int}
-	 * @throws BinaryDataException
-	 */
-	private function getItemStackHeader(int $protocol) : array{
+	public function getSlot(int $playerProtocol, bool $withStackId = true) : ItemStackWrapper
+	{
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_431) {
+			return $this->getItemStack($playerProtocol, $withStackId);
+		}
+
 		$id = $this->getVarInt();
-		if($id === 0){
-			return [0, 0, 0];
+		if ($id === 0) {
+			return new ItemStackWrapper(0, ItemFactory::get(0, 0, 0));
 		}
 
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			$count = $this->getLShort();
-			$meta = $this->getUnsignedVarInt();
-		} else {
-			$auxValue = $this->getVarInt();
-			$meta = $auxValue >> 8;
-			if ($protocol < ProtocolInfo::PROTOCOL_137 && $meta === 0x7fff) {
-				$meta = -1;
-			}
-			$count = $auxValue & 0xff;
+		$auxValue = $this->getVarInt();
+		$data = $auxValue >> 8;
+		if ($playerProtocol < ProtocolInfo::PROTOCOL_137 && $data === 0x7fff) {
+			$data = -1;
+		}
+		$cnt = $auxValue & 0xff;
+
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_419) {
+			[$id, $data] = ItemTranslator::getInstance($playerProtocol)->fromNetworkId($id, $data);
 		}
 
-		return [$id, $count, $meta];
-	}
+		$nbtLen = $this->getLShort();
 
-	private function putItemStackHeader(ItemStack $itemStack, int $protocol) : bool{
-		if($itemStack->getId() === 0){
-			$this->putVarInt(0);
-			return false;
-		}
-
-		$this->putVarInt($itemStack->getId());
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			$this->putLShort($itemStack->getCount());
-			$this->putUnsignedVarInt($itemStack->getMeta());
-		} else {
-			$auxValue = (($itemStack->getMeta() & 0x7fff) << 8) | $itemStack->getCount();
-			$this->putVarInt($auxValue);
-		}
-
-		return true;
-	}
-
-	private function getItemStackFooter(int $id, int $meta, int $count, int $protocol) : ItemStack{
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			$blockRuntimeId = $this->getVarInt();
-			$binaryExtraData = new NetworkBinaryStream($this->getString());
-		} else {
-			$binaryExtraData = $this;
-			$blockRuntimeId = 0;
-		}
-
-		[$compound, $canPlaceOn, $canDestroy, $shieldBlockingTick] = $this->getItemStackExtraData($id, $binaryExtraData, $protocol);
-		return new ItemStack($id, $meta, $count, $blockRuntimeId, $compound, $canPlaceOn, $canDestroy, $shieldBlockingTick);
-	}
-
-	private function putItemStackFooter(ItemStack $itemStack, int $protocol) : void{
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			$this->putVarInt($itemStack->getBlockRuntimeId());
-			$this->putItemStackExtraData($itemStack, ($extraData = new NetworkBinaryStream()), $protocol);
-			$this->putString($extraData->getBuffer());
-		} else {
-			$this->putItemStackExtraData($itemStack, $this, $protocol);
-		}
-	}
-
-	public function getItemStackExtraData(int $id, NetworkBinaryStream $extraData, int $protocol) : array{
-		$nbtLen = $extraData->getLShort();
-
-		/** @var CompoundTag|null $compound */
-		$compound = null;
-		if ($protocol >= ProtocolInfo::PROTOCOL_332) {
+		/** @var CompoundTag|null $nbt */
+		$nbt = null;
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_332) {
 			if ($nbtLen === 0xffff) {
-				$nbtDataVersion = $extraData->getByte();
-				if ($nbtDataVersion !== 1) {
-					throw new PacketDecodeException("Unexpected NBT data version $nbtDataVersion");
+				$c = $this->getByte();
+				if ($c !== 1) {
+					throw new UnexpectedValueException("Unexpected NBT count $c");
 				}
-
-				if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-					$decodedNBT = (new LittleEndianNBTStream())->read($extraData->buffer, false, $extraData->offset, 512);
-				} else {
-					$decodedNBT = (new NetworkLittleEndianNBTStream())->read($extraData->buffer, false, $extraData->offset, 512);
-				}
-
+				$decodedNBT = (new NetworkLittleEndianNBTStream())->read($this->buffer, false, $this->offset, 512);
 				if (!($decodedNBT instanceof CompoundTag)) {
-					throw new PacketDecodeException("Unexpected root tag type for itemstack");
+					throw new UnexpectedValueException("Unexpected root tag type for itemstack");
 				}
+				$nbt = $decodedNBT;
 			} elseif ($nbtLen !== 0) {
-				throw new PacketDecodeException("Unexpected fake NBT length $nbtLen");
+				throw new UnexpectedValueException("Unexpected fake NBT length $nbtLen");
 			}
 		} elseif ($nbtLen > 0) {
-			$decodedNBT = (new LittleEndianNBTStream())->read($extraData->get($nbtLen));
+			$decodedNBT = (new LittleEndianNBTStream())->read($this->get($nbtLen));
 			if (!($decodedNBT instanceof CompoundTag)) {
-				throw new PacketDecodeException("Unexpected root tag type for itemstack");
+				throw new UnexpectedValueException("Unexpected root tag type for itemstack");
 			}
-
-			$compound = $decodedNBT;
+			if ($playerProtocol < ProtocolInfo::PROTOCOL_137 && $id === ItemIds::FILLED_MAP && $decodedNBT->hasTag("map_uuid", StringTag::class)) {
+				$decodedNBT->setLong("map_uuid", (int) $decodedNBT->getString("map_uuid"), true);
+			}
+			$nbt = $decodedNBT;
 		}
 
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			$canPlaceOn = [];
-			for ($i = 0, $canPlaceOnCount = $extraData->getLInt(); $i < $canPlaceOnCount; ++$i) {
-				$canPlaceOn[] = $extraData->get($extraData->getLShort());
-			}
-
-			$canDestroy = [];
-			for ($i = 0, $canDestroyCount = $extraData->getLInt(); $i < $canDestroyCount; ++$i) {
-				$canDestroy[] = $extraData->get($extraData->getLShort());
-			}
-		} else {
-			$canPlaceOn = [];
-			for ($i = 0, $canPlaceOnCount = $extraData->getVarInt(); $i < $canPlaceOnCount; ++$i) {
-				$canPlaceOn[] = $extraData->getString();
-			}
-
-			$canDestroy = [];
-			for ($i = 0, $canDestroyCount = $extraData->getVarInt(); $i < $canDestroyCount; ++$i) {
-				$canDestroy[] = $extraData->getString();
-			}
+		//TODO
+		$canPlaceOn = $this->getVarInt();
+		if ($canPlaceOn > 128) {
+			throw new UnexpectedValueException("Too many canPlaceOn: $canPlaceOn");
+		}
+		for ($i = 0; $i < $canPlaceOn; ++$i) {
+			$this->getString();
 		}
 
-		$shieldBlockingTick = null;
-		if ($protocol >= ProtocolInfo::PROTOCOL_340) {
-			if (!isset(self::$shieldItemRuntimeIds[$protocol])) {
-				if ($protocol >= ProtocolInfo::PROTOCOL_419) {
-					self::$shieldItemRuntimeIds[$protocol] = ItemTranslator::getInstance($protocol)->toNetworkId(ItemIds::SHIELD, 0)[0];
-				} else {
-					self::$shieldItemRuntimeIds[$protocol] = ItemIds::SHIELD;
-				}
-			}
-
-			if ($id === self::$shieldItemRuntimeIds[$protocol]) {
-				if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-					$shieldBlockingTick = $extraData->getLLong();
-				} else {
-					$shieldBlockingTick = $extraData->getVarLong();
-				}
-			}
+		//TODO
+		$canDestroy = $this->getVarInt();
+		if ($canDestroy > 128) {
+			throw new UnexpectedValueException("Too many canDestroy: $canDestroy");
+		}
+		for ($i = 0; $i < $canDestroy; ++$i) {
+			$this->getString();
 		}
 
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			if(!$extraData->feof()){
-				throw new PacketDecodeException("Unexpected trailing extradata for network item $id");
-			}
+		if ($id === ItemIds::SHIELD) {
+			$this->getVarLong(); //"blocking tick" (ffs mojang)
 		}
-
-		return [$compound, $canPlaceOn, $canDestroy, $shieldBlockingTick];
-	}
-
-	public function putItemStackExtraData(ItemStack $itemStack, NetworkBinaryStream $extraData, int $protocol) : void{
-		$nbt = $itemStack->getNbt();
 
 		if ($nbt !== null) {
-			if ($protocol >= ProtocolInfo::PROTOCOL_332) {
-				$extraData->putLShort(0xffff);
-				$extraData->putByte(1); //TODO: some kind of count field? always 1 as of 1.9.0
-				if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-					$extraData->put((new LittleEndianNBTStream())->write($nbt));
-				} else {
-					$extraData->put((new NetworkLittleEndianNBTStream())->write($nbt));
+			if ($nbt->hasTag(self::PM_ID_TAG, IntTag::class)) {
+				$id = $nbt->getInt(self::PM_ID_TAG);
+				$nbt->removeTag(self::PM_ID_TAG);
+				if ($nbt->count() === 0) {
+					$nbt = null;
 				}
+			}
+			if ($nbt->hasTag(self::DAMAGE_TAG, IntTag::class)) {
+				$data = $nbt->getInt(self::DAMAGE_TAG);
+				$nbt->removeTag(self::DAMAGE_TAG);
+				if ($nbt->count() === 0) {
+					$nbt = null;
+					goto end;
+				}
+			}
+			if (($conflicted = $nbt->getTag(self::DAMAGE_TAG_CONFLICT_RESOLUTION)) !== null) {
+				$nbt->removeTag(self::DAMAGE_TAG_CONFLICT_RESOLUTION);
+				$conflicted->setName(self::DAMAGE_TAG);
+				$nbt->setTag($conflicted);
+			}
+			if (($metaTag = $nbt->getTag(self::PM_META_TAG)) instanceof IntTag) {
+				$data = $metaTag->getValue();
+				$nbt->removeTag(self::PM_META_TAG);
+				if ($nbt->count() === 0) {
+					$nbt = null;
+				}
+			}
+		}
+
+		end:
+
+		return ItemStackWrapper::legacy(ItemFactory::get($id, $data, $cnt, $nbt));
+	}
+
+	public function putSlot(ItemStackWrapper|Item $itemStackWrapper, int $playerProtocol, bool $withStackId = true, bool $saveOriginalID = true) : void
+	{
+		if ($itemStackWrapper instanceof Item) {
+			$itemStackWrapper = ItemStackWrapper::legacy($itemStackWrapper);
+		}
+
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_431) {
+			$this->putItemStack($itemStackWrapper, $playerProtocol, $withStackId, $saveOriginalID);
+			return;
+		}
+
+		$item = $itemStackWrapper->getItemStack();
+		if ($item->isNull()) {
+			$this->putVarInt(0);
+			return;
+		}
+
+		$id = $item->getId();
+		$damage = $item->getDamage();
+
+		$item->checkCompoundTag();
+
+		$nbt = null;
+		if ($item->hasCompoundTag()) {
+			$nbt = clone $item->getNamedTag();
+		}
+
+		$protocolItem = $item->getItemProtocol($playerProtocol);
+		if ($protocolItem !== null) {
+			if ($nbt === null) {
+				$nbt = new CompoundTag();
+			}
+			$nbt->setInt(self::PM_ID_TAG, $item->getId());
+			$nbt->setInt(self::PM_META_TAG, $item->getDamage());
+
+			[$id, $damage] = [$protocolItem->getId(), $protocolItem->getDamage()];
+		}
+
+		$isValidItemId = LegacyItemIdToStringIdMap::getInstance($playerProtocol)->legacyToString($id) !== null;
+		if (!$isValidItemId) {
+			[$id, $damage] = [Item::INFO_UPDATE, 0];
+		}
+
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_419) {
+			$itemTranslator = ItemTranslator::getInstance($playerProtocol);
+			$idMeta = $itemTranslator->toNetworkIdQuiet($id, $damage);
+
+			if ($idMeta === null) {
+				//Display unmapped items as INFO_UPDATE, but stick something in their NBT to make sure they don't stack with
+				//other unmapped items.
+				[$id, $damage] = $itemTranslator->toNetworkId(ItemIds::INFO_UPDATE, 0);
+				if ($nbt === null) {
+					$nbt = new CompoundTag();
+				}
+				$nbt->setInt(self::PM_ID_TAG, $item->getId());
+				$nbt->setInt(self::PM_META_TAG, $item->getDamage());
 			} else {
+				[$id, $damage] = $idMeta;
+				if ($item instanceof Durable && $item->getDamage() > 0) {
+					if ($nbt !== null) {
+						if (($existing = $nbt->getTag(self::DAMAGE_TAG)) !== null) {
+							$nbt->removeTag(self::DAMAGE_TAG);
+							$existing->setName(self::DAMAGE_TAG_CONFLICT_RESOLUTION);
+							$nbt->setTag($existing);
+						}
+					} else {
+						$nbt = new CompoundTag();
+					}
+					$nbt->setInt(self::DAMAGE_TAG, $item->getDamage());
+				}
+			}
+		} else {
+			if ($item instanceof Durable && $item->getDamage() > 0) {
+				if ($nbt !== null) {
+					if (($existing = $nbt->getTag(self::DAMAGE_TAG)) !== null) {
+						$nbt->removeTag(self::DAMAGE_TAG);
+						$existing->setName(self::DAMAGE_TAG_CONFLICT_RESOLUTION);
+						$nbt->setTag($existing);
+					}
+				} else {
+					$nbt = new CompoundTag();
+				}
+				$nbt->setInt(self::DAMAGE_TAG, $item->getDamage());
+			}
+		}
+
+		$this->putVarInt($id);
+		$auxValue = (($damage & 0x7fff) << 8) | $item->getCount();
+		$this->putVarInt($auxValue);
+
+		if ($nbt !== null) {
+			if ($playerProtocol >= ProtocolInfo::PROTOCOL_332) {
+				$this->putLShort(0xffff);
+				$this->putByte(1); //TODO: some kind of count field? always 1 as of 1.9.0
+				$this->put((new NetworkLittleEndianNBTStream())->write($nbt));
+			} else {
+				if ($playerProtocol < ProtocolInfo::PROTOCOL_137 && $item->getId() === ItemIds::FILLED_MAP && $item->getNamedTag()->hasTag("map_uuid", LongTag::class)) {
+					$tag = $item->getNamedTag();
+					$uuid = $tag->getLong("map_uuid");
+					$nbt->setString("map_uuid", (string) $uuid, true);
+				}
 				$nbt = (new LittleEndianNBTStream())->write($nbt);
-				$extraData->putLShort(strlen($nbt));
-				$extraData->put($nbt);
+				$this->putLShort(strlen($nbt));
+				$this->put($nbt);
 			}
 		} else {
-			$extraData->putLShort(0);
+			$this->putLShort(0);
 		}
 
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-			$extraData->putLInt(count($itemStack->getCanPlaceOn()));
-			foreach ($itemStack->getCanPlaceOn() as $entry) {
-				$extraData->putLShort(strlen($entry));
-				$extraData->put($entry);
-			}
-			$extraData->putLInt(count($itemStack->getCanDestroy()));
-			foreach ($itemStack->getCanDestroy() as $entry) {
-				$extraData->putLShort(strlen($entry));
-				$extraData->put($entry);
-			}
-		} else {
-			$extraData->putVarInt(count($itemStack->getCanPlaceOn()));
-			foreach ($itemStack->getCanPlaceOn() as $entry) {
-				$extraData->putString($entry);
-			}
-			$extraData->putVarInt(count($itemStack->getCanDestroy()));
-			foreach ($itemStack->getCanDestroy() as $entry) {
-				$extraData->putString($entry);
-			}
-		}
+		$this->putVarInt(0); //CanPlaceOn entry count (TODO)
+		$this->putVarInt(0); //CanDestroy entry count (TODO)
 
-		if ($protocol >= ProtocolInfo::PROTOCOL_340) {
-			if (!isset(self::$shieldItemRuntimeIds[$protocol])) {
-				if ($protocol >= ProtocolInfo::PROTOCOL_419) {
-					self::$shieldItemRuntimeIds[$protocol] = ItemTranslator::getInstance($protocol)->toNetworkId(ItemIds::SHIELD, 0)[0];
-				} else {
-					self::$shieldItemRuntimeIds[$protocol] = ItemIds::SHIELD;
-				}
-			}
-
-			if ($itemStack->getId() === self::$shieldItemRuntimeIds[$protocol]) {
-				$blockingTick = $itemStack->getShieldBlockingTick() ?? 0; //"blocking tick" (ffs mojang)
-				if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-					$extraData->putLLong($blockingTick);
-				} else {
-					$extraData->putVarLong($blockingTick);
-				}
-			}
+		if ($item->getId() === ItemIds::SHIELD) {
+			$this->putVarLong(0); //"blocking tick" (ffs mojang)
 		}
 	}
 
-	/**
-	 * @throws PacketDecodeException
-	 * @throws BinaryDataException
-	 */
-	public function getItemStackWithoutStackId(int $protocol) : ItemStack{
-		[$id, $count, $meta] = $this->getItemStackHeader($protocol);
-
-		return $id !== 0 ? $this->getItemStackFooter($id, $meta, $count, $protocol) : ItemStack::null();
-	}
-
-	public function putItemStackWithoutStackId(Item|ItemStack $itemStack, int $protocol) : void{
-		if ($itemStack instanceof Item) {
-			$itemStack = TypeConverter::getInstance()->coreItemStackToNet($itemStack, $protocol);
+	public function getItemStack(int $playerProtocol, bool $withStackId = true) : ItemStackWrapper
+	{
+		$netId = $this->getVarInt();
+		if ($netId === 0) {
+			return new ItemStackWrapper(0, ItemFactory::get(0, 0, 0));
 		}
 
-		if($this->putItemStackHeader($itemStack, $protocol)){
-			$this->putItemStackFooter($itemStack, $protocol);
-		}
-	}
+		$cnt = $this->getLShort();
+		$netData = $this->getUnsignedVarInt();
 
-	public function getItemStackWrapper(int $protocol) : ItemStackWrapper{
-		[$id, $count, $meta] = $this->getItemStackHeader($protocol);
-		if($id === 0){
-			return new ItemStackWrapper(0, ItemStack::null());
-		}
+		[$id, $meta] = ItemTranslator::getInstance($playerProtocol)->fromNetworkId($netId, $netData);
 
-		if ($protocol >= ProtocolInfo::PROTOCOL_431) {
+		$stackId = 0;
+		if ($withStackId) {
 			$hasNetId = $this->getBool();
 			$stackId = $hasNetId ? $this->readServerItemStackId() : 0;
 		}
 
-		$itemStack = $this->getItemStackFooter($id, $meta, $count, $protocol);
+		$this->getVarInt(); //blockRuntimeId
 
-		return new ItemStackWrapper($stackId ?? 1, $itemStack);
+		$extraData = new NetworkBinaryStream($this->getString());
+		return (static function () use ($extraData, $netId, $id, $meta, $cnt, $stackId) : ItemStackWrapper {
+			$nbtLen = $extraData->getLShort();
+
+			/** @var CompoundTag|null $nbt */
+			$nbt = null;
+			if ($nbtLen === 0xffff) {
+				$nbtDataVersion = $extraData->getByte();
+				if ($nbtDataVersion !== 1) {
+					throw new UnexpectedValueException("Unexpected NBT data version $nbtDataVersion");
+				}
+				$decodedNBT = (new LittleEndianNBTStream())->read($extraData->buffer, false, $extraData->offset, 512);
+				if (!($decodedNBT instanceof CompoundTag)) {
+					throw new UnexpectedValueException("Unexpected root tag type for itemstack");
+				}
+				$nbt = $decodedNBT;
+			} elseif ($nbtLen !== 0) {
+				throw new UnexpectedValueException("Unexpected fake NBT length $nbtLen");
+			}
+
+			//TODO
+			$canPlaceOn = $extraData->getLInt();
+			if ($canPlaceOn > 128) {
+				throw new UnexpectedValueException("Too many canPlaceOn: $canPlaceOn");
+			}
+			for ($i = 0; $i < $canPlaceOn; ++$i) {
+				$extraData->get($extraData->getLShort());
+			}
+
+			//TODO
+			$canDestroy = $extraData->getLInt();
+			if ($canDestroy > 128) {
+				throw new UnexpectedValueException("Too many canDestroy: $canDestroy");
+			}
+			for ($i = 0; $i < $canDestroy; ++$i) {
+				$extraData->get($extraData->getLShort());
+			}
+
+			if ($id === ItemIds::SHIELD) {
+				$extraData->getLLong(); //"blocking tick" (ffs mojang)
+			}
+
+			if (!$extraData->feof()) {
+				throw new UnexpectedValueException("Unexpected trailing extradata for network item $netId");
+			}
+
+			if ($nbt !== null) {
+				if ($nbt->hasTag(self::PM_ID_TAG, IntTag::class)) {
+					$id = $nbt->getInt(self::PM_ID_TAG);
+					$nbt->removeTag(self::PM_ID_TAG);
+					if ($nbt->count() === 0) {
+						$nbt = null;
+					}
+				}
+				if ($nbt->hasTag(self::DAMAGE_TAG, IntTag::class)) {
+					$meta = $nbt->getInt(self::DAMAGE_TAG);
+					$nbt->removeTag(self::DAMAGE_TAG);
+					if (($conflicted = $nbt->getTag(self::DAMAGE_TAG_CONFLICT_RESOLUTION)) !== null) {
+						$nbt->removeTag(self::DAMAGE_TAG_CONFLICT_RESOLUTION);
+						$conflicted->setName(self::DAMAGE_TAG);
+						$nbt->setTag($conflicted);
+					} elseif ($nbt->count() === 0) {
+						$nbt = null;
+					}
+				} elseif (($metaTag = $nbt->getTag(self::PM_META_TAG)) instanceof IntTag) {
+					//TODO HACK: This foul-smelling code ensures that we can correctly deserialize an item when the
+					//client sends it back to us, because as of 1.16.220, blockitems quietly discard their metadata
+					//client-side. Aside from being very annoying, this also breaks various server-side behaviours.
+					$meta = $metaTag->getValue();
+					$nbt->removeTag(self::PM_META_TAG);
+					if ($nbt->count() === 0) {
+						$nbt = null;
+					}
+				}
+			}
+			return new ItemStackWrapper($stackId, ItemFactory::get($id, $meta, $cnt, $nbt));
+		})();
 	}
 
-	public function putItemStackWrapper(Item|ItemStackWrapper $itemStackWrapper, int $protocol) : void{
+	public function putItemStack(ItemStackWrapper|Item $itemStackWrapper, int $playerProtocol, bool $withStackId = true, bool $saveOriginalID = true) : void
+	{
 		if ($itemStackWrapper instanceof Item) {
-			$itemStackWrapper = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($itemStackWrapper, $protocol));
+			$itemStackWrapper = ItemStackWrapper::legacy($itemStackWrapper);
 		}
 
-		$itemStack = $itemStackWrapper->getItemStack();
-		if($this->putItemStackHeader($itemStack, $protocol)){
-			if ($protocol >= ProtocolInfo::PROTOCOL_431) {
-				$hasNetId = $itemStackWrapper->getStackId() !== 0;
-				$this->putBool($hasNetId);
-				if ($hasNetId) {
-					$this->writeServerItemStackId($itemStackWrapper->getStackId());
-				}
-			}
-
-			$this->putItemStackFooter($itemStack, $protocol);
+		$item = $itemStackWrapper->getItemStack();
+		if ($item->isNull()) {
+			$this->putVarInt(0);
+			return;
 		}
-	}
 
-	public function getRecipeIngredient(int $playerProtocol) : RecipeIngredient
-	{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_554) {
-			if ($playerProtocol < ProtocolInfo::PROTOCOL_361) {
-				$item = $this->getItemStackWithoutStackId($playerProtocol);
-				$id = $item->getId();
-				$meta = $item->getMeta();
-			} else {
-				$id = $this->getVarInt();
-				if ($id !== 0) {
-					$meta = $this->getVarInt();
-					$count = $this->getVarInt();
-				}
+		$id = $item->getId();
+		$coreData = $item->getDamage();
+
+		$isBlockItem = $item->getId() < 256;
+
+		$nbt = null;
+		if ($item->hasCompoundTag()) {
+			$nbt = clone $item->getNamedTag();
+		}
+
+		$protocolItem = $item->getItemProtocol($playerProtocol);
+		if ($protocolItem !== null) {
+			if ($nbt === null) {
+				$nbt = new CompoundTag();
 			}
+			$nbt->setInt(self::PM_ID_TAG, $item->getId());
+			$nbt->setInt(self::PM_META_TAG, $item->getDamage());
 
-			$descriptor = new IntIdMetaItemDescriptor($id, $meta ?? 0);
+			[$id, $coreData] = [$protocolItem->getId(), $protocolItem->getDamage()];
+		}
+
+		$isValidItemId = LegacyItemIdToStringIdMap::getInstance($playerProtocol)->legacyToString($id) !== null;
+		if (!$isValidItemId) {
+			[$id, $coreData] = [Item::INFO_UPDATE, 0];
+		}
+
+		$itemTranslator = ItemTranslator::getInstance($playerProtocol);
+		$idMeta = $itemTranslator->toNetworkIdQuiet($id, $coreData);
+		if ($idMeta === null) {
+			//Display unmapped items as INFO_UPDATE, but stick something in their NBT to make sure they don't stack with
+			//other unmapped items.
+			[$netId, $netData] = $itemTranslator->toNetworkId(ItemIds::INFO_UPDATE, 0);
+			if ($nbt === null) {
+				$nbt = new CompoundTag();
+			}
+			$nbt->setInt(self::PM_ID_TAG, $id);
+			$nbt->setInt(self::PM_META_TAG, $coreData);
 		} else {
-			$descriptorType = $this->getByte();
-			$descriptor = match ($descriptorType) {
-				ItemDescriptorType::INT_ID_META => IntIdMetaItemDescriptor::read($this),
-				ItemDescriptorType::STRING_ID_META => StringIdMetaItemDescriptor::read($this),
-				ItemDescriptorType::TAG => TagItemDescriptor::read($this),
-				ItemDescriptorType::MOLANG => MolangItemDescriptor::read($this),
-				ItemDescriptorType::COMPLEX_ALIAS => ComplexAliasItemDescriptor::read($this),
-				default => null
-			};
+			[$netId, $netData] = $idMeta;
 
-			$count = $this->getVarInt();
+			if ($item instanceof Durable && $coreData > 0) {
+				if ($nbt !== null) {
+					if (($existing = $nbt->getTag(self::DAMAGE_TAG)) !== null) {
+						$nbt->removeTag(self::DAMAGE_TAG);
+						$existing->setName(self::DAMAGE_TAG_CONFLICT_RESOLUTION);
+						$nbt->setTag($existing);
+					}
+				} else {
+					$nbt = new CompoundTag();
+				}
+				$nbt->setInt(self::DAMAGE_TAG, $coreData);
+			} elseif ($isBlockItem && $coreData !== 0 && $saveOriginalID) {
+				//TODO HACK: This foul-smelling code ensures that we can correctly deserialize an item when the
+				//client sends it back to us, because as of 1.16.220, blockitems quietly discard their metadata
+				//client-side. Aside from being very annoying, this also breaks various server-side behaviours.
+				if ($nbt === null) {
+					$nbt = new CompoundTag();
+				}
+				$nbt->setInt(self::PM_META_TAG, $coreData);
+			}
 		}
 
-		return new RecipeIngredient($descriptor, $count ?? 0);
+		$this->putVarInt($netId);
+		$this->putLShort($item->getCount());
+		$this->putUnsignedVarInt($netData);
+
+		if ($withStackId) {
+			$hasNetId = $itemStackWrapper->getStackId() !== 0;
+			$this->putBool($hasNetId);
+			if ($hasNetId) {
+				$this->writeServerItemStackId($itemStackWrapper->getStackId());
+			}
+		}
+
+		$blockRuntimeId = 0;
+		if ($isBlockItem) {
+			$block = $item->getBlock();
+			if ($block->getId() !== BlockIds::AIR) {
+				$blockRuntimeId = RuntimeBlockMapping::getInstance($playerProtocol)->toRuntimeId($block->getFullId());
+			}
+		}
+		$this->putVarInt($blockRuntimeId);
+
+		$this->putString(
+			(static function () use ($nbt, $item) : string {
+				$extraData = new NetworkBinaryStream();
+
+				if ($nbt !== null) {
+					$extraData->putLShort(0xffff);
+					$extraData->putByte(1); //TODO: NBT data version (?)
+					$extraData->put((new LittleEndianNBTStream())->write($nbt));
+				} else {
+					$extraData->putLShort(0);
+				}
+
+				$extraData->putLInt(0); //CanPlaceOn entry count (TODO)
+				$extraData->putLInt(0); //CanDestroy entry count (TODO)
+
+				if ($item->getId() === ItemIds::SHIELD) {
+					$extraData->putLLong(0); //"blocking tick" (ffs mojang)
+				}
+				return $extraData->getBuffer();
+			})()
+		);
 	}
 
-	public function putRecipeIngredient(RecipeIngredient $ingredient, int $playerProtocol) : void
+	public function getRecipeIngredient(int $playerProtocol) : Item
 	{
-		$type = $ingredient->getDescriptor();
+		$id = $this->getVarInt();
+		if ($id === 0) {
+			return ItemFactory::get(ItemIds::AIR, 0, 0);
+		}
+		$meta = $this->getVarInt();
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_419) {
+			[$id, $meta] = ItemTranslator::getInstance($playerProtocol)->fromNetworkId($id, $meta);
+		} elseif ($meta === 0x7fff) {
+			$meta = -1;
+		}
+		$count = $this->getVarInt();
+		return ItemFactory::get($id, $meta, $count);
+	}
+
+	public function putRecipeIngredient(Item $item, int $playerProtocol) : void
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_554) {
-			if (!($type instanceof IntIdMetaItemDescriptor)) {
+			if ($item->isNull()) {
 				$this->putVarInt(0);
-				return;
-			}
-
-			if ($playerProtocol < ProtocolInfo::PROTOCOL_361) {
-				$this->putItemStackWithoutStackId(new ItemStack(
-					$type->getId(),
-					$type->getMeta(),
-					$ingredient->getCount(),
-					0,
-					null,
-					[],
-					[]
-				), $playerProtocol);
 			} else {
-				$this->putVarInt($type->getId());
-				$this->putVarInt($type->getMeta());
-				$this->putVarInt($ingredient->getCount());
+				$id = $item->getId();
+				$damage = $item->getDamage();
+				if ($playerProtocol >= ProtocolInfo::PROTOCOL_419) {
+					$itemTranslator = ItemTranslator::getInstance($playerProtocol);
+					if ($item->hasAnyDamageValue()) {
+						[$id, ] = $itemTranslator->toNetworkId($id, 0);
+						$damage = 0x7fff;
+					} else {
+						[$id, $damage] = $itemTranslator->toNetworkId($id, $damage);
+					}
+				} else {
+					$damage = $damage & 0x7fff;
+				}
+				$this->putVarInt($id);
+				$this->putVarInt($damage);
+				$this->putVarInt($item->getCount());
 			}
 		} else {
-			if ($playerProtocol < ProtocolInfo::PROTOCOL_575 && $type instanceof ComplexAliasItemDescriptor) {
-				$type = null;
-			}
+			if ($item->isNull()) {
+				$this->putByte(0); // internal item descriptor type
+				$this->putVarInt(0);
+			} else {
+				$this->putByte(1); // internal item descriptor type
 
-			$this->putByte($type?->getTypeId() ?? 0);
-			$type?->write($this);
-			$this->putVarInt($ingredient->getCount());
+				$itemTranslator = ItemTranslator::getInstance($playerProtocol);
+				if ($item->hasAnyDamageValue()) {
+					[$netId,] = $itemTranslator->toNetworkId($item->getId(), 0);
+					$netData = 0x7fff;
+				} else {
+					[$netId, $netData] = $itemTranslator->toNetworkId($item->getId(), $item->getDamage());
+				}
+
+				$this->putLShort($netId);
+				$this->putLShort($netData);
+				$this->putVarInt($item->getCount());
+			}
 		}
 	}
 
@@ -648,7 +814,7 @@ class NetworkBinaryStream extends BinaryStream
 					if ($playerProtocol >= ProtocolInfo::PROTOCOL_361) {
 						$value = (new NetworkLittleEndianNBTStream())->read($this->buffer, false, $this->offset, 512);
 					} else {
-						$value = $this->getItemStackWithoutStackId($playerProtocol);
+						$value = $this->getSlot($playerProtocol);
 					}
 					break;
 				case Entity::DATA_TYPE_POS:
@@ -702,12 +868,10 @@ class NetworkBinaryStream extends BinaryStream
 					$this->putString($d[1]);
 					break;
 				case Entity::DATA_TYPE_SLOT:
-					/** @var Item $item */
-					$item = $d[1];
 					if ($playerProtocol >= ProtocolInfo::PROTOCOL_361) {
-						$this->put((new NetworkLittleEndianNBTStream())->write($item->getNamedTag()));
+						($this->buffer .= (new NetworkLittleEndianNBTStream())->write($d[1]->getNamedTag()));
 					} else {
-						$this->putItemStackWithoutStackId(TypeConverter::getInstance()->coreItemStackToNet($item, $playerProtocol), $playerProtocol);
+						$this->putSlot($d[1], $playerProtocol);
 					}
 					break;
 				case Entity::DATA_TYPE_POS:
@@ -958,7 +1122,7 @@ class NetworkBinaryStream extends BinaryStream
 	 *
 	 * @return array, members are in the structure [name => [type, value, isPlayerModifiable]]
 	 */
-	public function getGameRules(bool $isStartGame, int $playerProtocol) : array
+	public function getGameRules(int $playerProtocol) : array
 	{
 		$count = $this->getUnsignedVarInt();
 		$rules = [];
@@ -967,19 +1131,14 @@ class NetworkBinaryStream extends BinaryStream
 			if ($playerProtocol >= ProtocolInfo::PROTOCOL_440) {
 				$isPlayerModifiable = $this->getBool();
 			}
-
 			$type = $this->getUnsignedVarInt();
 			$value = null;
 			switch ($type) {
 				case GameRuleType::BOOL:
-					$value = $this->getBool();
+					$value = (($this->get(1) !== "\x00"));
 					break;
 				case GameRuleType::INT:
-					if ($playerProtocol >= ProtocolInfo::PROTOCOL_844) {
-						$value = $isStartGame ? $this->getUnsignedVarInt() : $this->getLInt();
-					} else {
-						$value = $this->getUnsignedVarInt();
-					}
+					$value = $this->getUnsignedVarInt();
 					break;
 				case GameRuleType::FLOAT:
 					$value = $this->getLFloat();
@@ -996,7 +1155,7 @@ class NetworkBinaryStream extends BinaryStream
 	 * Writes a gamerule array, members should be in the structure [name => [type, value, isPlayerModifiable]]
 	 * TODO: implement this properly
 	 */
-	public function putGameRules(array $rules, bool $isStartGame, int $playerProtocol) : void
+	public function putGameRules(array $rules, int $playerProtocol) : void
 	{
 		$this->putUnsignedVarInt(count($rules));
 		foreach ($rules as $name => $rule) {
@@ -1010,15 +1169,7 @@ class NetworkBinaryStream extends BinaryStream
 					$this->putBool($rule[1]);
 					break;
 				case GameRuleType::INT:
-					if ($playerProtocol >= ProtocolInfo::PROTOCOL_844) {
-						if ($isStartGame) {
-							$this->putUnsignedVarInt($rule[1]);
-						} else {
-							$this->putLInt($rule[1]);
-						}
-					} else {
-						$this->putUnsignedVarInt($rule[1]);
-					}
+					$this->putUnsignedVarInt($rule[1]);
 					break;
 				case GameRuleType::FLOAT:
 					$this->putLFloat($rule[1]);

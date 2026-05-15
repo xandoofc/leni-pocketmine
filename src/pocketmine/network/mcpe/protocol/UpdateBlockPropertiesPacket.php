@@ -30,7 +30,8 @@ class UpdateBlockPropertiesPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::UPDATE_BLOCK_PROPERTIES_PACKET;
 
-	public string $nbt;
+	/** @var string */
+	private $nbt;
 
 	public static function create(CompoundTag $data) : self
 	{

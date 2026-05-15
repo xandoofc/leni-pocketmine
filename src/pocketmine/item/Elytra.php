@@ -22,15 +22,21 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
-use pocketmine\math\Vector3;
-use pocketmine\Player;
-
-class Elytra extends Durable implements ArmorSlot
+class Elytra extends Item
 {
-
 	public function __construct(int $meta = 0)
 	{
 		parent::__construct(Item::ELYTRA, $meta, "Elytra Wings");
+	}
+
+	public function getArmorSlot() : int
+	{
+		return 1;
+	}
+
+	public function getDefensePoints() : int
+	{
+		return 0;
 	}
 
 	public function getMaxDurability() : int
@@ -41,24 +47,5 @@ class Elytra extends Durable implements ArmorSlot
 	public function getMaxStackSize() : int
 	{
 		return 1;
-	}
-
-	public function getArmorSlot() : int
-	{
-		return ArmorSlot::SLOT_CHESTPLATE;
-	}
-
-	public function onClickAir(Player $player, Vector3 $directionVector) : bool
-	{
-		$existing = $player->getArmorInventory()->getItem($this->getArmorSlot());
-		$thisCopy = clone $this;
-		$new = $thisCopy->pop();
-		$player->getArmorInventory()->setItem($this->getArmorSlot(), $new);
-		$player->getInventory()->setItemInHand($existing);
-		if (!$thisCopy->isNull()) {
-			//if the stack size was bigger than 1 (usually won't happen, but might be caused by plugins)
-			$this->addReturnedItem($thisCopy);
-		}
-		return true;
 	}
 }

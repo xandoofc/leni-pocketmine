@@ -41,7 +41,6 @@ use pocketmine\event\server\DataPacketBroadcastEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\server\ServerCommandEvent;
 use pocketmine\inventory\CraftingManager;
-use pocketmine\inventory\CraftingManagerFromDataHelper;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\ItemFactory;
 use pocketmine\lang\BaseLang;
@@ -81,7 +80,6 @@ use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\serializer\PacketBatch;
-use pocketmine\network\mcpe\protocol\types\DisconnectFailReason;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\raklib\RakLibInterface;
 use pocketmine\network\Network;
@@ -121,7 +119,6 @@ use pocketmine\utils\TextFormat;
 use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use Symfony\Component\Filesystem\Path;
-
 use function array_fill;
 use function array_filter;
 use function array_key_exists;
@@ -137,9 +134,11 @@ use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
 use function filemtime;
+use function floor;
 use function get_class;
 use function getopt;
 use function gettype;
+use function hrtime;
 use function ini_set;
 use function is_array;
 use function is_bool;
@@ -174,7 +173,6 @@ use function substr;
 use function time;
 use function touch;
 use function trim;
-
 use const DIRECTORY_SEPARATOR;
 use const PHP_EOL;
 use const PHP_INT_MAX;
@@ -269,8 +267,8 @@ class Server
 	private ?CommandReader $console = null;
 	private ConsoleCommandSender $consoleSender;
 
-	private SimpleCommandMap $commandMap;
-	private CraftingManager $craftingManager;
+	/** @var SimpleCommandMap */
+	private $commandMap = null;
 
 	/** @var ResourcePackManager */
 	private $pw10ResourcePackManager;
@@ -298,6 +296,10 @@ class Server
 	private $networkCompressionAsync = true;
 	/** @var int */
 	public $networkCompressionLevel = 7;
+
+	private $autoTickRate = true;
+	private $autoTickRateLimit = 20;
+	private $baseTickRate = 1;
 
 	/** @var int */
 	private $autoSaveTicker = 0;
@@ -646,12 +648,12 @@ class Server
 		return $this->logger;
 	}
 
-	public function getPluginManager() : PluginManager{
+	/**
+	 * @return PluginManager
+	 */
+	public function getPluginManager()
+	{
 		return $this->pluginManager;
-	}
-
-	public function getCraftingManager() : CraftingManager{
-		return $this->craftingManager;
 	}
 
 	public function getPw10ResourcePackManager() : ResourcePackManager
@@ -1094,6 +1096,8 @@ class Server
 
 		(new LevelLoadEvent($level))->call();
 
+		$level->setTickRate($this->baseTickRate);
+
 		return true;
 	}
 
@@ -1114,6 +1118,8 @@ class Server
 		/** @see LevelProvider::__construct() */
 		$level = new Level($this, $name, $providerEntry->fromPath($path), $this->getAsyncPool());
 		$this->levels[$level->getId()] = $level;
+
+		$level->setTickRate($this->baseTickRate);
 
 		(new LevelInitEvent($level))->call();
 
@@ -1571,6 +1577,10 @@ class Server
 
 			EncryptionContext::$ENABLED = (bool) $this->getProperty("network.enable-encryption", true);
 
+			$this->autoTickRate = (bool) $this->getProperty("level-settings.auto-tick-rate", true);
+			$this->autoTickRateLimit = (int) $this->getProperty("level-settings.auto-tick-rate-limit", 20);
+			$this->baseTickRate = (int) $this->getProperty("level-settings.base-tick-rate", 1);
+
 			$this->doTitleTick = ((bool) $this->getProperty("console.title-tick", true)) && Terminal::hasFormattingCodes();
 
 			$this->operators = new Config($this->dataPath . "ops.txt", Config::ENUM);
@@ -1665,7 +1675,7 @@ class Server
 
 			GeneratorManager::registerDefaultGenerators();
 
-			$this->craftingManager = CraftingManagerFromDataHelper::make(Path::join(BEDROCK_DATA_PATH, "legacy_recipes.json"));
+			CraftingManager::init();
 
 			$this->logger->info("Loading PW10 resource packs...");
 			$this->pw10ResourcePackManager = new ResourcePackManager($this->getDataPath() . "pw10_packs" . DIRECTORY_SEPARATOR, $this->logger);
@@ -1979,8 +1989,7 @@ class Server
 	/**
 	 * Broadcasts a Minecraft packet to all online players
 	 */
-	public function broadcastPacketToAll(DataPacket $packet) : void
-	{
+	public function broadcastPacketToAll(DataPacket $packet) : void {
 		$this->broadcastPacket($this->getOnlinePlayers(), $packet);
 	}
 
@@ -2015,7 +2024,7 @@ class Server
 			foreach ($targets as $protocol => $receivers) {
 				$totalLength = 0;
 				$packetBuffers = [];
-				foreach ($packets as $packet) {
+				foreach($packets as $packet){
 					if (PacketIdTranslator::getInstance()->toNetworkId($protocol, $packet->pid()) === null) {
 						continue;
 					}
@@ -2028,19 +2037,19 @@ class Server
 				}
 
 				$threshold = NetworkCompression::$THRESHOLD;
-				if (count($receivers) > 1 && $totalLength >= $threshold) {
+				if(count($receivers) > 1 && $totalLength >= $threshold){
 					//do not prepare shared batch unless we're sure it will be compressed
 					$stream = new BinaryStream();
 					PacketBatch::encodeRaw($stream, $packetBuffers);
 					$batchBuffer = $stream->getBuffer();
 
 					$batch = $this->prepareBatch($batchBuffer, $protocol);
-					foreach ($receivers as $target) {
+					foreach($receivers as $target){
 						$target->queueCompressed($batch);
 					}
-				} else {
-					foreach ($receivers as $target) {
-						foreach ($packetBuffers as $packetBuffer) {
+				}else{
+					foreach($receivers as $target){
+						foreach($packetBuffers as $packetBuffer){
 							$target->addToSendBuffer($packetBuffer);
 						}
 					}
@@ -2228,7 +2237,7 @@ class Server
 			}
 
 			foreach ($this->players as $player) {
-				$player->close($player->getLeaveMessage(), $this->getProperty("settings.shutdown-message", "Server closed"), true, DisconnectFailReason::SHUTDOWN);
+				$player->close($player->getLeaveMessage(), $this->getProperty("settings.shutdown-message", "Server closed"));
 			}
 
 			$this->getLogger()->debug("Unloading all worlds");
@@ -2521,14 +2530,14 @@ class Server
 			$pk->entries[] = PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkin(), $player->getXuid());
 		}
 
-		$p->sendDataPacket($pk);
+		$p->dataPacket($pk);
 	}
 
 	private function checkTickUpdates(int $currentTick) : void
 	{
 		foreach ($this->players as $player) {
 			if (!$player->loggedIn && (time() >= $player->connectTime + 30)) {
-				$player->close("", "Login timeout", true, DisconnectFailReason::TIMEOUT);
+				$player->close("", "Login timeout");
 			}
 		}
 
@@ -2539,13 +2548,33 @@ class Server
 				continue;
 			}
 
+			if ($level->getTickRate() > $this->baseTickRate && --$level->tickRateCounter > 0) {
+				continue;
+			}
+
 			try {
-				$worldTime = microtime(true);
+				$levelTime = hrtime(true);
 				$level->doTick($currentTick);
-				$tickMs = (microtime(true) - $worldTime) * 1000;
+				$tickMs = (hrtime(true) - $levelTime) / 1e6;
 				$level->tickRateTime = $tickMs;
-				if ($tickMs >= Server::TARGET_SECONDS_PER_TICK * 1000) {
-					$level->getLogger()->debug(sprintf("Tick took too long: %gms (%g ticks)", $tickMs, round($tickMs / (Server::TARGET_SECONDS_PER_TICK * 1000), 2)));
+
+				if ($this->autoTickRate) {
+					if ($tickMs < 50 && $level->getTickRate() > $this->baseTickRate) {
+						$level->setTickRate($r = $level->getTickRate() - 1);
+						if ($r > $this->baseTickRate) {
+							$level->tickRateCounter = $level->getTickRate();
+						}
+						$this->getLogger()->debug("Raising level \"{$level->getName()}\" tick rate to {$level->getTickRate()} ticks");
+					} elseif ($tickMs >= 50) {
+						if ($level->getTickRate() === $this->baseTickRate) {
+							$level->setTickRate(max($this->baseTickRate + 1, min($this->autoTickRateLimit, (int) floor($tickMs / 50))));
+							$this->getLogger()->debug(sprintf("Level \"%s\" took %gms, setting tick rate to %d ticks", $level->getName(), (int) round($tickMs, 2), $level->getTickRate()));
+						} elseif (($tickMs / $level->getTickRate()) >= 50 && $level->getTickRate() < $this->autoTickRateLimit) {
+							$level->setTickRate($level->getTickRate() + 1);
+							$this->getLogger()->debug(sprintf("Level \"%s\" took %gms, setting tick rate to %d ticks", $level->getName(), (int) round($tickMs, 2), $level->getTickRate()));
+						}
+						$level->tickRateCounter = $level->getTickRate();
+					}
 				}
 			} catch (\Throwable $e) {
 				$this->logger->critical($this->getLanguage()->translateString("pocketmine.level.tickError", [$level->getName(), $e->getMessage()]));

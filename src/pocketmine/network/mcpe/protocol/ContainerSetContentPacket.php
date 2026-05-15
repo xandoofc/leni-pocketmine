@@ -22,46 +22,31 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
-
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use function count;
 
 class ContainerSetContentPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CONTAINER_SET_CONTENT_PACKET;
 
-	public int $windowId;
-	public int $entityUniqueId;
-	/** @var Item|ItemStack[] */
-	public array $items = [];
+	/** @var int */
+	public $windowId;
+	/** @var int */
+	public $targetEid;
+	/** @var ItemStackWrapper[] */
+	public $slots = [];
 	/** @var int[] */
-	public array $hotbar = [];
-
-	/**
-	 * @generate-create-func
-	 * @param Item|ItemStack[] $items
-	 * @param int[]            $hotbar
-	 */
-	public static function create(int $windowId, int $entityUniqueId, array $items, array $hotbar) : self
-	{
-		$result = new self();
-		$result->windowId = $windowId;
-		$result->entityUniqueId = $entityUniqueId;
-		$result->items = $items;
-		$result->hotbar = $hotbar;
-		return $result;
-	}
+	public $hotbar = [];
 
 	protected function decodePayload() : void
 	{
 		$this->windowId = $this->getUnsignedVarInt();
-		$this->entityUniqueId = $this->getEntityUniqueId();
+		$this->targetEid = $this->getEntityUniqueId();
 		$count = $this->getUnsignedVarInt();
 		for ($s = 0; $s < $count && !$this->feof(); ++$s) {
-			$this->items[$s] = $this->getItemStackWithoutStackId($this->getProtocol());
+			$this->slots[$s] = $this->getSlot($this->getProtocol());
 		}
 
 		$hotbarCount = $this->getUnsignedVarInt(); //MCPE always sends this, even when it's not a player inventory
@@ -73,12 +58,11 @@ class ContainerSetContentPacket extends DataPacket
 	protected function encodePayload() : void
 	{
 		$this->putUnsignedVarInt($this->windowId);
-		$this->putEntityUniqueId($this->entityUniqueId);
-		$this->putUnsignedVarInt(count($this->items));
-		foreach ($this->items as $slot) {
-			$this->putItemStackWithoutStackId($slot, $this->getProtocol());
+		$this->putEntityUniqueId($this->targetEid);
+		$this->putUnsignedVarInt(count($this->slots));
+		foreach ($this->slots as $slot) {
+			$this->putSlot($slot, $this->getProtocol());
 		}
-
 		if ($this->windowId === ContainerIds::INVENTORY && count($this->hotbar) > 0) {
 			$this->putUnsignedVarInt(count($this->hotbar));
 			foreach ($this->hotbar as $slot) {

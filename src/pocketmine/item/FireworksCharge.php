@@ -31,10 +31,10 @@ class FireworksCharge extends Item
 		parent::__construct(self::FIREWORKS_CHARGE, $meta, "Fireworks Charge");
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_137) {
-			return new TranslatedItemData(ItemIds::NETHER_STAR, $this->getDamage());
+			return ItemFactory::get(self::NETHER_STAR, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
 
 		return parent::getItemProtocol($playerProtocol);

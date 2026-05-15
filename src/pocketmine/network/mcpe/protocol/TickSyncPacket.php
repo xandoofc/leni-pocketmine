@@ -28,8 +28,10 @@ class TickSyncPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::TICK_SYNC_PACKET;
 
-	public int $clientSendTime;
-	public int $serverReceiveTime;
+	/** @var int */
+	private $clientSendTime;
+	/** @var int */
+	private $serverReceiveTime;
 
 	public static function request(int $clientTime) : self
 	{

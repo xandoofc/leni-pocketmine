@@ -22,58 +22,11 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\CopperMaterial;
-use pocketmine\block\utils\CopperOxidation;
 use pocketmine\item\TieredTool;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
-class CopperDoor extends Door implements CopperMaterial
+class CopperDoor extends Door
 {
-
-	public function getOxidation() : int{
-		return match ($this->id) {
-			BlockIds::WAXED_OXIDIZED_COPPER_DOOR, BlockIds::OXIDIZED_COPPER_DOOR => CopperOxidation::OXIDIZED,
-			BlockIds::WAXED_WEATHERED_COPPER_DOOR, BlockIds::WEATHERED_COPPER_DOOR => CopperOxidation::WEATHERED,
-			BlockIds::WAXED_EXPOSED_COPPER_DOOR, BlockIds::EXPOSED_COPPER_DOOR => CopperOxidation::EXPOSED,
-			default => CopperOxidation::NONE
-		};
-	}
-
-	public function getPreviousOxidationId() : ?int
-	{
-		return match ($this->id) {
-			BlockIds::OXIDIZED_COPPER_DOOR => BlockIds::WEATHERED_COPPER_DOOR,
-			BlockIds::WEATHERED_COPPER_DOOR => BlockIds::EXPOSED_COPPER_DOOR,
-			BlockIds::EXPOSED_COPPER_DOOR => BlockIds::COPPER_DOOR,
-			default => null
-		};
-	}
-
-	public function isWaxed() : bool
-	{
-		return match ($this->id) {
-			BlockIds::WAXED_COPPER_DOOR, BlockIds::WAXED_EXPOSED_COPPER_DOOR, BlockIds::WAXED_WEATHERED_COPPER_DOOR, BlockIds::WAXED_OXIDIZED_COPPER_DOOR => true,
-			default => false
-		};
-	}
-
-	public function getWaxedId() : int{
-		return match ($this->id) {
-			BlockIds::OXIDIZED_COPPER_DOOR => BlockIds::WAXED_OXIDIZED_COPPER_DOOR,
-			BlockIds::WEATHERED_COPPER_DOOR => BlockIds::WAXED_WEATHERED_COPPER_DOOR,
-			BlockIds::EXPOSED_COPPER_DOOR => BlockIds::WAXED_EXPOSED_COPPER_DOOR,
-			default => BlockIds::WAXED_COPPER_DOOR
-		};
-	}
-
-	public function getNonWaxedId() : int{
-		return match ($this->id) {
-			BlockIds::WAXED_OXIDIZED_COPPER_DOOR => BlockIds::OXIDIZED_COPPER_DOOR,
-			BlockIds::WAXED_WEATHERED_COPPER_DOOR => BlockIds::WEATHERED_COPPER_DOOR,
-			BlockIds::WAXED_EXPOSED_COPPER_DOOR => BlockIds::EXPOSED_COPPER_DOOR,
-			default => BlockIds::COPPER_DOOR
-		};
-	}
 
 	public function getToolType() : int
 	{
@@ -93,9 +46,9 @@ class CopperDoor extends Door implements CopperMaterial
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_630) {
-			return BlockFactory::get(BlockIds::WOODEN_DOOR_BLOCK, $this->meta);
+			return Block::get(Block::WOODEN_DOOR_BLOCK, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

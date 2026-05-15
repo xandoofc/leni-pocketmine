@@ -25,8 +25,7 @@ namespace pocketmine\network\mcpe\protocol;
 /**
  * Version numbers and packet IDs for the current Minecraft PE protocol
  */
-interface ProtocolInfo
-{
+interface ProtocolInfo {
 	/**
 	 * NOTE TO DEVELOPERS
 	 * Do not waste your time or ours submitting pull requests changing game and/or protocol version numbers.
@@ -36,13 +35,13 @@ interface ProtocolInfo
 	 */
 
 	/** Actual Minecraft: PE protocol version */
-	public const CURRENT_PROTOCOL = self::PROTOCOL_859;
+	public const CURRENT_PROTOCOL = self::PROTOCOL_975;
 
 	/** Current Minecraft PE version reported by the server. This is usually the earliest currently supported version. */
-	public const MINECRAFT_VERSION = "1.21.120";
+	public const MINECRAFT_VERSION = "1.26.20";
 
 	/** Version number sent to clients in ping responses. */
-	public const MINECRAFT_VERSION_NETWORK = "1.21.120";
+	public const MINECRAFT_VERSION_NETWORK = "1.26.20";
 
 	public const ACCEPTED_PROTOCOLS = [
 		ProtocolInfo::PROTOCOL_110,
@@ -113,7 +112,12 @@ interface ProtocolInfo
 		ProtocolInfo::PROTOCOL_819,
 		ProtocolInfo::PROTOCOL_827,
 		ProtocolInfo::PROTOCOL_844,
-		ProtocolInfo::PROTOCOL_859
+		ProtocolInfo::PROTOCOL_859,
+		ProtocolInfo::PROTOCOL_860,
+		ProtocolInfo::PROTOCOL_898,
+		ProtocolInfo::PROTOCOL_924,
+		ProtocolInfo::PROTOCOL_944,
+		ProtocolInfo::PROTOCOL_975
 	];
 
 	//Pocket Edition 1.1
@@ -220,8 +224,20 @@ interface ProtocolInfo
 	public const PROTOCOL_818 = 818; // 1.21.90.26, 1.21.90.27, 1.21.90.28, 1.21.90, 1.21.91, 1.21.92
 	public const PROTOCOL_819 = 819; // 1.21.93, 1.21.94
 	public const PROTOCOL_827 = 827; // 1.21.100.23, 1.21.100.24, 1.21.100
+
 	public const PROTOCOL_844 = 844; // 1.21.110, 1.21.111, 1.21.112, 1.21.113
 	public const PROTOCOL_859 = 859; // 1.21.120.24, 1.21.120.25, 1.21.120
+	public const PROTOCOL_860 = 860; // 1.21.124
+
+	//Bedrock Edition 1.21.130
+	public const PROTOCOL_898 = 898; // 1.21.130
+
+	//Bedrock Edition 1.21.140
+	public const PROTOCOL_924 = 924; // 1.21.140
+
+	//Bedrock Edition 1.26.0
+	public const PROTOCOL_944 = 944; // 1.26.0
+	public const PROTOCOL_975 = 975; // 1.26.20
 
 	public const LOGIN_PACKET = 0x01;
 	public const PLAY_STATUS_PACKET = 0x02;
@@ -452,10 +468,7 @@ interface ProtocolInfo
 	public const ITEM_REGISTRY_PACKET = 0x146;
 	public const PLAYER_LOCATION_PACKET = 0x147;
 	public const CLIENTBOUND_CONTROL_SCHEME_SET_PACKET = 0x148;
-	public const DEBUG_DRAWER_PACKET = 0x149;
-	public const SERVERBOUND_PACK_SETTING_CHANGE_PACKET = 0x14a;
-	public const DATA_STORE_SYNC_PACKET = 0x14b;
-	public const GRAPHICS_OVERRIDE_PARAMETER_PACKET = 0x14c;
+	public const SERVER_SCRIPT_DEBUG_DRAWER_PACKET = 0x149;
 
 	// EXPLODE_PACKET - TICK_SYNC_PACKET
 	public const EXPLODE_PACKET = 0x100;

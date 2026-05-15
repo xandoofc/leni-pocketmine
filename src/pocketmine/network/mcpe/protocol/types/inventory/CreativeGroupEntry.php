@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol\types\inventory;
 
+use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkBinaryStream;
 
 final class CreativeGroupEntry
@@ -29,7 +30,7 @@ final class CreativeGroupEntry
 	public function __construct(
 		private int $categoryId,
 		private string $categoryName,
-		private ItemStack $icon
+		private Item $icon
 	) {
 	}
 
@@ -43,7 +44,7 @@ final class CreativeGroupEntry
 		return $this->categoryName;
 	}
 
-	public function getIcon() : ItemStack
+	public function getIcon() : Item
 	{
 		return $this->icon;
 	}
@@ -52,7 +53,7 @@ final class CreativeGroupEntry
 	{
 		$categoryId = $in->getLInt();
 		$categoryName = $in->getString();
-		$icon = $in->getItemStackWithoutStackId($protocolVersion);
+		$icon = $in->getSlot($protocolVersion, false)->getItemStack();
 		return new self($categoryId, $categoryName, $icon);
 	}
 
@@ -60,6 +61,6 @@ final class CreativeGroupEntry
 	{
 		$out->putLInt($this->categoryId);
 		$out->putString($this->categoryName);
-		$out->putItemStackWithoutStackId($this->icon, $protocolVersion);
+		$out->putSlot(ItemStackWrapper::legacy($this->icon), $protocolVersion, false);
 	}
 }

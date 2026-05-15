@@ -24,8 +24,8 @@ namespace pocketmine\network\mcpe\protocol\types\camera;
 
 use pocketmine\network\mcpe\NetworkBinaryStream;
 
-final class CameraFovInstruction
-{
+final class CameraFovInstruction{
+
 	/**
 	 * @see CameraSetInstructionEaseType
 	 */
@@ -34,34 +34,20 @@ final class CameraFovInstruction
 		private float $easeTime,
 		private int $easeType,
 		private bool $clear,
-	) {
-	}
+	){}
 
-	public function getFieldOfView() : float
-	{
-		return $this->fieldOfView;
-	}
+	public function getFieldOfView() : float{ return $this->fieldOfView; }
 
-	public function getEaseTime() : float
-	{
-		return $this->easeTime;
-	}
+	public function getEaseTime() : float{ return $this->easeTime; }
 
 	/**
 	 * @see CameraSetInstructionEaseType
 	 */
-	public function getEaseType() : int
-	{
-		return $this->easeType;
-	}
+	public function getEaseType() : int{ return $this->easeType; }
 
-	public function getClear() : bool
-	{
-		return $this->clear;
-	}
+	public function getClear() : bool{ return $this->clear; }
 
-	public static function read(NetworkBinaryStream $in) : self
-	{
+	public static function read(NetworkBinaryStream $in) : self{
 		$fieldOfView = $in->getLFloat();
 		$easeTime = $in->getLFloat();
 		$easeType = $in->getByte();
@@ -74,8 +60,7 @@ final class CameraFovInstruction
 		);
 	}
 
-	public function write(NetworkBinaryStream $out) : void
-	{
+	public function write(NetworkBinaryStream $out) : void{
 		$out->putLFloat($this->fieldOfView);
 		$out->putLFloat($this->easeTime);
 		$out->putByte($this->easeType);

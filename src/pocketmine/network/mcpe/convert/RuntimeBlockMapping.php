@@ -28,14 +28,13 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\utils\AssumptionFailedError;
 
+use pocketmine\utils\AssumptionFailedError;
 use function count;
 use function file_get_contents;
 use function getmypid;
 use function json_decode;
 use function mt_rand;
-
 use function mt_srand;
 use function shuffle;
 use const pocketmine\BEDROCK_DATA_PATH;
@@ -81,7 +80,8 @@ final class RuntimeBlockMapping
 
 	private function __construct(
 		private readonly int $protocolVersion
-	) {
+	)
+	{
 		if ($protocolVersion >= ProtocolInfo::PROTOCOL_370) {
 			$requiredBlockListFile = file_get_contents(BEDROCK_DATA_PATH . "block/" . $protocolVersion . "/required_block_states.nbt");
 			if ($requiredBlockListFile === false) {
@@ -94,14 +94,19 @@ final class RuntimeBlockMapping
 				$list[] = $stream->getNbtCompoundRoot();
 			}
 
+			$list = self::randomizeTable($list);
+			$this->bedrockKnownStates = $list;
+
 			if ($protocolVersion >= ProtocolInfo::PROTOCOL_419) {
-				$this->bedrockKnownStates = $list;
 				foreach ($list as $state) {
-					self::registerMapping($state->getInt("runtime_id"), $state->getInt("legacy_id"), $state->getShort("data"));
+					$data = $state->getShort("data");
+					if ($data > 15) {
+						continue;
+					}
+
+					self::registerMapping($state->getInt("runtime_id"), $state->getInt("legacy_id"), $data);
 				}
 			} else {
-				$list = self::randomizeTable($list);
-				$this->bedrockKnownStates = $list;
 				foreach ($list as $runtimeId => $tag) {
 					$legacyStates = $tag->getListTag("LegacyStates")->getValue();
 					foreach ($legacyStates as $legacyState) {
@@ -222,10 +227,6 @@ final class RuntimeBlockMapping
 
 	private function registerMapping(int $staticRuntimeId, int $legacyId, int $legacyMeta) : void
 	{
-		if ($legacyMeta >= (1 << Block::INTERNAL_METADATA_BITS)) {
-			return;
-		}
-
 		$this->legacyToRuntimeMap[($legacyId << Block::INTERNAL_METADATA_BITS) | $legacyMeta] = $staticRuntimeId;
 		$this->runtimeToLegacyMap[$staticRuntimeId] = ($legacyId << Block::INTERNAL_METADATA_BITS) | $legacyMeta;
 	}

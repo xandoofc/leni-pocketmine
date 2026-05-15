@@ -39,7 +39,6 @@ use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\network\mcpe\protocol\types\inventory\UIInventorySlotOffset;
 use pocketmine\network\mcpe\protocol\types\inventory\WindowTypes;
 use pocketmine\Player;
-
 use function count;
 use function intval;
 use function max;
@@ -69,7 +68,7 @@ class AnvilInventory extends ContainerInventory implements FakeInventory, FakeRe
 		return "Anvil";
 	}
 
-	public function getUIOffsets(?Player $player) : array
+	public function getUIOffsets() : array
 	{
 		return UIInventorySlotOffset::ANVIL;
 	}

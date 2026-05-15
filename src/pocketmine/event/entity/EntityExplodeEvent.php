@@ -43,24 +43,15 @@ class EntityExplodeEvent extends EntityEvent implements Cancellable
 	/** @var float */
 	protected $yield;
 
-	/** @var Block[] */
-	private $ignitions;
-
 	/**
 	 * @param Block[] $blocks
-	 * @param Block[] $ignitions
 	 */
-	public function __construct(Entity $entity, Position $position, array $blocks, float $yield, array $ignitions = [])
+	public function __construct(Entity $entity, Position $position, array $blocks, float $yield)
 	{
 		$this->entity = $entity;
 		$this->position = $position;
 		$this->blocks = $blocks;
 		$this->yield = $yield;
-		$this->ignitions = $ignitions;
-
-		if ($yield < 0.0 || $yield > 100.0) {
-			throw new \InvalidArgumentException("Yield must be in range 0.0 - 100.0");
-		}
 	}
 
 	public function getPosition() : Position
@@ -92,31 +83,6 @@ class EntityExplodeEvent extends EntityEvent implements Cancellable
 
 	public function setYield(float $yield) : void
 	{
-		if ($yield < 0.0 || $yield > 100.0) {
-			throw new \InvalidArgumentException("Yield must be in range 0.0 - 100.0");
-		}
-
 		$this->yield = $yield;
-	}
-
-	/**
-	 * Set the list of blocks that will be replaced by fire.
-	 *
-	 * @param Block[] $ignitions
-	 */
-	public function setIgnitions(array $ignitions) : void
-	{
-		Utils::validateArrayValueType($ignitions, fn (Block $block) => null);
-		$this->ignitions = $ignitions;
-	}
-
-	/**
-	 * Returns a list of affected blocks that will be replaced by fire.
-	 *
-	 * @return Block[]
-	 */
-	public function getIgnitions() : array
-	{
-		return $this->ignitions;
 	}
 }

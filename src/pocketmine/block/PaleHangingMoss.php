@@ -50,8 +50,7 @@ class PaleHangingMoss extends Flowable
 		return "Pale Hanging Moss";
 	}
 
-	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
-	{
+	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool{
 		$up = $this->getSide(Facing::UP);
 		if (($up->isSolid() && !$up->isTransparent()) || $up->getId() === self::PALE_HANGING_MOSS) {
 			if ($up->getId() === self::PALE_HANGING_MOSS && $up->getDamage() === self::HANGING_END) {
@@ -75,8 +74,7 @@ class PaleHangingMoss extends Flowable
 		}
 	}
 
-	public function onBreak(Item $item, Player $player = null) : bool
-	{
+	public function onBreak(Item $item, Player $player = null) : bool {
 		$up = $this->getSide(Facing::UP);
 		if ($up->getId() === self::PALE_HANGING_MOSS && $up->getDamage() === self::HANGING_FULL) {
 			$up->setDamage(self::HANGING_END);
@@ -100,9 +98,8 @@ class PaleHangingMoss extends Flowable
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::REEDS_BLOCK);
+			return BlockFactory::get(Block::REEDS_BLOCK);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -208,7 +208,7 @@ class StartGamePacket extends DataPacket
 	/** @var string */
 	public $multiplayerCorrelationId = ""; //TODO: this should be filled with a UUID of some sort
 	/** @var bool */
-	public $enableNewInventorySystem = true;
+	public $enableNewInventorySystem = false; //TODO
 	/** @var string */
 	public $serverSoftwareVersion;
 	/** @var CompoundTag */
@@ -307,7 +307,7 @@ class StartGamePacket extends DataPacket
 		}
 		$this->commandsEnabled = $this->getBool();
 		$this->isTexturePacksRequired = $this->getBool();
-		$this->gameRules = $this->getGameRules(false, $this->getProtocol());
+		$this->gameRules = $this->getGameRules($this->getProtocol());
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_137) {
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
 				$this->experiments = Experiments::read($this);
@@ -545,7 +545,7 @@ class StartGamePacket extends DataPacket
 		}
 		$this->putBool($this->commandsEnabled);
 		$this->putBool($this->isTexturePacksRequired);
-		$this->putGameRules($this->gameRules, true, $this->getProtocol());
+		$this->putGameRules($this->gameRules, $this->getProtocol());
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_137) {
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
 				$this->experiments->write($this);

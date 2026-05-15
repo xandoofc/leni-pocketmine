@@ -254,12 +254,9 @@ class PacketPool
 		self::registerPacket(new PlayerVideoCapturePacket());
 		self::registerPacket(new PlayerLocationPacket());
 		self::registerPacket(new ClientboundControlSchemeSetPacket());
-		self::registerPacket(new DebugDrawerPacket());
-		self::registerPacket(new ServerboundPackSettingChangePacket());
+		self::registerPacket(new ServerScriptDebugDrawerPacket());
 		self::registerPacket(new SubChunkRequestPacket());
 		self::registerPacket(new SubChunkPacket());
-		self::registerPacket(new DataStoreSyncPacket());
-		self::registerPacket(new GraphicsOverrideParameterPacket());
 		// ExplodePacket - TickSyncPacket
 		self::registerPacket(new ExplodePacket());
 		// 1.1

@@ -24,7 +24,7 @@ namespace pocketmine\block;
 
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
-class WoodenPressurePlate extends PressurePlate
+class WoodenPressurePlate extends StonePressurePlate
 {
 	public function getFuelTime() : int
 	{
@@ -44,9 +44,8 @@ class WoodenPressurePlate extends PressurePlate
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return BlockFactory::get(BlockIds::WOODEN_PRESSURE_PLATE, $this->meta);
+			return Block::get(Block::WOODEN_PRESSURE_PLATE, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

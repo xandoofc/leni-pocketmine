@@ -28,11 +28,12 @@ class MultiplayerSettingsPacket extends DataPacket
 { //TODO: this might be clientbound too, but unsure
 	public const NETWORK_ID = ProtocolInfo::MULTIPLAYER_SETTINGS_PACKET;
 
-	public const int ACTION_ENABLE_MULTIPLAYER = 0;
-	public const int ACTION_DISABLE_MULTIPLAYER = 1;
-	public const int ACTION_REFRESH_JOIN_CODE = 2;
+	public const ACTION_ENABLE_MULTIPLAYER = 0;
+	public const ACTION_DISABLE_MULTIPLAYER = 1;
+	public const ACTION_REFRESH_JOIN_CODE = 2;
 
-	public int $action;
+	/** @var int */
+	private $action;
 
 	public static function create(int $action) : self
 	{

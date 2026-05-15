@@ -1,40 +1,31 @@
 <?php
 
 /*
+ * This file is part of RakLib.
+ * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/RakLib>
  *
- *   _____       _                          _
- *  / ____|     | |                        (_)
- * | (___  _   _| |__  _ __ ___   __ _ _ __ _ _ __   ___
- *  \___ \| | | | '_ \| '_ ` _ \ / _` | '__| | '_ \ / _ \
- *  ____) | |_| | |_) | | | | | | (_| | |  | | | | |  __/
- * |_____/ \__,_|_.__/|_| |_| |_|\__,_|_|  |_|_| |_|\___|
+ * RakLib is not affiliated with Jenkins Software LLC nor RakNet.
  *
- * This program is private software. No license required.
- * Publication of this program is forbidden and will be punished.
- *
- * @author SEMENNEJO
- * @link vk.com/vk.snikers && t.me/semennejo
- *
- *
+ * RakLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 declare(strict_types=1);
 
 namespace raklib\protocol;
 
-class AdvertiseSystem extends Packet
-{
+class AdvertiseSystem extends Packet{
 	public static $ID = MessageIdentifiers::ID_ADVERTISE_SYSTEM;
 
 	public string $serverName;
 
-	protected function encodePayload(PacketSerializer $out) : void
-	{
+	protected function encodePayload(PacketSerializer $out) : void{
 		$out->putString($this->serverName);
 	}
 
-	protected function decodePayload(PacketSerializer $in) : void
-	{
+	protected function decodePayload(PacketSerializer $in) : void{
 		$this->serverName = $in->getString();
 	}
 }

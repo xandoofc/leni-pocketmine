@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\NetworkSession;
-
 use function json_decode;
 use function json_encode;
 

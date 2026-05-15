@@ -29,10 +29,17 @@ class UpdatePlayerGameTypePacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::UPDATE_PLAYER_GAME_TYPE_PACKET;
 
-	/** @see GameMode */
-	public int $gameMode;
-	public int $playerEntityUniqueId;
-	public int $tick;
+	/**
+	 * @var int
+	 * @see GameMode
+	 */
+	private $gameMode;
+
+	/** @var int */
+	private $playerEntityUniqueId;
+
+	/** @var int */
+	private $tick;
 
 	public static function create(int $gameMode, int $playerEntityUniqueId, int $tick) : self
 	{

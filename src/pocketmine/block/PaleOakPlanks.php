@@ -38,12 +38,10 @@ class PaleOakPlanks extends Planks
 		return "Pale Oak Planks";
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block
-	{
+	public function getBlockProtocol(int $playerProtocol) : ?Block{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::PLANKS);
+			return Block::get(Block::PLANKS);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

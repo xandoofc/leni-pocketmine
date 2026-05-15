@@ -57,9 +57,8 @@ class ResinBrickDoubleSlab extends DoubleSlab
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::DOUBLE_STONE_SLAB);
+			return Block::get(Block::DOUBLE_STONE_SLAB);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -33,18 +33,30 @@ class AddVolumeEntityPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ADD_VOLUME_ENTITY_PACKET;
 
-	public int $entityNetId;
-	public CompoundTag $data;
-	public string $jsonIdentifier;
-	public string $instanceName;
-	public int $minX;
-	public int $minY;
-	public int $minZ;
-	public int $maxX;
-	public int $maxY;
-	public int $maxZ;
-	public int $dimension;
-	public string $engineVersion;
+	/** @var int */
+	private $entityNetId;
+	/** @var CompoundTag */
+	private $data;
+	/** @var string */
+	private $jsonIdentifier;
+	/** @var string */
+	private $instanceName;
+	/** @var int */
+	private $minX;
+	/** @var int */
+	private $minY;
+	/** @var int */
+	private $minZ;
+	/** @var int */
+	private $maxX;
+	/** @var int */
+	private $maxY;
+	/** @var int */
+	private $maxZ;
+	/** @var int */
+	private $dimension;
+	/** @var string */
+	private $engineVersion;
 
 	public static function create(
 		int $entityNetId,

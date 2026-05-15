@@ -33,17 +33,16 @@ class CherryDoor extends WoodenDoor
 		$this->meta = $meta;
 	}
 
-	public function getName() : string
-	{
+	public function getName() : string{
 		return "Cherry Door";
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_582) {
-			return BlockFactory::get(BlockIds::WOODEN_DOOR_BLOCK, $this->meta);
+			return Block::get(Block::WOODEN_DOOR_BLOCK, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

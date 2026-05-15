@@ -25,8 +25,8 @@ namespace pocketmine\network\mcpe;
 use InvalidArgumentException;
 use pocketmine\entity\passive\AbstractHorse;
 use pocketmine\event\server\DataPacketReceiveEvent;
+use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\ActorFallPacket;
 use pocketmine\network\mcpe\protocol\ActorPickRequestPacket;
@@ -86,6 +86,9 @@ use pocketmine\network\mcpe\protocol\SpawnExperienceOrbPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\TickSyncPacket;
 use pocketmine\network\mcpe\protocol\types\InputMode;
+use pocketmine\network\mcpe\protocol\types\PlayerAuthInputFlags;
+use pocketmine\network\mcpe\protocol\types\PlayerBlockActionStopBreak;
+use pocketmine\network\mcpe\protocol\types\PlayerBlockActionWithBlockInfo;
 use pocketmine\network\mcpe\protocol\UseItemPacket;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -93,6 +96,8 @@ use pocketmine\timings\Timings;
 use RuntimeException;
 
 use function bin2hex;
+use function count;
+use function fmod;
 use function implode;
 use function is_bool;
 use function json_decode;
@@ -101,6 +106,7 @@ use function microtime;
 use function preg_match;
 use function strlen;
 use function substr;
+use function time;
 use function trim;
 
 class PlayerNetworkSessionAdapter extends NetworkSession
@@ -109,6 +115,15 @@ class PlayerNetworkSessionAdapter extends NetworkSession
 	private Player $player;
 
 	private float $lastRightClickBlock = 0;
+
+	private int $lastTextPacket = 0;
+	private int $textPacketCnt = 0;
+	private int $textPacketExceed = 0;
+
+	private ?int $lastPlayerAuthInputFlags = null;
+	private ?float $lastPlayerAuthInputPitch = null;
+	private ?float $lastPlayerAuthInputYaw = null;
+	private ?Vector3 $lastPlayerAuthInputPosition = null;
 
 	protected ?string $lastRequestedFullSkinId = null;
 
@@ -212,6 +227,31 @@ class PlayerNetworkSessionAdapter extends NetworkSession
 
 	public function handleText(TextPacket $packet) : bool
 	{
+		$time = time();
+
+		if ($this->lastTextPacket !== $time) {
+			$this->textPacketCnt = 0;
+		}
+		$this->lastTextPacket = $time;
+
+		if (++$this->textPacketCnt >= 5) {
+			if (++$this->textPacketExceed >= 10) {
+				$this->server->getNetwork()->blockAddress($this->player->getAddress(), 300);
+			}
+			return false;
+		}
+
+		if (strlen($packet->message) > 200) {
+			$this->server->getLogger()->warning('big text packet from ' . $this->player->getName() . ' as ' . strlen($packet->message) . ' len with textPacketCnt=' . $this->textPacketCnt);
+			$this->server->getNetwork()->blockAddress($this->player->getAddress(), 300);
+
+			return false;
+		}
+
+		if (!$this->player->spawned || !$this->player->isAlive()) {
+			return true;
+		}
+
 		if ($packet->type === TextPacket::TYPE_CHAT) {
 			return $this->player->chat($packet->message);
 		}
@@ -229,9 +269,127 @@ class PlayerNetworkSessionAdapter extends NetworkSession
 		return true;
 	}
 
+	private function resolveOnOffInputFlags(int $inputFlags, int $startFlag, int $stopFlag) : ?bool
+	{
+		$enabled = ($inputFlags & (1 << $startFlag)) !== 0;
+		$disabled = ($inputFlags & (1 << $stopFlag)) !== 0;
+		if ($enabled !== $disabled) {
+			return $enabled;
+		}
+		//neither flag was set, or both were set
+		return null;
+	}
+
 	public function handlePlayerAuthInput(PlayerAuthInputPacket $packet) : bool
 	{
-		return $this->player->handlePlayerAuthInput($packet);
+		$rawPos = $packet->getPosition();
+		$rawYaw = $packet->getYaw();
+		$rawPitch = $packet->getPitch();
+
+		$hasMoved =
+			$this->lastPlayerAuthInputPosition === null ||
+			!$this->lastPlayerAuthInputPosition->equals($rawPos) ||
+			$rawYaw !== $this->lastPlayerAuthInputYaw ||
+			$rawPitch !== $this->lastPlayerAuthInputPitch;
+
+		if ($hasMoved) {
+			if ($this->player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_649 && $this->player->isRiding()) {
+				$ent = $this->player->getRidingEntity();
+				if ($ent !== null) {
+					$rawPos = $rawPos->add(0, -$ent->getMountedYOffset(), 0);
+
+					$vehicle = $packet->getVehicleInfo();
+					if ($vehicle !== null && $vehicle->getPredictedVehicleActorUniqueId() === $ent->getId()) {
+						if ($this->player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_662) {
+							$yaw = fmod($vehicle->getVehicleRotationZ(), 360);
+						} else {
+							$yaw = fmod($rawYaw, 360);
+						}
+
+						$ent->setClientPositionAndRotation($rawPos, $yaw, 0, 3, true);
+					}
+				}
+			}
+
+			$this->player->updateNextPosition($rawPos, $rawYaw, $rawYaw, $rawPitch);
+
+			$this->lastPlayerAuthInputPosition = $rawPos;
+			$this->lastPlayerAuthInputYaw = $rawYaw;
+			$this->lastPlayerAuthInputPitch = $rawPitch;
+		}
+
+		$inputFlags = $packet->getInputFlags();
+		if ($inputFlags !== $this->lastPlayerAuthInputFlags) {
+			$this->lastPlayerAuthInputFlags = $inputFlags;
+
+			$sneaking = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SNEAKING, PlayerAuthInputFlags::STOP_SNEAKING);
+			$sprinting = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SPRINTING, PlayerAuthInputFlags::STOP_SPRINTING);
+			$swimming = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SWIMMING, PlayerAuthInputFlags::STOP_SWIMMING);
+			$gliding = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_GLIDING, PlayerAuthInputFlags::STOP_GLIDING);
+			$flying = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_FLYING, PlayerAuthInputFlags::STOP_FLYING);
+			$crawling = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_CRAWLING, PlayerAuthInputFlags::STOP_CRAWLING);
+			$mismatch =
+				($sneaking !== null && !$this->player->toggleSneak($sneaking)) |
+				($sprinting !== null && !$this->player->toggleSprint($sprinting)) |
+				($swimming !== null && !$this->player->toggleSwim($swimming)) |
+				($gliding !== null && !$this->player->toggleGlide($gliding)) |
+				($flying !== null && !$this->player->toggleFlight($flying)) |
+				($crawling !== null && !$this->player->toggleCrawl($crawling));
+			if ((bool) $mismatch) {
+				$this->player->sendData([$this->player]);
+			}
+
+			if ($packet->hasFlag(PlayerAuthInputFlags::START_JUMPING)) {
+				$this->player->jump();
+			}
+			if ($packet->hasFlag(PlayerAuthInputFlags::MISSED_SWING)) {
+				$this->player->missSwing();
+			}
+		}
+
+		$packetHandled = true;
+
+		$blockActions = $packet->getBlockActions();
+		if ($blockActions !== null) {
+			if (count($blockActions) > 100) {
+				$this->server->getLogger()->debug("Too many block actions in PlayerAuthInputPacket from " . $this->player->getName());
+				return false;
+			}
+			foreach ($blockActions as $k => $blockAction) {
+				$actionHandled = false;
+				if ($blockAction instanceof PlayerBlockActionStopBreak) {
+					$actionHandled = $this->player->handlePlayerActionFromData($blockAction->getActionType(), new Vector3(0, 0, 0), Facing::DOWN);
+				} elseif ($blockAction instanceof PlayerBlockActionWithBlockInfo) {
+					$actionHandled = $this->player->handlePlayerActionFromData($blockAction->getActionType(), new Vector3($blockAction->getX(), $blockAction->getY(), $blockAction->getZ()), $blockAction->getFace());
+				}
+
+				if (!$actionHandled) {
+					$packetHandled = false;
+					$this->server->getLogger()->debug("Unhandled player block action at offset $k in PlayerAuthInputPacket from " . $this->player->getName());
+				}
+			}
+		}
+
+		$useItemTransaction = $packet->getItemInteractionData();
+		if ($useItemTransaction !== null) {
+			if (count($useItemTransaction->getTransactionData()->getActions()) > 100) {
+				$this->server->getLogger()->debug("Too many actions in item use transaction from " . $this->player->getName());
+				return false;
+			}
+
+			if (!$this->player->handleUseItemTransaction($useItemTransaction->getTransactionData())) {
+				$packetHandled = false;
+				$this->server->getLogger()->debug("Unhandled transaction in PlayerAuthInputPacket (type " . $useItemTransaction->getTransactionData()->getActionType() . ") from " . $this->player->getName());
+			}
+		}
+
+		//TODO: ItemStack`s
+
+		if (!$packetHandled) {
+			$this->player->getInventory()->sendContents($this->player);
+		}
+
+		return $packetHandled;
 	}
 
 	public function handleLevelSoundEventPacketV1(LevelSoundEventPacketV1 $packet) : bool
@@ -452,17 +610,16 @@ class PlayerNetworkSessionAdapter extends NetworkSession
 
 		$blockVector = new Vector3($packet->x, $packet->y, $packet->z);
 
-		$item = TypeConverter::getInstance()->netItemStackToCore($packet->item, $this->player->getProtocolVersion());
 		if ($packet->face === -1) {
 			if (microtime(true) - $this->lastRightClickBlock > 0.005) {
-				$this->player->useItem($blockVector, $packet->clickPos, $item, $packet->face);
+				$this->player->useItem($blockVector, $packet->clickPos, $packet->item->getItemStack(), $packet->face);
 			}
 		} else {
 			$this->lastRightClickBlock = microtime(true);
-			$this->player->useItem($blockVector, $packet->clickPos, $item, $packet->face);
+			$this->player->useItem($blockVector, $packet->clickPos, $packet->item->getItemStack(), $packet->face);
 
 			if ($this->player->getCurrentInputMode() !== InputMode::TOUCHSCREEN) { //this is a very nasty hack
-				$this->player->useItem($blockVector, $packet->clickPos, $item, -1);
+				$this->player->useItem($blockVector, $packet->clickPos, $packet->item->getItemStack(), -1);
 			}
 		}
 
@@ -568,13 +725,7 @@ class PlayerNetworkSessionAdapter extends NetworkSession
 
 	public function handleLevelSoundEvent(LevelSoundEventPacket $packet) : bool
 	{
-		/*
-		* We don't handle this - all sounds are handled by the server now.
-		* However, some plugins find this useful to detect events like left-click-air, which doesn't have any other
-		* action bound to it.
-		* In addition, we use this handler to silence debug noise, since this packet is frequently sent by the client.
-		*/
-		return true;
+		return $this->player->handleLevelSoundEvent($packet);
 	}
 
 	public function handleMoveActorAbsolute(MoveActorAbsolutePacket $packet) : bool

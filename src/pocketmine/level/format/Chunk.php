@@ -35,7 +35,6 @@ use pocketmine\nbt\tag\StringTag;
 use pocketmine\Player;
 use pocketmine\tile\Tile;
 use SplFixedArray;
-
 use function array_fill;
 use function array_filter;
 use function assert;

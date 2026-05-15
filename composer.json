@@ -1,0 +1,21 @@
+{
+    "name": "submarine/server",
+    "require": {
+        "php": ">=8.3",
+        "ext-bcmath": "*",
+        "ext-sockets": "*",
+        "ext-yaml": "*",
+        "ext-igbinary": "*",
+        "ext-leveldb": "*",
+        "ext-pmmpthread": "*",
+        "ext-chunkutils2": "*",
+        "ext-morton": "*",
+        "ext-crypto": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "pocketmine\\": "src/pocketmine",
+            "raklib\\": "src/raklib"
+        }
+    }
+}

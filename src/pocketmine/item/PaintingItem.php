@@ -26,9 +26,9 @@ use pocketmine\block\Block;
 use pocketmine\entity\Entity;
 use pocketmine\entity\object\Painting;
 use pocketmine\entity\object\PaintingMotive;
-use pocketmine\level\sound\PaintingPlaceSound;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\Player;
 
 use function array_rand;
@@ -103,7 +103,7 @@ class PaintingItem extends Item
 			$this->pop();
 			$entity->spawnToAll();
 
-			$player->level->addSound(new PaintingPlaceSound($blockReplace->add(0.5, 0.5, 0.5)));
+			$player->getLevel()->broadcastLevelEvent($blockReplace->add(0.5, 0.5, 0.5), LevelEventPacket::EVENT_SOUND_ITEMFRAME_PLACE); //item frame and painting have the same sound
 			return true;
 		}
 

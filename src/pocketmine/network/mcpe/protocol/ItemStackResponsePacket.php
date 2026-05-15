@@ -32,7 +32,7 @@ class ItemStackResponsePacket extends DataPacket
 	public const NETWORK_ID = ProtocolInfo::ITEM_STACK_RESPONSE_PACKET;
 
 	/** @var ItemStackResponse[] */
-	public array $responses;
+	private $responses;
 
 	/**
 	 * @param ItemStackResponse[] $responses

@@ -32,7 +32,6 @@ use pocketmine\block\Block;
 use pocketmine\block\BlockFactory;
 use pocketmine\block\BlockToolType;
 use pocketmine\entity\Entity;
-use pocketmine\entity\Living;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\enchantment\EnchantmentInstance;
 use pocketmine\math\Vector3;
@@ -45,9 +44,7 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\NamedTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
-use pocketmine\network\mcpe\cache\CreativeCategory;
-use pocketmine\network\mcpe\cache\CreativeGroup;
-use pocketmine\network\mcpe\cache\CreativeInventoryCache;
+use pocketmine\network\mcpe\cache\CreativeItemsCache;
 use pocketmine\network\mcpe\convert\LegacyItemIdToStringIdMap;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\Player;
@@ -130,14 +127,14 @@ class Item implements ItemIds, JsonSerializable
 	 * Removes all previously added items from the creative menu.
 	 * Note: Players who are already online when this is called will not see this change.
 	 */
-	public static function clearCreativeItems(?int $protocolVersion = null) : void
+	public static function clearCreativeItems(?int $protocol = null) : void
 	{
-		CreativeInventoryCache::getInstance()->clearItems($protocolVersion);
+		CreativeItemsCache::getInstance()->clearItems($protocol);
 	}
 
-	public static function getCreativeItems(int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : array
+	public static function getCreativeItems(int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array
 	{
-		$creativeItemEntries = CreativeInventoryCache::getInstance()->getItems($protocolVersion);
+		$creativeItemEntries = CreativeItemsCache::getInstance()->getItems($protocol);
 
 		$items = [];
 		foreach ($creativeItemEntries as $creativeItemEntry) {
@@ -151,39 +148,34 @@ class Item implements ItemIds, JsonSerializable
 	 * Adds an item to the creative menu.
 	 * Note: Players who are already online when this is called will not see this change.
 	 */
-	public static function addCreativeItem(Item $item, int $categoryId = CreativeCategory::CONSTRUCTION, ?CreativeGroup $group = null, ?int $protocolVersion = null) : void
+	public static function addCreativeItem(Item $item, ?int $groupId = null, ?int $protocol = null) : void
 	{
-		CreativeInventoryCache::getInstance()->addItem($item, $categoryId, $group, $protocolVersion);
+		CreativeItemsCache::getInstance()->addItem($item, $groupId, $protocol);
 	}
 
 	/**
 	 * Removes an item from the creative menu.
 	 * Note: Players who are already online when this is called will not see this change.
 	 */
-	public static function removeCreativeItem(Item $item, ?int $protocolVersion = null) : void
+	public static function removeCreativeItem(Item $item, ?int $protocol = null) : void
 	{
-		CreativeInventoryCache::getInstance()->removeItem($item, $protocolVersion);
+		CreativeItemsCache::getInstance()->removeItem($item, $protocol);
 	}
 
-	public static function isCreativeItem(Item $item, int $protocolVersion) : bool
+	public static function isCreativeItem(Item $item, int $protocol) : bool
 	{
-		return CreativeInventoryCache::getInstance()->getItemIndex($item, $protocolVersion) !== -1;
+		return CreativeItemsCache::getInstance()->getItemIndex($item, $protocol) !== -1;
 	}
 
-	public static function getCreativeItem(int $index, int $protocolVersion = ProtocolInfo::CURRENT_PROTOCOL) : ?Item
+	public static function getCreativeItem(int $index, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : ?Item
 	{
-		$items = self::getCreativeItems($protocolVersion);
+		$items = self::getCreativeItems($protocol);
 		return $items[$index] ?? null;
 	}
 
-	public static function getCreativeItemIndex(Item $item, int $protocolVersion) : int
+	public static function getCreativeItemIndex(Item $item, int $protocol) : int
 	{
-		return CreativeInventoryCache::getInstance()->getItemIndex($item, $protocolVersion);
-	}
-
-	public static function getCreativeItemFromIndex(int $index, int $protocolVersion) : Item
-	{
-		return CreativeInventoryCache::getInstance()->getItemFromIndex($index, $protocolVersion);
+		return CreativeItemsCache::getInstance()->getItemIndex($item, $protocol);
 	}
 
 	/** @var int */
@@ -198,9 +190,6 @@ class Item implements ItemIds, JsonSerializable
 	protected $name;
 	/** @var bool */
 	protected $onItemFrame = false;
-
-	/** @var Item[] */
-	protected array $returnedItems = [];
 
 	/**
 	 * Constructs a new Item type. This constructor should ONLY be used when constructing a new item TYPE to register
@@ -808,21 +797,9 @@ class Item implements ItemIds, JsonSerializable
 	}
 
 	/**
-	 * Called when this item is being worn by an entity.
-	 * Returns whether it did something.
+	 * Called when player interacted with an entity and entity didnt make anything
 	 */
-	public function onTickWorn(Living $entity) : bool
-	{
-		return false;
-	}
-
-	/**
-	 * Called when a player uses the item to interact with entity, for example by using a name tag.
-	 *
-	 * @param Vector3 $clickVector The exact position of the click (absolute coordinates)
-	 * @return bool whether some action took place
-	 */
-	public function onInteractEntity(Player $player, Entity $entity, Vector3 $clickVector) : bool
+	public function onInteractWithEntity(Player $player, Entity $entity) : bool
 	{
 		return false;
 	}
@@ -1034,21 +1011,7 @@ class Item implements ItemIds, JsonSerializable
 		$this->setNamedTagEntry(new IntTag(self::TAG_REPAIR_COST, $cost));
 	}
 
-	/**
-	 * @return Item[]
-	 * This method is used after clicking in the air, breaking a block, attacking a creature, using an object, or eating things.
-	 */
-	public function getReturnedItems() : array
-	{
-		return $this->returnedItems;
-	}
-
-	public function addReturnedItem(Item $item) : void
-	{
-		$this->returnedItems[] = $item;
-	}
-
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		return null;
 	}

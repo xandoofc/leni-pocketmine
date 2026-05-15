@@ -23,8 +23,7 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\item\Item;
-use pocketmine\level\sound\RedstonePowerOffSound;
-use pocketmine\level\sound\RedstonePowerOnSound;
+use pocketmine\level\sound\ButtonClickSound;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
@@ -102,12 +101,7 @@ class Lever extends Flowable
 	{
 		$this->meta ^= 0x08;
 		$this->getLevel()->setBlock($this, $this, true, false);
-
-		$this->level->addSound(
-			(($this->meta & 0x08) > 0) ?
-				new RedstonePowerOnSound($this->add(0.5, 0.5, 0.5)) :
-				new RedstonePowerOffSound($this->add(0.5, 0.5, 0.5))
-		);
+		$this->getLevel()->addSound(new ButtonClickSound($this));
 		return true;
 	}
 }

@@ -32,13 +32,16 @@ class CraftingEventPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CRAFTING_EVENT_PACKET;
 
-	public int $windowId;
-	public int $type;
-	public UUID $id;
+	/** @var int */
+	public $windowId;
+	/** @var int */
+	public $type;
+	/** @var UUID */
+	public $id;
 	/** @var ItemStackWrapper[] */
-	public array $input = [];
+	public $input = [];
 	/** @var ItemStackWrapper[] */
-	public array $output = [];
+	public $output = [];
 
 	protected function decodePayload() : void
 	{
@@ -48,12 +51,12 @@ class CraftingEventPacket extends DataPacket
 
 		$size = $this->getUnsignedVarInt();
 		for ($i = 0; $i < $size && $i < 128; ++$i) {
-			$this->input[] = $this->getItemStackWrapper($this->getProtocol());
+			$this->input[] = $this->getSlot($this->getProtocol());
 		}
 
 		$size = $this->getUnsignedVarInt();
 		for ($i = 0; $i < $size && $i < 128; ++$i) {
-			$this->output[] = $this->getItemStackWrapper($this->getProtocol());
+			$this->output[] = $this->getSlot($this->getProtocol());
 		}
 	}
 
@@ -65,12 +68,12 @@ class CraftingEventPacket extends DataPacket
 
 		$this->putUnsignedVarInt(count($this->input));
 		foreach ($this->input as $item) {
-			$this->putItemStackWrapper($item, $this->getProtocol());
+			$this->putSlot($item, $this->getProtocol());
 		}
 
 		$this->putUnsignedVarInt(count($this->output));
 		foreach ($this->output as $item) {
-			$this->putItemStackWrapper($item, $this->getProtocol());
+			$this->putSlot($item, $this->getProtocol());
 		}
 	}
 

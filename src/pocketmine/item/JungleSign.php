@@ -26,13 +26,11 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class JungleSign extends Sign
 {
-
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return new TranslatedItemData(ItemIds::SIGN, $this->getDamage());
+			return Item::get(Item::SIGN, $this->getDamage());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

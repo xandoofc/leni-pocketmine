@@ -25,14 +25,14 @@ namespace pocketmine\item;
 use InvalidArgumentException;
 use pocketmine\block\Block;
 use pocketmine\block\BlockFactory;
-use pocketmine\block\BlockIds;
 use pocketmine\block\SignPost;
-use pocketmine\block\Skull as BlockSkull;
 use pocketmine\block\StillLava;
 use pocketmine\block\StillWater;
+use pocketmine\block\utils\TreeType;
+use pocketmine\inventory\CraftingManager;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\network\mcpe\cache\CreativeItemsCache;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
-use pocketmine\tile\Skull as TileSkull;
 use RuntimeException;
 use TypeError;
 
@@ -54,6 +54,7 @@ use function trim;
 class ItemFactory
 {
 	public static ?array $list = null;
+	private static array $needToSync = [];
 
 	public static function init() : void
 	{
@@ -220,8 +221,6 @@ class ItemFactory
 			self::registerItem(new HorseArmor(Item::GOLD_HORSE_ARMOR, 0, "Golden Horse Armor"));
 			self::registerItem(new HorseArmor(Item::DIAMOND_HORSE_ARMOR, 0, "Diamond Horse Armor"));
 
-			self::registerItem(new Honeycomb());
-
 			self::registerItem(new Item(Item::BLAZE_POWDER, 0, "Blaze Powder"));
 			self::registerItem(new Item(Item::BONE, 0, "Bone"));
 			self::registerItem(new Item(Item::BRICK, 0, "Brick"));
@@ -267,10 +266,8 @@ class ItemFactory
 			self::registerItem(new ItemBlock(Item::CAKE, 0, Block::get(Block::CAKE_BLOCK)));
 			self::registerItem(new ItemBlock(Item::CAULDRON, 0, Block::get(Block::CAULDRON_BLOCK)));
 			self::registerItem(new ItemBlock(Item::COMPARATOR, 0, Block::get(Block::COMPARATOR_BLOCK)));
-			self::registerItem(new ItemBlock(Item::CRIMSON_DOOR, 0, Block::get(Block::CRIMSON_DOOR)));
 			self::registerItem(new ItemBlock(Item::DARK_OAK_DOOR, 0, Block::get(Block::DARK_OAK_DOOR_BLOCK)));
 			self::registerItem(new ItemBlock(Item::FLOWER_POT, 0, Block::get(Block::FLOWER_POT_BLOCK)));
-			self::registerItem(new ItemBlock(Item::GLOW_FRAME, 0, Block::get(Block::GLOW_FRAME)));
 			self::registerItem(new ItemBlock(Item::HOPPER, 0, Block::get(Block::HOPPER_BLOCK)));
 			self::registerItem(new ItemBlock(Item::IRON_DOOR, 0, Block::get(Block::IRON_DOOR_BLOCK)));
 			self::registerItem(new ItemBlock(Item::ITEM_FRAME, 0, Block::get(Block::ITEM_FRAME_BLOCK)));
@@ -280,12 +277,6 @@ class ItemFactory
 			self::registerItem(new ItemBlock(Item::REPEATER, 0, Block::get(Block::REPEATER_BLOCK)));
 			self::registerItem(new ItemBlock(Item::SPRUCE_DOOR, 0, Block::get(Block::SPRUCE_DOOR_BLOCK)));
 			self::registerItem(new ItemBlock(Item::SUGARCANE, 0, Block::get(Block::SUGARCANE_BLOCK)));
-			self::registerItem(new ItemBlock(Item::WARPED_DOOR, 0, Block::get(Block::WARPED_DOOR)));
-			self::registerItem(new ItemBlock(Item::MANGROVE_DOOR, 0, Block::get(Block::MANGROVE_DOOR)));
-			self::registerItem(new ItemBlock(Item::BAMBOO_DOOR, 0, Block::get(Block::BAMBOO_DOOR)), true);
-			self::registerItem(new ItemBlock(Item::PALE_OAK_DOOR, 0, Block::get(Block::PALE_OAK_DOOR)), true);
-			self::registerItem(new Pumpkin(Item::PUMPKIN, 0, Block::get(Block::PUMPKIN)), true);
-			self::registerItem(new Pumpkin(Item::CARVED_PUMPKIN, 0, Block::get(Block::CARVED_PUMPKIN)), true);
 			self::registerItem(new LiquidBucket(Item::BUCKET, 8, "Water Bucket", new StillWater()));
 			self::registerItem(new LiquidBucket(Item::BUCKET, 10, "Lava Bucket", new StillLava()));
 			self::registerItem(new Map());
@@ -333,12 +324,8 @@ class ItemFactory
 			self::registerItem(new BirchSign(Item::BIRCH_SIGN, 0, "Birch Sign", new SignPost(Block::BIRCH_STANDING_SIGN, 0, "Birch Sign Post", Item::BIRCH_SIGN, Block::BIRCH_WALL_SIGN)));
 			self::registerItem(new JungleSign(Item::JUNGLE_SIGN, 0, "Jungle Sign", new SignPost(Block::JUNGLE_STANDING_SIGN, 0, "Jungle Sign Post", Item::JUNGLE_SIGN, Block::JUNGLE_WALL_SIGN)));
 			self::registerItem(new AcaciaSign(Item::ACACIA_SIGN, 0, "Acacia Sign", new SignPost(Block::ACACIA_STANDING_SIGN, 0, "Acacia Sign Post", Item::ACACIA_SIGN, Block::ACACIA_WALL_SIGN)));
-			self::registerItem(new DarkoakSign(Item::DARKOAK_SIGN, 0, "Dark Oak Sign", new SignPost(Block::DARKOAK_STANDING_SIGN, 0, "Dark Oak Sign Post", Item::DARKOAK_SIGN, Block::DARKOAK_WALL_SIGN)));
-			self::registerItem(new WarpedSign(Item::WARPED_SIGN, 0, "Warped Sign", new SignPost(Block::WARPED_STANDING_SIGN, 0, "Warped Sign Post", Item::WARPED_SIGN, Block::WARPED_WALL_SIGN)));
-			self::registerItem(new CrimsonSign(Item::CRIMSON_SIGN, 0, "Crimson Sign", new SignPost(Block::CRIMSON_STANDING_SIGN, 0, "Crimson Sign Post", Item::CRIMSON_SIGN, Block::CRIMSON_WALL_SIGN)));
-			self::registerItem(new MangroveSign(Item::MANGROVE_SIGN, 0, "Mangrove Sign", new SignPost(Block::MANGROVE_STANDING_SIGN, 0, "Mangrove Sign Post", Item::MANGROVE_SIGN, Block::MANGROVE_WALL_SIGN)));
-			self::registerItem(new PaleOakSign(Item::PALE_OAK_SIGN, 0, "Pale Oak Sign", new SignPost(Block::PALE_OAK_STANDING_SIGN, 0, "Pale Oak Sign Post", Item::PALE_OAK_SIGN, Block::PALE_OAK_WALL_SIGN)));
-			self::registerItem(new BambooSign(Item::BAMBOO_SIGN, 0, "Bamboo Sign", new SignPost(Block::BAMBOO_STANDING_SIGN, 0, "Bamboo Sign Post", Item::BAMBOO_SIGN, Block::BAMBOO_WALL_SIGN)));
+			self::registerItem(new DarkoakSign(Item::DARKOAK_SIGN, 0, "Darkoak Sign", new SignPost(Block::DARKOAK_STANDING_SIGN, 0, "Darkoak Sign Post", Item::DARKOAK_SIGN, Block::DARKOAK_WALL_SIGN)));
+			self::registerItem(new DarkoakSign(Item::PALE_OAK_SIGN, 0, "Pale Oak Sign", new SignPost(Block::PALE_OAK_STANDING_SIGN, 0, "Pale Oak Sign Post", Item::PALE_OAK_SIGN, Block::PALE_OAK_WALL_SIGN)));
 
 			self::registerItem(new Snowball());
 			self::registerItem(new SpiderEye());
@@ -354,8 +341,6 @@ class ItemFactory
 			self::registerItem(new WoodenTrapdoor(Item::JUNGLE_TRAPDOOR, 0, BlockFactory::get(Block::JUNGLE_TRAPDOOR)), true);
 			self::registerItem(new WoodenTrapdoor(Item::ACACIA_TRAPDOOR, 0, BlockFactory::get(Block::ACACIA_TRAPDOOR)), true);
 			self::registerItem(new WoodenTrapdoor(Item::DARK_OAK_TRAPDOOR, 0, BlockFactory::get(Block::DARK_OAK_TRAPDOOR)), true);
-			self::registerItem(new WoodenTrapdoor(Item::MANGROVE_TRAPDOOR, 0, BlockFactory::get(Block::MANGROVE_TRAPDOOR)), true);
-			self::registerItem(new WoodenTrapdoor(Item::BAMBOO_TRAPDOOR, 0, BlockFactory::get(Block::BAMBOO_TRAPDOOR)), true);
 			self::registerItem(new WoodenTrapdoor(Item::PALE_OAK_TRAPDOOR, 0, BlockFactory::get(Block::PALE_OAK_TRAPDOOR)), true);
 			self::registerItem(new WoodenPressurePlate(Item::WOODEN_PRESSURE_PLATE, 0, BlockFactory::get(Block::WOODEN_PRESSURE_PLATE)), true);
 			self::registerItem(new WoodenPressurePlate(Item::SPRUCE_PRESSURE_PLATE, 0, BlockFactory::get(Block::SPRUCE_PRESSURE_PLATE)), true);
@@ -363,19 +348,12 @@ class ItemFactory
 			self::registerItem(new WoodenPressurePlate(Item::JUNGLE_PRESSURE_PLATE, 0, BlockFactory::get(Block::JUNGLE_PRESSURE_PLATE)), true);
 			self::registerItem(new WoodenPressurePlate(Item::ACACIA_PRESSURE_PLATE, 0, BlockFactory::get(Block::ACACIA_PRESSURE_PLATE)), true);
 			self::registerItem(new WoodenPressurePlate(Item::DARK_OAK_PRESSURE_PLATE, 0, BlockFactory::get(Block::DARK_OAK_PRESSURE_PLATE)), true);
-			self::registerItem(new WoodenPressurePlate(Item::MANGROVE_PRESSURE_PLATE, 0, BlockFactory::get(Block::MANGROVE_PRESSURE_PLATE)), true);
-			self::registerItem(new WoodenPressurePlate(Item::BAMBOO_PRESSURE_PLATE, 0, BlockFactory::get(Block::BAMBOO_PRESSURE_PLATE)), true);
-			self::registerItem(new WoodenPressurePlate(Item::PALE_OAK_PRESSURE_PLATE, 0, BlockFactory::get(Block::PALE_OAK_PRESSURE_PLATE)), true);
 			self::registerItem(new WritableBook());
 			self::registerItem(new WrittenBook());
 
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_SKELETON, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_SKELETON)));
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_WITHER_SKELETON, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_WITHER_SKELETON)));
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_ZOMBIE, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_ZOMBIE)));
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_PLAYER, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_PLAYER)));
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_CREEPER, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_CREEPER)));
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_DRAGON, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_DRAGON)));
-			self::registerItem(new Skull(Item::SKULL, TileSkull::TYPE_PIGLIN, Block::get(Block::SKULL_BLOCK, BlockSkull::TYPE_PIGLIN)));
+			for ($skullType = 0; $skullType <= 5; $skullType++) {
+				self::registerItem(new ItemBlock(Item::SKULL, $skullType, Block::get(Block::SKULL_BLOCK, $skullType)));
+			}
 
 			$colorsDyeNew = [
 				0 => 16, //BLACK
@@ -396,28 +374,11 @@ class ItemFactory
 				self::registerItem(new SplashPotion($typePotion));
 			}
 
-			self::registerItem(new Boat(ItemIds::BOAT, 0, "Oak Boat"));
-			self::registerItem(new Boat(ItemIds::BOAT, 1, "Spruce Boat"));
-			self::registerItem(new Boat(ItemIds::BOAT, 2, "Birch Boat"));
-			self::registerItem(new Boat(ItemIds::BOAT, 3, "Jungle Boat"));
-			self::registerItem(new Boat(ItemIds::BOAT, 4, "Acacia Boat"));
-			self::registerItem(new Boat(ItemIds::BOAT, 5, "Dark Oak Boat"));
+			foreach (TreeType::getAll() as $type) {
+				self::registerItem(new Boat(Item::BOAT, $type->getMagicNumber(), $type->getDisplayName() . " Boat"));
+			}
 
 			self::registerItem(new UndyedShulkerBox(), true);
-
-			self::registerItem(new Wall(ItemIds::MOSSY_COBBLESTONE_WALL, 0, BlockFactory::get(BlockIds::MOSSY_COBBLESTONE_WALL), 1), true);
-			self::registerItem(new Wall(ItemIds::GRANITE_WALL, 0, BlockFactory::get(BlockIds::GRANITE_WALL), 2), true);
-			self::registerItem(new Wall(ItemIds::DIORITE_WALL, 0, BlockFactory::get(BlockIds::DIORITE_WALL), 3), true);
-			self::registerItem(new Wall(ItemIds::ANDESITE_WALL, 0, BlockFactory::get(BlockIds::ANDESITE_WALL), 4), true);
-			self::registerItem(new Wall(ItemIds::SANDSTONE_WALL, 0, BlockFactory::get(BlockIds::SANDSTONE_WALL), 5), true);
-			self::registerItem(new Wall(ItemIds::BRICK_WALL, 0, BlockFactory::get(BlockIds::BRICK_WALL), 6), true);
-			self::registerItem(new Wall(ItemIds::STONE_BRICK_WALL, 0, BlockFactory::get(BlockIds::STONE_BRICK_WALL), 7), true);
-			self::registerItem(new Wall(ItemIds::MOSSY_STONE_BRICK_WALL, 0, BlockFactory::get(BlockIds::MOSSY_STONE_BRICK_WALL), 8), true);
-			self::registerItem(new Wall(ItemIds::NETHER_BRICK_WALL, 0, BlockFactory::get(BlockIds::NETHER_BRICK_WALL), 9), true);
-			self::registerItem(new Wall(ItemIds::END_STONE_BRICK_WALL, 0, BlockFactory::get(BlockIds::END_STONE_BRICK_WALL), 10), true);
-			self::registerItem(new Wall(ItemIds::PRISMARINE_WALL, 0, BlockFactory::get(BlockIds::PRISMARINE_WALL), 11), true);
-			self::registerItem(new Wall(ItemIds::RED_SANDSTONE_WALL, 0, BlockFactory::get(BlockIds::RED_SANDSTONE_WALL), 12), true);
-			self::registerItem(new Wall(ItemIds::RED_NETHER_BRICK_WALL, 0, BlockFactory::get(BlockIds::RED_NETHER_BRICK_WALL), 13), true);
 		}
 	}
 
@@ -442,6 +403,30 @@ class ItemFactory
 		}
 
 		self::$list[self::getListOffset($id, $meta)] = clone $item;
+	}
+
+	public static function remapItem(int $id, int $meta, Item $item, bool $override = false) : void
+	{
+		if (($registered = self::isRegistered($id, $meta)) && !$override) {
+			throw new RuntimeException("Trying to overwrite an already registered item");
+		}
+
+		$offset = self::getListOffset($id, $meta);
+
+		$stored = clone $item;
+
+		if ($registered && $override) {
+			self::$needToSync[$offset] = $stored;
+		}
+
+		self::$list[$offset] = $stored;
+	}
+
+	public static function syncChanges() : void{
+		CreativeItemsCache::getInstance()->sync(self::$needToSync);
+		CraftingManager::sync(self::$needToSync);
+
+		self::$needToSync = [];
 	}
 
 	public static function itemToBlockId(int $id) : int

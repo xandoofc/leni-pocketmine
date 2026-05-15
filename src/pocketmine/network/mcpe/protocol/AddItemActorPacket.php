@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\item\Item;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
@@ -31,42 +30,26 @@ class AddItemActorPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ADD_ITEM_ACTOR_PACKET;
 
-	public ?int $entityUniqueId = null; //TODO
-	public int $entityRuntimeId;
-	public Item|ItemStackWrapper $item;
-	public Vector3 $position;
-	public ?Vector3 $motion = null;
-	public array $metadata = [];
-	public bool $isFromFishing = false;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(
-		int $entityUniqueId,
-		int $entityRuntimeId,
-		Item|ItemStackWrapper $item,
-		Vector3 $position,
-		?Vector3 $motion,
-		array $metadata,
-		bool $isFromFishing
-	) : self {
-		$result = new self();
-		$result->entityUniqueId = $entityUniqueId;
-		$result->entityRuntimeId = $entityRuntimeId;
-		$result->item = $item;
-		$result->position = $position;
-		$result->motion = $motion;
-		$result->metadata = $metadata;
-		$result->isFromFishing = $isFromFishing;
-		return $result;
-	}
+	/** @var int|null */
+	public $entityUniqueId = null; //TODO
+	/** @var int */
+	public $entityRuntimeId;
+	/** @var ItemStackWrapper */
+	public $item;
+	/** @var Vector3 */
+	public $position;
+	/** @var Vector3|null */
+	public $motion;
+	/** @var array */
+	public $metadata = [];
+	/** @var bool */
+	public $isFromFishing = false;
 
 	protected function decodePayload() : void
 	{
 		$this->entityUniqueId = $this->getEntityUniqueId();
 		$this->entityRuntimeId = $this->getEntityRuntimeId();
-		$this->item = $this->getItemStackWrapper($this->getProtocol());
+		$this->item = $this->getSlot($this->getProtocol());
 		$this->position = $this->getVector3();
 		$this->motion = $this->getVector3();
 		$this->metadata = $this->getEntityMetadata($this->getProtocol());
@@ -79,7 +62,7 @@ class AddItemActorPacket extends DataPacket
 	{
 		$this->putEntityUniqueId($this->entityUniqueId ?? $this->entityRuntimeId);
 		$this->putEntityRuntimeId($this->entityRuntimeId);
-		$this->putItemStackWrapper($this->item, $this->getProtocol());
+		$this->putSlot($this->item, $this->getProtocol(), true, false);
 		$this->putVector3($this->position);
 		$this->putVector3Nullable($this->motion);
 		$this->putEntityMetadata($this->metadata, $this->getProtocol());

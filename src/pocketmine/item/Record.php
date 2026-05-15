@@ -46,12 +46,11 @@ class Record extends Item
 		return $this->soundId;
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_137) {
-			return new TranslatedItemData(ItemIds::SLIME_BALL, $this->getDamage());
+			return Item::get(Item::SNOWBALL, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

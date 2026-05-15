@@ -26,6 +26,7 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class PaleOakPressurePlate extends WoodenPressurePlate
 {
+
 	protected $id = self::PALE_OAK_PRESSURE_PLATE;
 
 	public function __construct(int $meta = 0)
@@ -33,17 +34,16 @@ class PaleOakPressurePlate extends WoodenPressurePlate
 		$this->meta = $meta;
 	}
 
-	public function getName() : string
-	{
+	public function getName() : string{
 		return "Pale Oak Pressure Plate";
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::WOODEN_PRESSURE_PLATE, $this->meta);
+			return Block::get(Block::WOODEN_PRESSURE_PLATE, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

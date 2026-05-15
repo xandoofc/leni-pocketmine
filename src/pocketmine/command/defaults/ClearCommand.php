@@ -37,7 +37,6 @@ use pocketmine\network\mcpe\protocol\types\command\CommandParameter;
 use pocketmine\Player;
 use pocketmine\utils\TextFormat;
 use ReflectionClass;
-
 use function array_values;
 use function count;
 use function strtolower;

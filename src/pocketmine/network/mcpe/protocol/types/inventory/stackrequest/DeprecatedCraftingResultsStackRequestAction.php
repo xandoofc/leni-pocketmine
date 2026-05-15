@@ -25,7 +25,7 @@ namespace pocketmine\network\mcpe\protocol\types\inventory\stackrequest;
 use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\types\GetTypeIdFromConstTrait;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+
 use function count;
 
 /**
@@ -39,7 +39,7 @@ final class DeprecatedCraftingResultsStackRequestAction extends ItemStackRequest
 	public const ID = ItemStackRequestActionType::CRAFTING_RESULTS_DEPRECATED_ASK_TY_LAING;
 
 	/**
-	 * @param ItemStack[] $results
+	 * @param Item[] $results
 	 */
 	public function __construct(
 		private array $results,
@@ -62,7 +62,7 @@ final class DeprecatedCraftingResultsStackRequestAction extends ItemStackRequest
 	{
 		$results = [];
 		for ($i = 0, $len = $in->getUnsignedVarInt(); $i < $len; ++$i) {
-			$results[] = $in->getItemStackWithoutStackId($playerProtocol);
+			$results[] = $in->getSlot($playerProtocol, false);
 		}
 		$iterations = $in->getByte();
 		return new self($results, $iterations);
@@ -72,7 +72,7 @@ final class DeprecatedCraftingResultsStackRequestAction extends ItemStackRequest
 	{
 		$out->putUnsignedVarInt(count($this->results));
 		foreach ($this->results as $result) {
-			$out->putItemStackWithoutStackId($result, $playerProtocol);
+			$out->putSlot($result, $playerProtocol, false);
 		}
 		$out->putByte($this->iterations);
 	}

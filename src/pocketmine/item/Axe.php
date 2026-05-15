@@ -23,17 +23,9 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 use pocketmine\block\Block;
-use pocketmine\block\BlockFactory;
 use pocketmine\block\BlockToolType;
-use pocketmine\block\CopperDoor;
-use pocketmine\block\utils\CopperMaterial;
 use pocketmine\entity\Entity;
-use pocketmine\level\sound\CopperWaxRemoveSound;
-use pocketmine\level\sound\ScrapeSound;
-use pocketmine\math\Facing;
-use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\Player;
 
 class Axe extends TieredTool
 {
@@ -65,49 +57,11 @@ class Axe extends TieredTool
 		return $this->applyDamage(2);
 	}
 
-	public function onActivate(Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector) : bool{
-		if ($blockClicked instanceof CopperMaterial){
-			$level = $blockClicked->getLevel();
-			if($blockClicked->isWaxed()){
-				$level->setBlock($blockClicked, BlockFactory::get($blockClicked->getNonWaxedId(), $blockClicked->getDamage()), true);
-				if ($blockClicked instanceof CopperDoor) {
-					$other = $blockClicked->getSide((($blockClicked->getDamage() & 0x08) !== 0) ? Facing::DOWN : Facing::UP);
-					if ($other instanceof CopperDoor) {
-						$level->setBlock($other, BlockFactory::get($blockClicked->getNonWaxedId(), $other->getDamage()), true);
-					}
-				}
-
-				//TODO: white particles are supposed to appear when removing wax
-				$level->addSound(new CopperWaxRemoveSound($blockClicked));
-				$this->applyDamage(1);
-				return true;
-			}
-
-			$previousOxidationId = $blockClicked->getPreviousOxidationId();
-			if($previousOxidationId !== null){
-				$level->setBlock($blockClicked, BlockFactory::get($previousOxidationId, $blockClicked->getDamage()), true);
-				if ($blockClicked instanceof CopperDoor) {
-					$other = $blockClicked->getSide((($blockClicked->getDamage() & 0x08) !== 0) ? Facing::DOWN : Facing::UP);
-					if ($other instanceof CopperDoor) {
-						$level->setBlock($other, BlockFactory::get($previousOxidationId, $other->getDamage()), true);
-					}
-				}
-
-				//TODO: turquoise particles are supposed to appear when removing oxidation
-				$level->addSound(new ScrapeSound($blockClicked));
-				$this->applyDamage(1);
-				return true;
-			}
-		}
-
-		return parent::onActivate($player, $blockReplace, $blockClicked, $face, $clickVector);
-	}
-
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_407) {
-			if ($this->getId() === ItemIds::NETHERITE_AXE) {
-				return new TranslatedItemData(ItemIds::DIAMOND_AXE, $this->getDamage());
+			if ($this->getId() === Item::NETHERITE_AXE) {
+				return Item::get(Item::DIAMOND_AXE, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 			}
 		}
 		return parent::getItemProtocol($playerProtocol);

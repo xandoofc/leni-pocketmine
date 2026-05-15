@@ -29,7 +29,6 @@ use pocketmine\Player;
 use pocketmine\scheduler\AsyncTask;
 use pocketmine\scheduler\TaskHandler;
 use pocketmine\tile\Tile;
-
 use function get_class;
 use function str_starts_with;
 

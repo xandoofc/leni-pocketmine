@@ -24,14 +24,17 @@ namespace pocketmine\network\mcpe\convert;
 
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\network\mcpe\convert\types\ItemTypeDictionary;
 use pocketmine\network\mcpe\protocol\types\ItemTypeEntry;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Filesystem;
+
 use function base64_decode;
 use function is_array;
 use function is_bool;
 use function is_int;
 use function is_string;
+
 use function json_decode;
 use const pocketmine\BEDROCK_DATA_PATH;
 

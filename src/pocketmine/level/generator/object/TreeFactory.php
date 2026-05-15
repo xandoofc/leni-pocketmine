@@ -50,10 +50,6 @@ final class TreeFactory
 			}else{*/
 
 			//}
-		} elseif ($type->equals(TreeType::CHERRY())) {
-			return new CherryTree();
-		} elseif ($type->equals(TreeType::PALE_OAK())) {
-			//TODO: Generation PALE_OAK
 		}
 		return null;
 	}

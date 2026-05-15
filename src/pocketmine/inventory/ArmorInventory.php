@@ -23,14 +23,16 @@ declare(strict_types=1);
 namespace pocketmine\inventory;
 
 use pocketmine\entity\Living;
-use pocketmine\item\ArmorSlot;
+use pocketmine\item\Armor;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\item\ItemIds;
-use pocketmine\network\mcpe\convert\TypeConverter;
+use pocketmine\network\mcpe\protocol\ContainerSetContentPacket;
+use pocketmine\network\mcpe\protocol\ContainerSetSlotPacket;
+use pocketmine\network\mcpe\protocol\InventoryContentPacket;
+use pocketmine\network\mcpe\protocol\InventorySlotPacket;
 use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
-use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\Player;
 
@@ -110,7 +112,12 @@ class ArmorInventory extends BaseInventory
 
 	public function setItem(int $index, Item $item, bool $send = true) : bool
 	{
-		if (($item instanceof ArmorSlot && $item->getArmorSlot() === $index) || $item->isNull()) {
+		if(
+			($item instanceof Armor && $item->getArmorSlot() === $index) ||
+			($index === self::SLOT_HEAD && ($item->getId() === ItemIds::SKULL || $item->getId() === ItemIds::PUMPKIN)) ||
+			($index === self::SLOT_CHEST && $item->getId() === ItemIds::ELYTRA) ||
+			$item->isNull()
+		){
 			return parent::setItem($index, $item, $send);
 		}
 
@@ -123,31 +130,34 @@ class ArmorInventory extends BaseInventory
 			$target = [$target];
 		}
 
-		$item = $this->getItem($index);
-		$typeConverter = TypeConverter::getInstance();
+		$pk = new MobArmorEquipmentPacket();
+		$pk->entityRuntimeId = $this->getHolder()->getId();
+		$pk->head = ItemStackWrapper::legacy($this->getHelmet());
+		$pk->chest = ItemStackWrapper::legacy($this->getChestplate());
+		$pk->legs = ItemStackWrapper::legacy($this->getLeggings());
+		$pk->feet = ItemStackWrapper::legacy($this->getBoots());
+		$pk->body = ItemStackWrapper::legacy(ItemFactory::get(Item::AIR));
 
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
 		foreach ($target as $player) {
-			$protocolPlayers[$player->getProtocolVersion()][] = $player;
-		}
+			if ($player === $this->getHolder()) {
+				/** @var Player $player */
 
-		foreach ($protocolPlayers as $protocolVersion => $players) {
-			$itemStack = $typeConverter->coreItemStackToNet($item, $protocolVersion);
-
-			foreach ($players as $player) {
-				if ($player === $this->getHolder()) {
-					$player->sendInventorySlotPackets(ContainerIds::ARMOR, $index, ItemStackWrapper::legacy($itemStack));
+				if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+					$pk2 = new InventorySlotPacket();
+					$pk2->windowId = $player->getWindowId($this);
+					$pk2->inventorySlot = $index;
+					$pk2->item = ItemStackWrapper::legacy($this->getItem($index));
+					$pk2->storage = ItemStackWrapper::legacy(Item::get(Item::AIR));
+					$player->dataPacket(clone $pk2);
 				} else {
-					$player->sendDataPacket(MobArmorEquipmentPacket::create(
-						$this->getHolder()->getId(),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getHelmet(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getChestplate(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getLeggings(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getBoots(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet(ItemFactory::get(ItemIds::AIR), $protocolVersion))
-					));
+					$pk2 = new ContainerSetSlotPacket();
+					$pk2->slot = $index;
+					$pk2->item = ItemStackWrapper::legacy($this->getItem($index));
+					$pk2->windowid = $player->getWindowId($this);
+					$player->dataPacket(clone $pk2);
 				}
+			} else {
+				$player->dataPacket(clone $pk);
 			}
 		}
 	}
@@ -158,31 +168,31 @@ class ArmorInventory extends BaseInventory
 			$target = [$target];
 		}
 
-		$contents = $this->getContents(true);
-		$typeConverter = TypeConverter::getInstance();
+		$pk = new MobArmorEquipmentPacket();
+		$pk->entityRuntimeId = $this->getHolder()->getId();
+		$pk->head = ItemStackWrapper::legacy($this->getHelmet());
+		$pk->chest = ItemStackWrapper::legacy($this->getChestplate());
+		$pk->legs = ItemStackWrapper::legacy($this->getLeggings());
+		$pk->feet = ItemStackWrapper::legacy($this->getBoots());
+		$pk->body = ItemStackWrapper::legacy(ItemFactory::get(Item::AIR));
 
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
 		foreach ($target as $player) {
-			$protocolPlayers[$player->getProtocolVersion()][] = $player;
-		}
-
-		foreach ($protocolPlayers as $protocolVersion => $players) {
-			$itemStacks = array_map(fn (Item $item) => $typeConverter->coreItemStackToNet($item, $protocolVersion), $contents);
-
-			foreach ($players as $player) {
-				if ($player === $this->getHolder()) {
-					$player->sendInventoryContentPackets(ContainerIds::ARMOR, array_map(fn (ItemStack $itemStack) => ItemStackWrapper::legacy($itemStack), $itemStacks));
+			if ($player === $this->getHolder()) {
+				if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+					$pk2 = new InventoryContentPacket();
+					$pk2->windowId = $player->getWindowId($this);
+					$pk2->items = array_map(fn (Item $item) => ItemStackWrapper::legacy($item), $this->getContents(true));
+					$pk2->storage = ItemStackWrapper::legacy(Item::get(Item::AIR));
+					$player->dataPacket(clone $pk2);
 				} else {
-					$player->sendDataPacket(MobArmorEquipmentPacket::create(
-						$this->getHolder()->getId(),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getHelmet(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getChestplate(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getLeggings(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet($this->getBoots(), $protocolVersion)),
-						ItemStackWrapper::legacy($typeConverter->coreItemStackToNet(ItemFactory::get(ItemIds::AIR), $protocolVersion))
-					));
+					$pk2 = new ContainerSetContentPacket();
+					$pk2->windowId = $player->getWindowId($this);
+					$pk2->targetEid = $player->getId();
+					$pk2->slots = array_map(fn (Item $item) => ItemStackWrapper::legacy($item), $this->getContents(true));
+					$player->dataPacket(clone $pk2);
 				}
+			} else {
+				$player->dataPacket(clone $pk);
 			}
 		}
 	}

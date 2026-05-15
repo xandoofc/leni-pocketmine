@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
+use pocketmine\item\TieredTool;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class PaleOakSlab extends WoodenSlab
@@ -38,21 +39,31 @@ class PaleOakSlab extends WoodenSlab
 		return 0x00;
 	}
 
-	public function getTopBitmask() : int
+	public function getVariantTopBitmask() : int
 	{
 		return 0x01;
 	}
 
 	public function getName() : string
 	{
-		return ($this->isTop() ? "Upper " : "") . "Pale Oak Slab";
+		return (($this->meta & 0x01) > 0 ? "Upper " : "") . "Pale Oak Slab";
+	}
+
+	public function getToolType() : int
+	{
+		return BlockToolType::TYPE_PICKAXE;
+	}
+
+	public function getToolHarvestLevel() : int
+	{
+		return TieredTool::TIER_WOODEN;
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::WOODEN_SLAB, ($this->isTop() ? 0x08 : 0));
+			return Block::get(Block::WOODEN_SLAB, (($this->meta & 0x01) > 0) ? 0 : 8);
 		}
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

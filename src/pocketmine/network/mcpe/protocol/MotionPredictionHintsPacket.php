@@ -29,9 +29,12 @@ class MotionPredictionHintsPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::MOTION_PREDICTION_HINTS_PACKET;
 
-	public int $entityRuntimeId;
-	public Vector3 $motion;
-	public bool $onGround;
+	/** @var int */
+	private $entityRuntimeId;
+	/** @var Vector3 */
+	private $motion;
+	/** @var bool */
+	private $onGround;
 
 	public static function create(int $entityRuntimeId, Vector3 $motion, bool $onGround) : self
 	{
@@ -45,7 +48,7 @@ class MotionPredictionHintsPacket extends DataPacket
 	public function getEntityRuntimeIdField() : int
 	{
 		return $this->entityRuntimeId;
-	}
+	} //TODO: rename this on PM4 (crap architecture, thanks shoghi)
 
 	public function getMotion() : Vector3
 	{

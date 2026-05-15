@@ -22,8 +22,8 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol\types;
 
-final class SubChunkRequestResult
-{
+final class SubChunkRequestResult{
+
 	public const SUCCESS = 1;
 	//why even respond at all in these cases? ...
 	public const NO_SUCH_CHUNK = 2;

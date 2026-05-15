@@ -23,12 +23,12 @@ declare(strict_types=1);
 namespace pocketmine\inventory\transaction;
 
 use pocketmine\event\inventory\CraftItemEvent;
+use pocketmine\inventory\CraftingManager;
 use pocketmine\inventory\CraftingRecipe;
 use pocketmine\item\Item;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-use pocketmine\Player;
 
 use function array_pop;
 use function count;
@@ -51,20 +51,15 @@ use function intdiv;
  */
 class CraftingTransaction extends InventoryTransaction
 {
-	protected ?CraftingRecipe $recipe = null;
-	protected ?int $repetitions = null;
+	/** @var CraftingRecipe|null */
+	protected $recipe;
+	/** @var int|null */
+	protected $repetitions;
 
 	/** @var Item[] */
-	protected array $inputs = [];
+	protected $inputs = [];
 	/** @var Item[] */
-	protected array $outputs = [];
-
-	public function __construct(Player $source, array $actions = [], ?CraftingRecipe $recipe = null, ?int $repetitions = null)
-	{
-		parent::__construct($source, $actions);
-		$this->recipe = $recipe;
-		$this->repetitions = $repetitions;
-	}
+	protected $outputs = [];
 
 	/**
 	 * @param Item[] $txItems
@@ -86,7 +81,7 @@ class CraftingTransaction extends InventoryTransaction
 			$recipeItem = array_pop($recipeItems);
 			$needCount = $recipeItem->getCount();
 			foreach ($recipeItems as $i => $otherRecipeItem) {
-				if ($otherRecipeItem->canStackWith($recipeItem)) { //make sure they have the same wildcards set
+				if ($otherRecipeItem->equals($recipeItem)) { //make sure they have the same wildcards set
 					$needCount += $otherRecipeItem->getCount();
 					unset($recipeItems[$i]);
 				}
@@ -94,7 +89,7 @@ class CraftingTransaction extends InventoryTransaction
 
 			$haveCount = 0;
 			foreach ($txItems as $j => $txItem) {
-				if ($txItem->equals($recipeItem, !$wildcards || !$recipeItem->hasAnyDamageValue(), !$wildcards || $recipeItem->hasNamedTag())) {
+				if ($txItem->equals($recipeItem, !$wildcards || !$recipeItem->hasAnyDamageValue(), !$wildcards || $recipeItem->hasCompoundTag())) {
 					$haveCount += $txItem->getCount();
 					unset($txItems[$j]);
 				}
@@ -125,18 +120,6 @@ class CraftingTransaction extends InventoryTransaction
 		return $iterations;
 	}
 
-	private function validateRecipe(CraftingRecipe $recipe, ?int $expectedRepetitions) : int
-	{
-		//compute number of times recipe was crafted
-		$repetitions = $this->matchRecipeItems($this->outputs, $recipe->getResultsFor($this->source->getCraftingGrid()), false);
-		if ($expectedRepetitions !== null && $repetitions !== $expectedRepetitions) {
-			throw new TransactionValidationException("Expected $expectedRepetitions repetitions, got $repetitions");
-		}
-		//assert that $repetitions x recipe ingredients should be consumed
-		$this->matchRecipeItems($this->inputs, $recipe->getIngredientList(), true, $repetitions);
-		return $repetitions;
-	}
-
 	public function validate() : void
 	{
 		$this->squashDuplicateSlotChanges();
@@ -146,29 +129,25 @@ class CraftingTransaction extends InventoryTransaction
 
 		$this->matchItems($this->outputs, $this->inputs);
 
+		$failed = 0;
+		foreach (CraftingManager::matchRecipeByOutputs($this->outputs) as $recipe) {
+			try {
+				//compute number of times recipe was crafted
+				$this->repetitions = $this->matchRecipeItems($this->outputs, $recipe->getResultsFor($this->source->getCraftingGrid()), false);
+				//assert that $repetitions x recipe ingredients should be consumed
+				$this->matchRecipeItems($this->inputs, $recipe->getIngredientList(), true, $this->repetitions);
+
+				//Success!
+				$this->recipe = $recipe;
+				break;
+			} catch (TransactionValidationException $e) {
+				//failed
+				++$failed;
+			}
+		}
+
 		if ($this->recipe === null) {
-			$failed = 0;
-			foreach ($this->source->getServer()->getCraftingManager()->matchRecipeByOutputs($this->outputs, $this->source->getCraftingProtocol()) as $recipe) {
-				try {
-					//compute number of times recipe was crafted
-					$this->repetitions = $this->matchRecipeItems($this->outputs, $recipe->getResultsFor($this->source->getCraftingGrid()), false);
-					//assert that $repetitions x recipe ingredients should be consumed
-					$this->matchRecipeItems($this->inputs, $recipe->getIngredientList(), true, $this->repetitions);
-
-					//Success!
-					$this->recipe = $recipe;
-					break;
-				} catch (TransactionValidationException $e) {
-					//failed
-					++$failed;
-				}
-			}
-
-			if ($this->recipe === null) {
-				throw new TransactionValidationException("Unable to match a recipe to transaction (tried to match against $failed recipes)");
-			}
-		} else {
-			$this->repetitions = $this->validateRecipe($this->recipe, $this->repetitions);
+			throw new TransactionValidationException("Unable to match a recipe to transaction (tried to match against $failed recipes)");
 		}
 	}
 

@@ -30,17 +30,23 @@ class AnimateEntityPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ANIMATE_ENTITY_PACKET;
 
-	public string $animation;
-	public string $nextState;
-	public string $stopExpression;
-	public int $stopExpressionVersion;
-	public string $controller;
-	public float $blendOutTime;
+	/** @var string */
+	private $animation;
+	/** @var string */
+	private $nextState;
+	/** @var string */
+	private $stopExpression;
+	/** @var int */
+	private $stopExpressionVersion;
+	/** @var string */
+	private $controller;
+	/** @var float */
+	private $blendOutTime;
 	/**
 	 * @var int[]
 	 * @phpstan-var list<int>
 	 */
-	public array $actorRuntimeIds;
+	private $actorRuntimeIds;
 
 	/**
 	 * @param int[] $actorRuntimeIds

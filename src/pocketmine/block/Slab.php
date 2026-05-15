@@ -37,15 +37,16 @@ abstract class Slab extends Transparent
 
 	abstract public function getDoubleSlabId() : int;
 
-	public function canBePlacedAt(Block $blockReplace, Vector3 $clickVector, int $face, bool $isClickedBlock) : bool{
-		if(parent::canBePlacedAt($blockReplace, $clickVector, $face, $isClickedBlock)){
+	public function canBePlacedAt(Block $blockReplace, Vector3 $clickVector, int $face, bool $isClickedBlock) : bool
+	{
+		if (parent::canBePlacedAt($blockReplace, $clickVector, $face, $isClickedBlock)) {
 			return true;
 		}
 
-		if($blockReplace instanceof Slab && $blockReplace->isSameType($this)){
-			if($blockReplace->isTop()){ //Trying to combine with top slab
+		if ($blockReplace->getId() === $this->getId() && $blockReplace->getVariant() === $this->getVariant()) {
+			if (($blockReplace->getDamage() & $this->getVariantTopBitmask()) !== 0) { //Trying to combine with top slab
 				return $clickVector->y <= 0.5 || (!$isClickedBlock && $face === Facing::UP);
-			}else{
+			} else {
 				return $clickVector->y >= 0.5 || (!$isClickedBlock && $face === Facing::DOWN);
 			}
 		}
@@ -53,17 +54,51 @@ abstract class Slab extends Transparent
 		return false;
 	}
 
-	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
-		if($blockReplace instanceof Slab && $blockReplace->isSameType($this) && (
-				($blockReplace->isTop() && ($clickVector->y <= 0.5 || $face === Facing::UP)) ||
-				(!$blockReplace->isTop() && ($clickVector->y >= 0.5 || $face === Facing::DOWN))
-			)){
-			//Clicked in empty half of existing slab
-			$this->getLevel()->setBlock($blockReplace, BlockFactory::get($this->getDoubleSlabId(), $this->getVariant()), true);
-		}else{
-			$this->setTop(($face !== Facing::UP && $clickVector->y > 0.5) || $face === Facing::DOWN);
-			$this->getLevel()->setBlock($this, $this, true);
+	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
+	{
+		$this->meta &= $this->getVariantBitmask();
+		if ($face === Facing::DOWN) {
+			if ($blockClicked->getId() === $this->id && ($blockClicked->getDamage() & $this->getVariantTopBitmask()) === $this->getVariantTopBitmask() && $blockClicked->getVariant() === $this->getVariant()) {
+				$this->getLevel()->setBlock($blockClicked, BlockFactory::get($this->getDoubleSlabId(), $this->getVariant()), true);
+
+				return true;
+			} elseif ($blockReplace->getId() === $this->id && $blockReplace->getVariant() === $this->getVariant()) {
+				$this->getLevel()->setBlock($blockReplace, BlockFactory::get($this->getDoubleSlabId(), $this->getVariant()), true);
+
+				return true;
+			} else {
+				$this->meta |= $this->getVariantTopBitmask();
+			}
+		} elseif ($face === Facing::UP) {
+			if ($blockClicked->getId() === $this->id && ($blockClicked->getDamage() & $this->getVariantTopBitmask()) === 0 && $blockClicked->getVariant() === $this->getVariant()) {
+				$this->getLevel()->setBlock($blockClicked, BlockFactory::get($this->getDoubleSlabId(), $this->getVariant()), true);
+
+				return true;
+			} elseif ($blockReplace->getId() === $this->id && $blockReplace->getVariant() === $this->getVariant()) {
+				$this->getLevel()->setBlock($blockReplace, BlockFactory::get($this->getDoubleSlabId(), $this->getVariant()), true);
+
+				return true;
+			}
+		} else { //TODO: collision
+			if ($blockReplace->getId() === $this->id) {
+				if ($blockReplace->getVariant() === $this->getVariant()) {
+					$this->getLevel()->setBlock($blockReplace, BlockFactory::get($this->getDoubleSlabId(), $this->getVariant()), true);
+
+					return true;
+				}
+
+				return false;
+			} else {
+				if ($clickVector->y > 0.5) {
+					$this->meta |= $this->getVariantTopBitmask();
+				}
+			}
 		}
+
+		if ($blockReplace->getId() === $this->id && $blockClicked->getVariant() !== $this->getVariant()) {
+			return false;
+		}
+		$this->getLevel()->setBlock($blockReplace, $this, true, true);
 
 		return true;
 	}
@@ -73,21 +108,14 @@ abstract class Slab extends Transparent
 		return 0x07;
 	}
 
-	public function getTopBitmask() : int {
+	public function getVariantTopBitmask() : int
+	{
 		return 0x08;
-	}
-
-	public function isTop() : bool {
-		return ($this->meta & $this->getTopBitmask()) !== 0;
-	}
-
-	public function setTop(bool $value) : void {
-		$this->meta = ($this->meta & ~$this->getTopBitmask()) | ($value ? $this->getTopBitmask() : 0);
 	}
 
 	protected function recalculateBoundingBox() : ?AxisAlignedBB
 	{
-		if ($this->isTop()) {
+		if (($this->meta & $this->getVariantTopBitmask()) > 0) { //up slab
 			return new AxisAlignedBB(
 				$this->x,
 				$this->y + 0.5,
@@ -110,6 +138,6 @@ abstract class Slab extends Transparent
 
 	public function isPassable() : bool
 	{
-		return $this->isTop();
+		return ($this->meta & $this->getVariantTopBitmask()) < 0;
 	}
 }

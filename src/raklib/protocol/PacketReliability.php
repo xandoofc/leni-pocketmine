@@ -1,29 +1,23 @@
 <?php
 
 /*
+ * This file is part of RakLib.
+ * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/RakLib>
  *
- *   _____       _                          _
- *  / ____|     | |                        (_)
- * | (___  _   _| |__  _ __ ___   __ _ _ __ _ _ __   ___
- *  \___ \| | | | '_ \| '_ ` _ \ / _` | '__| | '_ \ / _ \
- *  ____) | |_| | |_) | | | | | | (_| | |  | | | | |  __/
- * |_____/ \__,_|_.__/|_| |_| |_|\__,_|_|  |_|_| |_|\___|
+ * RakLib is not affiliated with Jenkins Software LLC nor RakNet.
  *
- * This program is private software. No license required.
- * Publication of this program is forbidden and will be punished.
- *
- * @author SEMENNEJO
- * @link vk.com/vk.snikers && t.me/semennejo
- *
- *
+ * RakLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 declare(strict_types=1);
 
 namespace raklib\protocol;
 
-abstract class PacketReliability
-{
+abstract class PacketReliability{
+
 	/*
 	 * From https://github.com/OculusVR/RakNet/blob/master/Source/PacketPriority.h
 	 *
@@ -43,39 +37,35 @@ abstract class PacketReliability
 
 	public const MAX_ORDER_CHANNELS = 32;
 
-	public static function isReliable(int $reliability) : bool
-	{
+	public static function isReliable(int $reliability) : bool{
 		return (
-			$reliability === self::RELIABLE ||
-			$reliability === self::RELIABLE_ORDERED ||
-			$reliability === self::RELIABLE_SEQUENCED ||
-			$reliability === self::RELIABLE_WITH_ACK_RECEIPT ||
+			$reliability === self::RELIABLE or
+			$reliability === self::RELIABLE_ORDERED or
+			$reliability === self::RELIABLE_SEQUENCED or
+			$reliability === self::RELIABLE_WITH_ACK_RECEIPT or
 			$reliability === self::RELIABLE_ORDERED_WITH_ACK_RECEIPT
 		);
 	}
 
-	public static function isSequenced(int $reliability) : bool
-	{
+	public static function isSequenced(int $reliability) : bool{
 		return (
-			$reliability === self::UNRELIABLE_SEQUENCED ||
+			$reliability === self::UNRELIABLE_SEQUENCED or
 			$reliability === self::RELIABLE_SEQUENCED
 		);
 	}
 
-	public static function isOrdered(int $reliability) : bool
-	{
+	public static function isOrdered(int $reliability) : bool{
 		return (
-			$reliability === self::RELIABLE_ORDERED ||
+			$reliability === self::RELIABLE_ORDERED or
 			$reliability === self::RELIABLE_ORDERED_WITH_ACK_RECEIPT
 		);
 	}
 
-	public static function isSequencedOrOrdered(int $reliability) : bool
-	{
+	public static function isSequencedOrOrdered(int $reliability) : bool{
 		return (
-			$reliability === self::UNRELIABLE_SEQUENCED ||
-			$reliability === self::RELIABLE_ORDERED ||
-			$reliability === self::RELIABLE_SEQUENCED ||
+			$reliability === self::UNRELIABLE_SEQUENCED or
+			$reliability === self::RELIABLE_ORDERED or
+			$reliability === self::RELIABLE_SEQUENCED or
 			$reliability === self::RELIABLE_ORDERED_WITH_ACK_RECEIPT
 		);
 	}

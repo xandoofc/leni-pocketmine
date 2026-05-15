@@ -30,7 +30,6 @@ use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\Player;
 use pocketmine\Server;
-
 use function intval;
 use function rand;
 

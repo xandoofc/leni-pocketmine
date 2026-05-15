@@ -25,7 +25,6 @@ namespace pocketmine\item;
 use pocketmine\entity\Effect;
 use pocketmine\entity\EffectInstance;
 use pocketmine\entity\Living;
-use pocketmine\level\sound\BottleEmptySound;
 use pocketmine\Player;
 
 class Potion extends Item implements Consumable
@@ -282,7 +281,7 @@ class Potion extends Item implements Consumable
 
 	public function onConsume(Living $consumer)
 	{
-		$consumer->broadcastSound(new BottleEmptySound($consumer));
+
 	}
 
 	public function getAdditionalEffects() : array

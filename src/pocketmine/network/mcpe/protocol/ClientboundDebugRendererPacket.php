@@ -30,19 +30,27 @@ class ClientboundDebugRendererPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CLIENTBOUND_DEBUG_RENDERER_PACKET;
 
-	public const int TYPE_CLEAR = 1;
-	public const int TYPE_ADD_CUBE = 2;
+	public const TYPE_CLEAR = 1;
+	public const TYPE_ADD_CUBE = 2;
 
-	public int $type;
+	/** @var int */
+	private $type;
 
 	//TODO: if more types are added, we'll probably want to make a separate data type and interfaces
-	public string $text;
-	public Vector3 $position;
-	public float $red;
-	public float $green;
-	public float $blue;
-	public float $alpha;
-	public int $durationMillis;
+	/** @var string */
+	private $text;
+	/** @var Vector3 */
+	private $position;
+	/** @var float */
+	private $red;
+	/** @var float */
+	private $green;
+	/** @var float */
+	private $blue;
+	/** @var float */
+	private $alpha;
+	/** @var int */
+	private $durationMillis;
 
 	private static function base(int $type) : self
 	{

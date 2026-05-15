@@ -22,13 +22,14 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\FortuneDropHelper;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\item\TieredTool;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
+
+use function mt_rand;
 
 class TallGrass extends Flowable
 {
@@ -89,7 +90,7 @@ class TallGrass extends Flowable
 
 	public function getDropsForIncompatibleTool(Item $item) : array
 	{
-		if (FortuneDropHelper::bonusChanceDivisor($item, 8, 2)) {
+		if (mt_rand(0, 15) === 0) {
 			return [
 				ItemFactory::get(Item::WHEAT_SEEDS)
 			];

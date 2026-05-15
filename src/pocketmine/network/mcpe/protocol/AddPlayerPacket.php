@@ -22,11 +22,9 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\item\Item;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\AbilitiesData;
-use pocketmine\network\mcpe\protocol\types\AdventureSettingsData;
 use pocketmine\network\mcpe\protocol\types\DeviceOS;
 use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
 use pocketmine\network\mcpe\protocol\types\EntityLink;
@@ -35,87 +33,63 @@ use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\utils\UUID;
 
 use function count;
+use function is_null;
 
 class AddPlayerPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ADD_PLAYER_PACKET;
 
-	public UUID $uuid;
-	public string $username;
-	public string $thirdPartyName = "";
-	public int $platform = 0;
-	public ?int $entityUniqueId = null; //TODO
-	public int $entityRuntimeId;
-	public string $platformChatId = "";
-	public Vector3 $position;
-	public ?Vector3 $motion;
-	public float $pitch = 0.0;
-	public float $yaw = 0.0;
-	public ?float $headYaw = 0.0;
-	public Item|ItemStackWrapper $item;
-	public int $gameMode = GameMode::SURVIVAL;
-	public array $metadata = [];
-	public ?PropertySyncData $syncedProperties = null;
-	public AbilitiesData $abilitiesData;
-	public ?AdventureSettingsData $adventureSettingsData = null;
+	/** @var UUID */
+	public $uuid;
+	/** @var string */
+	public $username;
+	/** @var string */
+	public $thirdPartyName = "";
+	/** @var int */
+	public $platform = 0;
+	/** @var int|null */
+	public $entityUniqueId = null; //TODO
+	/** @var int */
+	public $entityRuntimeId;
+	/** @var string */
+	public $platformChatId = "";
+	/** @var Vector3 */
+	public $position;
+	/** @var Vector3|null */
+	public $motion;
+	/** @var float */
+	public $pitch = 0.0;
+	/** @var float */
+	public $yaw = 0.0;
+	/** @var float|null */
+	public $headYaw = null; //TODO
+	/** @var ItemStackWrapper */
+	public $item;
+	/** @var int */
+	public $gameMode = GameMode::SURVIVAL;
+	/** @var array */
+	public $metadata = [];
+	/** @var PropertySyncData */
+	public $syncedProperties = null;
+	/** @var AbilitiesData */
+	public $abilitiesData;
+
+	//TODO: adventure settings stuff
+	public $uvarint1 = 0;
+	public $uvarint2 = 0;
+	public $uvarint3 = 0;
+	public $uvarint4 = 0;
+	public $uvarint5 = 0;
+
+	public $long1 = 0;
 
 	/** @var EntityLink[] */
-	public array $links = [];
+	public $links = [];
 
-	public string $deviceId = ""; //TODO: fill player's device ID (???)
-	public int $buildPlatform = DeviceOS::UNKNOWN;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(
-		UUID $uuid,
-		string $username,
-		string $thirdPartyName,
-		int $platform,
-		?int $entityUniqueId,
-		int $entityRuntimeId,
-		string $platformChatId,
-		Vector3 $position,
-		?Vector3 $motion,
-		float $pitch,
-		float $yaw,
-		float $headYaw,
-		Item|ItemStackWrapper $item,
-		int $gameMode,
-		array $metadata,
-		PropertySyncData $syncedProperties,
-		AbilitiesData $abilitiesData,
-		AdventureSettingsData $adventureSettingsData,
-		array $links,
-		string $deviceId,
-		int $buildPlatform
-	) : self
-	{
-		$result = new self();
-		$result->uuid = $uuid;
-		$result->username = $username;
-		$result->thirdPartyName = $thirdPartyName;
-		$result->platform = $platform;
-		$result->entityUniqueId = $entityUniqueId;
-		$result->entityRuntimeId = $entityRuntimeId;
-		$result->platformChatId = $platformChatId;
-		$result->position = $position;
-		$result->motion = $motion;
-		$result->pitch = $pitch;
-		$result->yaw = $yaw;
-		$result->headYaw = $headYaw;
-		$result->item = $item;
-		$result->gameMode = $gameMode;
-		$result->metadata = $metadata;
-		$result->syncedProperties = $syncedProperties;
-		$result->abilitiesData = $abilitiesData;
-		$result->adventureSettingsData = $adventureSettingsData;
-		$result->links = $links;
-		$result->deviceId = $deviceId;
-		$result->buildPlatform = $buildPlatform;
-		return $result;
-	}
+	/** @var string */
+	public $deviceId = ""; //TODO: fill player's device ID (???)
+	/** @var int */
+	public $buildPlatform = DeviceOS::UNKNOWN;
 
 	protected function decodePayload() : void
 	{
@@ -137,7 +111,7 @@ class AddPlayerPacket extends DataPacket
 		$this->pitch = $this->getLFloat();
 		$this->yaw = $this->getLFloat();
 		$this->headYaw = $this->getLFloat();
-		$this->item = $this->getItemStackWrapper($this->getProtocol());
+		$this->item = $this->getSlot($this->getProtocol());
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_503) {
 			$this->gameMode = $this->getVarInt();
 		}
@@ -150,7 +124,13 @@ class AddPlayerPacket extends DataPacket
 				}
 				$this->abilitiesData = AbilitiesData::decode($this, $this->getProtocol());
 			} else {
-				$this->adventureSettingsData = AdventureSettingsData::decode($this, $this->getProtocol());
+				$this->uvarint1 = $this->getUnsignedVarInt();
+				$this->uvarint2 = $this->getUnsignedVarInt();
+				$this->uvarint3 = $this->getUnsignedVarInt();
+				$this->uvarint4 = $this->getUnsignedVarInt();
+				$this->uvarint5 = $this->getUnsignedVarInt();
+
+				$this->long1 = $this->getLLong();
 			}
 
 			$linkCount = $this->getUnsignedVarInt();
@@ -187,7 +167,7 @@ class AddPlayerPacket extends DataPacket
 		$this->putLFloat($this->pitch);
 		$this->putLFloat($this->yaw);
 		$this->putLFloat($this->headYaw ?? $this->yaw);
-		$this->putItemStackWrapper($this->item, $this->getProtocol());
+		$this->putSlot($this->item, $this->getProtocol());
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_503) {
 			$this->putVarInt($this->gameMode);
 		}
@@ -196,18 +176,19 @@ class AddPlayerPacket extends DataPacket
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_137) {
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_534) {
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_557) {
-					if ($this->syncedProperties === null) {
+					if (is_null($this->syncedProperties)) {
 						$this->syncedProperties = new PropertySyncData([], []);
 					}
 					$this->syncedProperties->write($this);
 				}
 				$this->abilitiesData->encode($this, $this->getProtocol());
 			} else {
-				if ($this->adventureSettingsData === null) {
-					$this->adventureSettingsData = new AdventureSettingsData(0, 0, 0, 0, 0, 0);
-				}
-
-				$this->adventureSettingsData->encode($this, $this->getProtocol());
+				$this->putUnsignedVarInt($this->uvarint1);
+				$this->putUnsignedVarInt($this->uvarint2);
+				$this->putUnsignedVarInt($this->uvarint3);
+				$this->putUnsignedVarInt($this->uvarint4);
+				$this->putUnsignedVarInt($this->uvarint5);
+				$this->putLLong($this->long1);
 			}
 
 			$this->putUnsignedVarInt(count($this->links));

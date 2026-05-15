@@ -23,30 +23,17 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\item\Item;
-use pocketmine\item\ItemIds;
+use pocketmine\item\ItemFactory;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\Player;
 use pocketmine\tile\Skull as TileSkull;
 use pocketmine\tile\Tile;
-use function floor;
 
 class Skull extends Flowable
 {
 	protected $id = self::SKULL_BLOCK;
-
-	protected $itemId = ItemIds::SKULL;
-
-	/* List meta types head */
-	public const int TYPE_SKELETON = 0;
-	public const int TYPE_WITHER_SKELETON = 6;
-	public const int TYPE_ZOMBIE = 12;
-	public const int TYPE_PLAYER = 18;
-	public const int TYPE_CREEPER = 24;
-	public const int TYPE_DRAGON = 30;
-	public const int TYPE_PIGLIN = 36;
 
 	public function __construct(int $meta = 0)
 	{
@@ -60,17 +47,7 @@ class Skull extends Flowable
 
 	public function getName() : string
 	{
-		static $names = [
-			TileSkull::TYPE_SKELETON => "Skeleton Skull",
-			TileSkull::TYPE_WITHER_SKELETON => "Wither Skeleton Skull",
-			TileSkull::TYPE_ZOMBIE => "Zombie Head",
-			TileSkull::TYPE_PLAYER => "Player Head",
-			TileSkull::TYPE_CREEPER => "Creeper Head",
-			TileSkull::TYPE_DRAGON => "Dragon Head",
-			TileSkull::TYPE_PIGLIN => "Piglin Head"
-		];
-
-		return $names[$this->getVariant()] ?? "Mob Head";
+		return "Mob Head";
 	}
 
 	protected function recalculateBoundingBox() : ?AxisAlignedBB
@@ -92,16 +69,22 @@ class Skull extends Flowable
 			return false;
 		}
 
-		$this->meta = $this->meta + ($face % 6);
+		$this->meta = $face;
 		$this->getLevel()->setBlock($blockReplace, $this, true);
 		Tile::createTile(Tile::SKULL, $this->getLevel(), TileSkull::createNBT($this, $face, $item, $player));
 
 		return true;
 	}
 
+	private function getItem() : Item
+	{
+		$tile = $this->level->getTile($this);
+		return ItemFactory::get(Item::SKULL, $tile instanceof TileSkull ? $tile->getType() : 0);
+	}
+
 	public function getDropsForCompatibleTool(Item $item) : array
 	{
-		return [$this->asItem()];
+		return [$this->getItem()];
 	}
 
 	public function isAffectedBySilkTouch() : bool
@@ -111,18 +94,6 @@ class Skull extends Flowable
 
 	public function getPickedItem(bool $addUserData = false) : Item
 	{
-		return $this->asItem();
-	}
-
-	public function getVariant() : int{
-		return (int) floor($this->meta / 6);
-	}
-
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::SKULL_BLOCK, ($this->meta % 6));
-		}
-
-		return null;
+		return $this->getItem();
 	}
 }

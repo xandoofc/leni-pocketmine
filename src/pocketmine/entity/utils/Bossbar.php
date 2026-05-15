@@ -28,9 +28,7 @@ use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\AddActorPacket;
 use pocketmine\network\mcpe\protocol\BossEventPacket;
 use pocketmine\network\mcpe\protocol\RemoveActorPacket;
-use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
 use pocketmine\Player;
-
 use function max;
 use function min;
 use function spl_object_id;
@@ -93,31 +91,22 @@ class Bossbar extends Vector3
 
 	public function showTo(Player $player, bool $isViewer = true)
 	{
-		$player->sendDataPacket(AddActorPacket::create(
-			$this->entityId,
-			$this->entityId,
-			EntityIds::SLIME,
-			$this->asVector3(),
-			null,
-			0,
-			0,
-			0,
-			0,
-			[],
-			[
-				Entity::DATA_FLAGS => [
-					Entity::DATA_TYPE_LONG,
-					((1 << Entity::DATA_FLAG_INVISIBLE) | (1 << Entity::DATA_FLAG_IMMOBILE))
-				],
-				Entity::DATA_NAMETAG => [
-					Entity::DATA_TYPE_STRING,
-					$this->title
-				]
+		$pk = new AddActorPacket();
+		$pk->entityRuntimeId = $this->entityId;
+		$pk->type = EntityIds::SLIME;
+		$pk->metadata = [
+			Entity::DATA_FLAGS => [
+				Entity::DATA_TYPE_LONG,
+				((1 << Entity::DATA_FLAG_INVISIBLE) | (1 << Entity::DATA_FLAG_IMMOBILE))
 			],
-			new PropertySyncData([], []),
-			[]
-		));
+			Entity::DATA_NAMETAG => [
+				Entity::DATA_TYPE_STRING,
+				$this->title
+			]
+		];
+		$pk->position = $this;
 
+		$player->sendDataPacket($pk);
 		$this->sendBossEventPacket($player, BossEventPacket::TYPE_SHOW);
 
 		if ($isViewer) {

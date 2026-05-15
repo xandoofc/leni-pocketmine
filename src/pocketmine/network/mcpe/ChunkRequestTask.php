@@ -91,7 +91,7 @@ class ChunkRequestTask extends AsyncTask
 			new ChunkPosition($this->chunkX, $this->chunkZ),
 			$dimensionId,
 			ChunkSerializer::getSubChunkCount($chunk, $dimensionId, $protocol),
-			ChunkSerializer::serializeFullChunk($chunk, $protocol, $legacyToRuntime ?? null, $dimensionId, (mt_rand(0, 100) === 1)) . $this->tiles
+			ChunkSerializer::serializeFullChunk($chunk, $protocol, $legacyToRuntime ?? null, $dimensionId) . $this->tiles
 		);
 		$pk->setProtocol($protocol);
 

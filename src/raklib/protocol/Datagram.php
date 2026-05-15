@@ -1,29 +1,22 @@
 <?php
 
 /*
+ * This file is part of RakLib.
+ * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/RakLib>
  *
- *   _____       _                          _
- *  / ____|     | |                        (_)
- * | (___  _   _| |__  _ __ ___   __ _ _ __ _ _ __   ___
- *  \___ \| | | | '_ \| '_ ` _ \ / _` | '__| | '_ \ / _ \
- *  ____) | |_| | |_) | | | | | | (_| | |  | | | | |  __/
- * |_____/ \__,_|_.__/|_| |_| |_|\__,_|_|  |_|_| |_|\___|
+ * RakLib is not affiliated with Jenkins Software LLC nor RakNet.
  *
- * This program is private software. No license required.
- * Publication of this program is forbidden and will be punished.
- *
- * @author SEMENNEJO
- * @link vk.com/vk.snikers && t.me/semennejo
- *
- *
+ * RakLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 declare(strict_types=1);
 
 namespace raklib\protocol;
 
-class Datagram extends Packet
-{
+class Datagram extends Packet{
 	public const BITFLAG_VALID = 0x80;
 	public const BITFLAG_ACK = 0x40;
 	public const BITFLAG_NAK = 0x20; // hasBAndAS for ACKs
@@ -43,15 +36,13 @@ class Datagram extends Packet
 	public array $packets = [];
 	public int $seqNumber;
 
-	protected function encodeHeader(PacketSerializer $out) : void
-	{
+	protected function encodeHeader(PacketSerializer $out) : void{
 		$out->putByte(self::BITFLAG_VALID | $this->headerFlags);
 	}
 
-	protected function encodePayload(PacketSerializer $out) : void
-	{
+	protected function encodePayload(PacketSerializer $out) : void{
 		$out->putLTriad($this->seqNumber);
-		foreach ($this->packets as $packet) {
+		foreach($this->packets as $packet){
 			$out->put($packet->toBinary());
 		}
 	}
@@ -59,26 +50,23 @@ class Datagram extends Packet
 	/**
 	 * @return int
 	 */
-	public function length()
-	{
+	public function length(){
 		$length = self::HEADER_SIZE;
-		foreach ($this->packets as $packet) {
+		foreach($this->packets as $packet){
 			$length += $packet->getTotalLength();
 		}
 
 		return $length;
 	}
 
-	protected function decodeHeader(PacketSerializer $in) : void
-	{
+	protected function decodeHeader(PacketSerializer $in) : void{
 		$this->headerFlags = $in->getByte();
 	}
 
-	protected function decodePayload(PacketSerializer $in) : void
-	{
+	protected function decodePayload(PacketSerializer $in) : void{
 		$this->seqNumber = $in->getLTriad();
 
-		while (!$in->feof()) {
+		while(!$in->feof()){
 			$this->packets[] = EncapsulatedPacket::fromBinary($in);
 		}
 	}

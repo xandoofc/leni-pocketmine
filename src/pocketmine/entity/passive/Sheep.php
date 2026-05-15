@@ -81,10 +81,9 @@ class Sheep extends Animal
 		return "Sheep";
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
-			$item = $player->getInventory()->getItemInHand();
 			if ($item instanceof Shears && !$this->isSheared()) {
 				$this->setSheared(true);
 				$item->applyDamage(1);
@@ -114,7 +113,7 @@ class Sheep extends Animal
 				return true;
 			}
 		}
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function getXpDropAmount() : int

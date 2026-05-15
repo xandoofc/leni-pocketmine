@@ -66,7 +66,7 @@ final class GrindstoneStackRequestAction extends ItemStackRequestAction
 			$repetitions = $in->getByte();
 		}
 
-		return new self($recipeId, $repairCost, $repetitions ?? 1);
+		return new self($recipeId, $repairCost, $repetitions ?? 0);
 	}
 
 	public function write(NetworkBinaryStream $out, int $playerProtocol) : void

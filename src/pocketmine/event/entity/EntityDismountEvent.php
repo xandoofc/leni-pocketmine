@@ -37,13 +37,11 @@ class EntityDismountEvent extends EntityEvent implements Cancellable
 		$this->immediate = $immediate;
 	}
 
-	public function getRidden() : Entity
-	{
+	public function getRidden() : Entity {
 		return $this->ridden;
 	}
 
-	public function getImmediate() : bool
-	{
+	public function getImmediate() : bool {
 		return $this->immediate;
 	}
 }

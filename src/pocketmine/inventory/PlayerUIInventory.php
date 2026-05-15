@@ -49,7 +49,7 @@ class PlayerUIInventory extends BaseInventory
 				$window = $this->holder->findWindow(FakeInventory::class) ?? $this->holder->getCraftingGrid();
 
 				if ($window instanceof FakeInventory) {
-					$slot = $window->getUIOffsets(null)[$index] ?? -1;
+					$slot = $window->getUIOffsets()[$index] ?? -1;
 
 					if ($window->slotExists($slot)) {
 						$window->setItem($slot, $item, $send);
@@ -77,8 +77,7 @@ class PlayerUIInventory extends BaseInventory
 		return $this->holder;
 	}
 
-	public function sendContents($target) : void
-	{
+	public function sendContents($target) : void{
 		//TODO: HACK!
 		//Since 1.13, this is now part of a larger "UI inventory", and sending contents for this larger inventory does
 		//not work the way it's intended to. Even if it did, it would be necessary to send all 51 slots just to update

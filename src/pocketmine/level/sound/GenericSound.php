@@ -56,6 +56,6 @@ class GenericSound extends Sound
 		$pk->position = $this->asVector3();
 		$pk->data = (int) $this->pitch;
 
-		return [$pk];
+		return $pk;
 	}
 }

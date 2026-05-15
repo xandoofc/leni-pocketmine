@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace pocketmine\plugin;
 
 use pocketmine\thread\ThreadSafeClassLoader;
-
 use function file_exists;
 use function file_get_contents;
 use function is_dir;

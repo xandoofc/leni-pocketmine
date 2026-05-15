@@ -42,12 +42,12 @@ use function microtime;
 use function mkdir;
 use function ord;
 use function random_bytes;
+
 use function rename;
 use function round;
 use function rtrim;
 use function substr;
 use function unpack;
-
 use const DIRECTORY_SEPARATOR;
 
 class FormatConverter
@@ -179,7 +179,7 @@ class FormatConverter
 	/**
 	 * @return string[]
 	 */
-	public static function convertSubChunkFromPaletteXZY(PalettedBlockArray $palettedBlockArray, int $protocol = ProtocolInfo::PROTOCOL_110) : array
+	public static function convertSubChunkFromPaletteXZY(PalettedBlockArray $palettedBlockArray, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array
 	{
 		$idArray = "";
 		$metaArray = "";
@@ -211,7 +211,7 @@ class FormatConverter
 	/**
 	 * @return string[]
 	 */
-	public static function convertSubChunkFromPaletteYZX(PalettedBlockArray $palettedBlockArray, int $protocol = ProtocolInfo::PROTOCOL_110) : array
+	public static function convertSubChunkFromPaletteYZX(PalettedBlockArray $palettedBlockArray, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array
 	{
 		[$idArray, $metaArray] = self::convertSubChunkFromPaletteXZY($palettedBlockArray, $protocol);
 		return [ChunkUtils::reorderByteArray($idArray) . ChunkUtils::reorderNibbleArray($metaArray)];
@@ -222,7 +222,7 @@ class FormatConverter
 	 *
 	 * @return string[]
 	 */
-	public static function convertSubChunkFromPaletteColumn(array $palettedBlocks, int $protocol = ProtocolInfo::PROTOCOL_110) : array
+	public static function convertSubChunkFromPaletteColumn(array $palettedBlocks, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array
 	{
 		$ids = "";
 		$data = "";

@@ -22,10 +22,13 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\TreeType;
+use pocketmine\item\Item;
+use pocketmine\math\Facing;
+use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\Player;
 
-class PaleOakSapling extends Sapling
+class PaleOakSapling extends Flowable
 {
 	protected $id = self::PALE_OAK_SAPLING;
 
@@ -39,26 +42,39 @@ class PaleOakSapling extends Sapling
 		return "Pale Oak Sapling";
 	}
 
-	public function getTreeType() : ?TreeType
-	{
-		return TreeType::PALE_OAK();
-	}
-
 	public function getVariantBitmask() : int
 	{
-		return 0x00;
+		return -1;
 	}
 
-	public function getReadyBitmask() : int {
-		return 0x01;
-	}
-
-	public function getBlockProtocol(int $playerProtocol) : ?Block
+	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
 	{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::SAPLING);
+		$down = $this->getSide(Facing::DOWN);
+		if ($down->getId() === self::GRASS || $down->getId() === self::DIRT || $down->getId() === self::FARMLAND) {
+			$this->getLevel()->setBlock($blockReplace, $this, true, true);
+
+			return true;
 		}
 
-		return null;
+		return false;
+	}
+
+	public function onNearbyBlockChange() : void
+	{
+		if ($this->getSide(Facing::DOWN)->isTransparent()) {
+			$this->getLevel()->useBreakOn($this);
+		}
+	}
+
+	public function getFuelTime() : int
+	{
+		return 100;
+	}
+
+	public function getBlockProtocol(int $playerProtocol) : ?Block{
+		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
+			return Block::get(Block::SAPLING);
+		}
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

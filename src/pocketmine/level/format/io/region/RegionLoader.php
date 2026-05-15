@@ -50,10 +50,10 @@ use function str_repeat;
 use function stream_set_read_buffer;
 use function stream_set_write_buffer;
 use function strlen;
+
 use function time;
 use function touch;
 use function unpack;
-
 use const SORT_NUMERIC;
 use const STR_PAD_RIGHT;
 

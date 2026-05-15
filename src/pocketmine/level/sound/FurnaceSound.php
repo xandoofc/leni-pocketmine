@@ -34,6 +34,11 @@ final class FurnaceSound extends Sound
 
 	public function encode()
 	{
-		return [LevelSoundEventPacket::nonActorSound(LevelSoundEventPacket::SOUND_BLOCK_FURNACE_LIT, $this, false)];
+		$pk = new LevelSoundEventPacket();
+		$pk->sound = LevelSoundEventPacket::SOUND_BLOCK_FURNACE_LIT;
+		$pk->position = $this;
+		$pk->disableRelativeVolume = false;
+
+		return $pk;
 	}
 }

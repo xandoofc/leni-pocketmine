@@ -140,13 +140,11 @@ abstract class AsyncTask extends Runnable
 		$this->result = is_scalar($result) || is_null($result) ? $result : new NonThreadSafeValue($result);
 	}
 
-	public function getWorker() : ?AsyncWorker
-	{
+	public function getWorker() : ?AsyncWorker{
 		return $this->worker;
 	}
 
-	public function setWorker(AsyncWorker $worker) : void
-	{
+	public function setWorker(AsyncWorker $worker) : void{
 		$this->worker = $worker;
 	}
 

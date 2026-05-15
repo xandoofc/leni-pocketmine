@@ -26,12 +26,11 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class NetheriteScarp extends Item
 {
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_407) {
-			return new TranslatedItemData(ItemIds::DIAMOND, $this->getDamage());
+			return Item::get(Item::DIAMOND, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

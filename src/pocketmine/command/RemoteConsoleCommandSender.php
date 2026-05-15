@@ -43,8 +43,7 @@ class RemoteConsoleCommandSender extends ConsoleCommandSender
 		$this->messages .= trim($message, "\r\n") . "\n";
 	}
 
-	public function sendMessagef(string $format, mixed ...$args) : void
-	{
+	public function sendMessagef(string $format, mixed ...$args) : void{
 		$this->sendMessage(sprintf($format, ...$args));
 	}
 

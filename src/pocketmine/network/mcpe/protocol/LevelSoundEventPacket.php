@@ -561,10 +561,7 @@ class LevelSoundEventPacket extends DataPacket
 	public const SOUND_UNSADDLE = 560;
 	public const SOUND_ARMOR_EQUIP_COPPER = 561;
 	public const SOUND_RECORD_LAVA_CHICKEN = 562;
-	public const SOUND_PLACE_ITEM = 563;
-	public const SOUND_SINGLE_ITEM_SWAP = 564;
-	public const SOUND_MULTI_ITEM_SWAP = 565;
-	public const SOUND_UNDEFINED = 566;
+	public const SOUND_UNDEFINED = 563;
 
 	public int $sound;
 	public Vector3 $position;
@@ -573,34 +570,6 @@ class LevelSoundEventPacket extends DataPacket
 	public bool $isBabyMob = false;
 	public bool $disableRelativeVolume = false;
 	public int $actorUniqueId = -1;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(
-		int $sound,
-		Vector3 $position,
-		int $extraData,
-		string $entityType,
-		bool $isBabyMob,
-		bool $disableRelativeVolume,
-		int $actorUniqueId,
-	) : self {
-		$result = new self();
-		$result->sound = $sound;
-		$result->position = $position;
-		$result->extraData = $extraData;
-		$result->entityType = $entityType;
-		$result->isBabyMob = $isBabyMob;
-		$result->disableRelativeVolume = $disableRelativeVolume;
-		$result->actorUniqueId = $actorUniqueId;
-		return $result;
-	}
-
-	public static function nonActorSound(int $sound, Vector3 $position, bool $disableRelativeVolume, int $extraData = -1) : self
-	{
-		return self::create($sound, $position, $extraData, ":", false, $disableRelativeVolume, -1);
-	}
 
 	protected function decodePayload() : void
 	{
@@ -650,7 +619,11 @@ class LevelSoundEventPacket extends DataPacket
 
 		$this->putVector3($this->position);
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_223) {
-			$this->putVarInt($this->extraData);
+			if ($this->sound === self::SOUND_HIT || $this->sound === self::SOUND_PLACE || $this->sound === self::SOUND_BREAK) {
+				$this->putVarInt(RuntimeBlockMapping::getInstance($this->getProtocol())->toRuntimeId($this->extraData << Block::INTERNAL_METADATA_BITS));
+			} else {
+				$this->putVarInt($this->extraData);
+			}
 		} else {
 			if ($this->sound === self::SOUND_NOTE) {
 				$this->putVarInt($this->extraData >> 8);

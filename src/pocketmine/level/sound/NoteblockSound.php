@@ -61,7 +61,12 @@ class NoteblockSound extends Sound
 
 	public function encode()
 	{
-		$pk = BlockEventPacket::create($this->x, $this->y, $this->z, $this->instrument, $this->note);
+		$pk = new BlockEventPacket();
+		$pk->x = $this->x;
+		$pk->y = $this->y;
+		$pk->z = $this->z;
+		$pk->eventType = $this->instrument;
+		$pk->eventData = $this->note;
 
 		$pk2 = new LevelSoundEventPacket();
 		$pk2->sound = LevelSoundEventPacket::SOUND_NOTE;

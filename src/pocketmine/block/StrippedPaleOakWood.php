@@ -22,37 +22,58 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\PillarRotationHelper;
-use pocketmine\item\Item;
-use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\Player;
 
-class StrippedPaleOakWood extends Wood
+class StrippedPaleOakWood extends Solid
 {
+
 	protected $id = self::STRIPPED_PALE_OAK_WOOD;
+
+	public function __construct(int $meta = 0)
+	{
+		$this->meta = $meta;
+	}
 
 	public function getName() : string
 	{
 		return "Stripped Pale Oak Wood";
 	}
 
-	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
+	public function getHardness() : float
 	{
-		$this->meta = PillarRotationHelper::getMetaFromFace($this->meta, $face, true);
-		$this->getLevel()->setBlock($blockReplace, $this, true, true);
-		return true;
+		return 2;
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::LOG, match ($this->meta) {
-				0x01 => 0x04,
-				0x02 => 0x08,
-				default => 0,
-			});
-		}
+	public function getToolType() : int
+	{
+		return BlockToolType::TYPE_AXE;
+	}
 
-		return null;
+	public function getFuelTime() : int
+	{
+		return 300;
+	}
+
+	public function getFlameEncouragement() : int
+	{
+		return 5;
+	}
+
+	public function getFlammability() : int
+	{
+		return 5;
+	}
+
+	public function getVariantBitmask() : int
+	{
+		return 0;
+	}
+
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
+		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
+			return Block::get(Block::LOG, 0);
+		}
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

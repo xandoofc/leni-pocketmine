@@ -28,7 +28,8 @@ class ClientCacheStatusPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CLIENT_CACHE_STATUS_PACKET;
 
-	public bool $enabled;
+	/** @var bool */
+	private $enabled;
 
 	public static function create(bool $enabled) : self
 	{

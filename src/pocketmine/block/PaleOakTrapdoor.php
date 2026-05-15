@@ -26,6 +26,7 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class PaleOakTrapdoor extends WoodenTrapdoor
 {
+
 	protected $id = self::PALE_OAK_TRAPDOOR;
 
 	public function __construct(int $meta = 0)
@@ -41,9 +42,8 @@ class PaleOakTrapdoor extends WoodenTrapdoor
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::WOODEN_TRAPDOOR, $this->meta);
+			return Block::get(Block::WOODEN_TRAPDOOR, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

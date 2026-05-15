@@ -33,12 +33,11 @@ class TallDryGrass extends ShortDryGrass
 		return "Tall Dry Grass";
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block
-	{
+	public function getBlockProtocol(int $playerProtocol) : ?Block{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_786) {
 			return BlockFactory::get(BlockIds::TALL_GRASS);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

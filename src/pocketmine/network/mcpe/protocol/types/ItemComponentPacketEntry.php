@@ -26,8 +26,10 @@ use pocketmine\nbt\tag\CompoundTag;
 
 final class ItemComponentPacketEntry
 {
-	private string $name;
-	private CompoundTag $componentNbt;
+	/** @var string */
+	private $name;
+	/** @var CompoundTag */
+	private $componentNbt;
 
 	public function __construct(string $name, CompoundTag $componentNbt)
 	{

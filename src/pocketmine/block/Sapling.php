@@ -63,18 +63,6 @@ class Sapling extends Flowable
 		return $names[$this->getVariant()] ?? "Unknown";
 	}
 
-	public function getTreeType() : ?TreeType {
-		static $types = [
-			0 => TreeType::OAK(),
-			1 => TreeType::SPRUCE(),
-			2 => TreeType::BIRCH(),
-			3 => TreeType::JUNGLE(),
-			4 => TreeType::ACACIA(),
-			5 => TreeType::DARK_OAK()
-		];
-		return $types[$this->getVariant()] ?? null;
-	}
-
 	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
 	{
 		$down = $this->getSide(Facing::DOWN);
@@ -89,7 +77,19 @@ class Sapling extends Flowable
 
 	public function onActivate(Item $item, Player $player = null) : bool
 	{
-		if ($item instanceof Fertilizer && $this->grow()) {
+		if ($item instanceof Fertilizer) {
+			$block = clone $this;
+			$ev = new BlockGrowEvent($this, $block);
+			$ev->call();
+			if (!$ev->isCancelled()) {
+				$random = new Random(mt_rand());
+				$transaction = TreeFactory::get($random, TreeType::fromMagicNumber($this->getVariant()))?->getBlockTransaction($this->level, $this->x, $this->y, $this->z, $random);
+				if ($transaction === null) {
+					return false;
+				}
+				$transaction->apply();
+			}
+
 			$item->pop();
 
 			return true;
@@ -113,50 +113,28 @@ class Sapling extends Flowable
 	public function onRandomTick() : void
 	{
 		if ($this->level->getFullLightAt($this->x, $this->y, $this->z) >= 8 && mt_rand(1, 7) === 1) {
-			if ($this->isReady()) {
-				$this->grow();
+			if (($this->meta & 0x08) === 0x08) {
+				$block = clone $this;
+				$ev = new BlockGrowEvent($this, $block);
+				$ev->call();
+				if (!$ev->isCancelled()) {
+					$random = new Random(mt_rand());
+					$transaction = TreeFactory::get($random, TreeType::fromMagicNumber($this->getVariant()))?->getBlockTransaction($this->level, $this->x, $this->y, $this->z, $random);
+					if ($transaction === null) {
+						return;
+					}
+					$transaction->apply();
+				}
 			} else {
-				$this->setReady(true);
+				$this->meta |= 0x08;
 				$this->getLevel()->setBlock($this, $this, true);
 			}
 		}
 	}
 
-	public function grow() : bool {
-		$block = clone $this;
-		$ev = new BlockGrowEvent($this, $block);
-		$ev->call();
-		if (!$ev->isCancelled()) {
-			$treeType = $this->getTreeType();
-			if ($treeType !== null) {
-				$random = new Random(mt_rand());
-				$transaction = TreeFactory::get($random, $treeType)?->getBlockTransaction($this->level, $this->x, $this->y, $this->z, $random);
-				if ($transaction === null) {
-					return false;
-				}
-
-				$transaction->apply();
-			}
-		}
-
-		return true;
-	}
-
 	public function getVariantBitmask() : int
 	{
 		return 0x07;
-	}
-
-	public function getReadyBitmask() : int {
-		return 0x08;
-	}
-
-	public function isReady() : bool {
-		return ($this->meta & $this->getReadyBitmask()) !== 0;
-	}
-
-	public function setReady(bool $value) : void {
-		$this->meta = ($this->meta & ~$this->getReadyBitmask()) | ($value ? $this->getReadyBitmask() : 0);
 	}
 
 	public function getFuelTime() : int

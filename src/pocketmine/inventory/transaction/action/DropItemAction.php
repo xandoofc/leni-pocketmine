@@ -41,17 +41,21 @@ class DropItemAction extends InventoryAction
 		return !$this->targetItem->isNull();
 	}
 
-	public function onPreExecute(Player $source) : bool
-	{
+	public function onPreExecute(Player $source) : bool{
 		return $source->dropItem($this->targetItem);
 	}
 
-	public function execute(Player $source) : void
+	public function execute(Player $source) : bool
+	{
+		return true;
+	}
+
+	public function onExecuteSuccess(Player $source) : void
 	{
 
 	}
 
-	public function revert(Player $source) : void
+	public function onExecuteFail(Player $source) : void
 	{
 
 	}

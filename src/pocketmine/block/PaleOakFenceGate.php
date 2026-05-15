@@ -33,17 +33,16 @@ class PaleOakFenceGate extends FenceGate
 		$this->meta = $meta;
 	}
 
-	public function getName() : string
-	{
+	public function getName() : string{
 		return "Pale Oak Fence Gate";
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::FENCE_GATE, $this->meta);
+			return Block::get(Block::FENCE_GATE, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

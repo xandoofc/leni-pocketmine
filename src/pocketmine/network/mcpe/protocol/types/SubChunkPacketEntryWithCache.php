@@ -24,34 +24,25 @@ namespace pocketmine\network\mcpe\protocol\types;
 
 use pocketmine\network\mcpe\NetworkBinaryStream;
 
-final class SubChunkPacketEntryWithCache
-{
+final class SubChunkPacketEntryWithCache{
+
 	public function __construct(
 		private SubChunkPacketEntryCommon $base,
 		private int $usedBlobHash
-	) {
-	}
+	){}
 
-	public function getBase() : SubChunkPacketEntryCommon
-	{
-		return $this->base;
-	}
+	public function getBase() : SubChunkPacketEntryCommon{ return $this->base; }
 
-	public function getUsedBlobHash() : int
-	{
-		return $this->usedBlobHash;
-	}
+	public function getUsedBlobHash() : int{ return $this->usedBlobHash; }
 
-	public static function read(NetworkBinaryStream $in, int $protocolVersion) : self
-	{
+	public static function read(NetworkBinaryStream $in, int $protocolVersion) : self{
 		$base = SubChunkPacketEntryCommon::read($in, true, $protocolVersion);
 		$usedBlobHash = $in->getLLong();
 
 		return new self($base, $usedBlobHash);
 	}
 
-	public function write(NetworkBinaryStream $out, int $protocolVersion) : void
-	{
+	public function write(NetworkBinaryStream $out, int $protocolVersion) : void{
 		$this->base->write($out, true, $protocolVersion);
 		$out->putLLong($this->usedBlobHash);
 	}

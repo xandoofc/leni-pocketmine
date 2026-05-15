@@ -28,16 +28,20 @@ class PacketViolationWarningPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::PACKET_VIOLATION_WARNING_PACKET;
 
-	public const int TYPE_MALFORMED = 0;
+	public const TYPE_MALFORMED = 0;
 
-	public const int SEVERITY_WARNING = 0;
-	public const int SEVERITY_FINAL_WARNING = 1;
-	public const int SEVERITY_TERMINATING_CONNECTION = 2;
+	public const SEVERITY_WARNING = 0;
+	public const SEVERITY_FINAL_WARNING = 1;
+	public const SEVERITY_TERMINATING_CONNECTION = 2;
 
-	public int $type;
-	public int $severity;
-	public int $packetId;
-	public string $message;
+	/** @var int */
+	private $type;
+	/** @var int */
+	private $severity;
+	/** @var int */
+	private $packetId;
+	/** @var string */
+	private $message;
 
 	public static function create(int $type, int $severity, int $packetId, string $message) : self
 	{

@@ -22,8 +22,8 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\FullContainerName;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 
@@ -34,26 +34,14 @@ class InventoryContentPacket extends DataPacket
 	public const NETWORK_ID = ProtocolInfo::INVENTORY_CONTENT_PACKET;
 
 	public int $windowId;
-	/** @var Item|ItemStackWrapper[] */
+	/** @var ItemStackWrapper[] */
 	public array $items = [];
 	/** @var int[] */
 	public array $index = [];
 	public FullContainerName $containerName;
-	public Item|ItemStackWrapper $storage;
-
-	/**
-	 * @generate-create-func
-	 * @param Item|ItemStackWrapper[] $items
-	 */
-	public static function create(int $windowId, array $items, FullContainerName $containerName, Item|ItemStackWrapper $storage) : self
-	{
-		$result = new self();
-		$result->windowId = $windowId;
-		$result->items = $items;
-		$result->containerName = $containerName;
-		$result->storage = $storage;
-		return $result;
-	}
+	public int $dynamicContainerSize = 0; //??
+	public int $dynamicContainerId = 0; //??
+	public ItemStackWrapper $storage;
 
 	protected function decodePayload() : void
 	{
@@ -61,18 +49,19 @@ class InventoryContentPacket extends DataPacket
 		$count = $this->getUnsignedVarInt();
 		for ($i = 0; $i < $count; ++$i) {
 			$this->index[] = $this->getVarInt();
-			$this->items[] = $this->getItemStackWrapper($this->getProtocol());
+			$this->items[] = $this->getSlot($this->getProtocol());
 		}
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_712) {
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_729) {
 				$this->containerName = FullContainerName::read($this, $this->getProtocol());
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_748) {
-					$this->storage = $this->getItemStackWrapper($this->getProtocol());
+					$this->storage = $this->getSlot($this->getProtocol());
 				} else {
-					$this->getUnsignedVarInt(); //TODO: dynamicContainerSize, WTF?
+					$this->dynamicContainerSize = $this->getUnsignedVarInt();
 				}
 			} else {
-				$this->containerName = new FullContainerName($this->getUnsignedVarInt());
+				$this->containerName = new FullContainerName(0);
+				$this->dynamicContainerId = $this->getUnsignedVarInt();
 			}
 		}
 	}
@@ -90,19 +79,18 @@ class InventoryContentPacket extends DataPacket
 					$this->putVarInt($index++);
 				}
 			}
-			$this->putItemStackWrapper($item, $this->getProtocol());
+			$this->putSlot($item, $this->getProtocol(), true, $this->windowId !== ContainerIds::CREATIVE);
 		}
-
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_712) {
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_729) {
 				($this->containerName ?? new FullContainerName(0))->write($this, $this->getProtocol());
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_748) {
-					$this->putItemStackWrapper($this->storage, $this->getProtocol());
+					$this->putSlot($this->storage, $this->getProtocol());
 				} else {
-					$this->putUnsignedVarInt(0); //TODO: dynamicContainerSize, WTF?
+					$this->putUnsignedVarInt($this->dynamicContainerSize);
 				}
 			} else {
-				$this->putUnsignedVarInt(($this->containerName ?? new FullContainerName(0))->getContainerId());
+				$this->putUnsignedVarInt($this->dynamicContainerId);
 			}
 		}
 	}

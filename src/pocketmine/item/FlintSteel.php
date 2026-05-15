@@ -24,10 +24,8 @@ namespace pocketmine\item;
 
 use pocketmine\block\Block;
 use pocketmine\block\BlockFactory;
-use pocketmine\block\BlockIds;
-use pocketmine\level\sound\FlintSteelSound;
-use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 
 class FlintSteel extends Tool
@@ -40,10 +38,9 @@ class FlintSteel extends Tool
 	public function onActivate(Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector) : bool
 	{
 		if ($blockReplace->getId() === self::AIR) {
-			$fire = BlockFactory::get((($did = $blockReplace->getSide(Facing::DOWN)->getId()) == BlockIds::SOUL_SAND || $did == BlockIds::SOUL_SOIL) ? BlockIds::SOUL_FIRE : BlockIds::FIRE);
 			$level = $player->getLevel();
-			$level->setBlock($blockReplace, $fire, true);
-			$level->addSound(new FlintSteelSound($blockReplace->add(0.5, 0.5, 0.5)));
+			$level->setBlock($blockReplace, BlockFactory::get(Block::FIRE), true);
+			$level->broadcastLevelSoundEvent($blockReplace->add(0.5, 0.5, 0.5), LevelSoundEventPacket::SOUND_IGNITE);
 
 			$this->applyDamage(1);
 

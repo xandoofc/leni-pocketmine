@@ -57,14 +57,13 @@ class Pickaxe extends TieredTool
 		return $this->applyDamage(2);
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_407) {
-			if ($this->getId() === ItemIds::NETHERITE_PICKAXE) {
-				return new TranslatedItemData(ItemIds::DIAMOND_PICKAXE, $this->getDamage());
+			if ($this->getId() === Item::NETHERITE_PICKAXE) {
+				return Item::get(Item::DIAMOND_PICKAXE, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 			}
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

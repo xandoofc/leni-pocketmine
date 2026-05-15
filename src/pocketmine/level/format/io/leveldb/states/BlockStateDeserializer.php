@@ -58,7 +58,6 @@ use pocketmine\math\Axis;
 use pocketmine\math\Facing;
 use pocketmine\tile\Skull;
 use pocketmine\utils\SingletonTrait;
-
 use function array_key_exists;
 use function count;
 use function min;
@@ -461,13 +460,13 @@ class BlockStateDeserializer
 		foreach ([
 			Ids::CREEPER_HEAD => Skull::TYPE_CREEPER,
 			Ids::DRAGON_HEAD => Skull::TYPE_DRAGON,
-			Ids::PLAYER_HEAD => Skull::TYPE_PLAYER,
-			Ids::PIGLIN_HEAD => Skull::TYPE_PIGLIN,
+			Ids::PLAYER_HEAD => Skull::TYPE_HUMAN,
 			Ids::SKELETON_SKULL => Skull::TYPE_SKELETON,
-			Ids::WITHER_SKELETON_SKULL => Skull::TYPE_WITHER_SKELETON,
+			Ids::WITHER_SKELETON_SKULL => Skull::TYPE_WITHER,
 			Ids::ZOMBIE_HEAD => Skull::TYPE_ZOMBIE
 		] as $id => $mobHeadTypeId) {
-			$this->map($id, fn (Reader $in) => BlockFactory::get(BlockIds::SKULL_BLOCK, ($mobHeadTypeId * 0x06) | $in->readFacingWithoutDown()));
+			//TODO: mobHeadTypeId :(
+			$this->map($id, fn (Reader $in) => BlockFactory::get(BlockIds::SKULL_BLOCK, $in->readFacingWithoutDown()));
 		}
 	}
 

@@ -60,9 +60,7 @@ use function implode;
 use function is_array;
 use function is_dir;
 use function is_file;
-use function is_infinite;
 use function is_int;
-use function is_nan;
 use function is_object;
 use function is_string;
 use function json_decode;
@@ -91,6 +89,7 @@ use function str_replace;
 use function str_split;
 use function str_starts_with;
 use function stripos;
+
 use function strlen;
 use function strpos;
 use function strtr;
@@ -99,7 +98,6 @@ use function sys_get_temp_dir;
 use function trim;
 use function unlink;
 use function xdebug_get_function_stack;
-
 use const DIRECTORY_SEPARATOR;
 use const PHP_EOL;
 use const PHP_INT_MAX;
@@ -190,32 +188,6 @@ class Utils
 		}
 
 		return $reflect->getName();
-	}
-
-	/**
-	 * @phpstan-return Closure(object) : object
-	 * @deprecated
-	 */
-	public static function cloneCallback() : Closure
-	{
-		return static function (object $o) {
-			return clone $o;
-		};
-	}
-
-	/**
-	 * @phpstan-template TKey of array-key
-	 * @phpstan-template TValue of object
-	 *
-	 * @param object[] $array
-	 * @phpstan-param array<TKey, TValue>|list<TValue> $array
-	 *
-	 * @return object[]
-	 * @phpstan-return ($array is list<TValue> ? list<TValue> : array<TKey, TValue>)
-	 */
-	public static function cloneObjectArray(array $array) : array
-	{
-		return array_map(fn (object $o) => clone $o, $array);
 	}
 
 	/**
@@ -739,16 +711,6 @@ class Utils
 			throw new AssumptionFailedError("Assumption failure: " . (is_string($context) ? $context : $context()) . " (THIS IS A BUG)");
 		}
 		return $value;
-	}
-
-	public static function checkFloatNotInfOrNaN(string $name, float $float) : void
-	{
-		if (is_nan($float)) {
-			throw new InvalidArgumentException("$name cannot be NaN");
-		}
-		if (is_infinite($float)) {
-			throw new InvalidArgumentException("$name cannot be infinite");
-		}
 	}
 
 	/**

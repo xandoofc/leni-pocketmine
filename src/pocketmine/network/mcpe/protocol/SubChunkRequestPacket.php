@@ -25,11 +25,9 @@ namespace pocketmine\network\mcpe\protocol;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\SubChunkPosition;
 use pocketmine\network\mcpe\protocol\types\SubChunkPositionOffset;
-
 use function count;
 
-class SubChunkRequestPacket extends DataPacket
-{
+class SubChunkRequestPacket extends DataPacket {
 	public const NETWORK_ID = ProtocolInfo::SUB_CHUNK_REQUEST_PACKET;
 
 	private int $dimension;
@@ -45,8 +43,7 @@ class SubChunkRequestPacket extends DataPacket
 	 * @param SubChunkPositionOffset[] $entries
 	 * @phpstan-param list<SubChunkPositionOffset> $entries
 	 */
-	public static function create(int $dimension, SubChunkPosition $basePosition, array $entries) : self
-	{
+	public static function create(int $dimension, SubChunkPosition $basePosition, array $entries) : self{
 		$result = new self();
 		$result->dimension = $dimension;
 		$result->basePosition = $basePosition;
@@ -54,27 +51,17 @@ class SubChunkRequestPacket extends DataPacket
 		return $result;
 	}
 
-	public function getDimension() : int
-	{
-		return $this->dimension;
-	}
+	public function getDimension() : int{ return $this->dimension; }
 
-	public function getBasePosition() : SubChunkPosition
-	{
-		return $this->basePosition;
-	}
+	public function getBasePosition() : SubChunkPosition{ return $this->basePosition; }
 
 	/**
 	 * @return SubChunkPositionOffset[]
 	 * @phpstan-return list<SubChunkPositionOffset>
 	 */
-	public function getEntries() : array
-	{
-		return $this->entries;
-	}
+	public function getEntries() : array{ return $this->entries; }
 
-	protected function decodePayload() : void
-	{
+	protected function decodePayload() : void{
 		$this->dimension = $this->getVarInt();
 		$this->basePosition = SubChunkPosition::read($this);
 
@@ -86,8 +73,7 @@ class SubChunkRequestPacket extends DataPacket
 		}
 	}
 
-	protected function encodePayload() : void
-	{
+	protected function encodePayload() : void{
 		$this->putVarInt($this->dimension);
 		$this->basePosition->write($this);
 
@@ -99,8 +85,7 @@ class SubChunkRequestPacket extends DataPacket
 		}
 	}
 
-	public function handle(NetworkSession $session) : bool
-	{
+	public function handle(NetworkSession $session) : bool{
 		return $session->handleSubChunkRequest($this);
 	}
 }

@@ -33,7 +33,6 @@ use Throwable;
 use function count;
 use function preg_replace;
 use function trim;
-
 use const E_COMPILE_ERROR;
 use const E_COMPILE_WARNING;
 use const E_CORE_ERROR;

@@ -28,21 +28,12 @@ class ActorFallPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ACTOR_FALL_PACKET;
 
-	public int $entityRuntimeId;
-	public float $fallDistance;
-	public bool $isInVoid;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(int $entityRuntimeId, float $fallDistance, bool $isInVoid) : self
-	{
-		$result = new self();
-		$result->entityRuntimeId = $entityRuntimeId;
-		$result->fallDistance = $fallDistance;
-		$result->isInVoid = $isInVoid;
-		return $result;
-	}
+	/** @var int */
+	public $entityRuntimeId;
+	/** @var float */
+	public $fallDistance;
+	/** @var bool */
+	public $isInVoid;
 
 	protected function decodePayload() : void
 	{

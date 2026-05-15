@@ -28,8 +28,10 @@ class FilterTextPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::FILTER_TEXT_PACKET;
 
-	public string $text;
-	public bool $fromServer;
+	/** @var string */
+	private $text;
+	/** @var bool */
+	private $fromServer;
 
 	public static function create(string $text, bool $server) : self
 	{

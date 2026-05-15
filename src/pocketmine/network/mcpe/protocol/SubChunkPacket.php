@@ -30,11 +30,9 @@ use pocketmine\network\mcpe\protocol\types\SubChunkPacketEntryWithoutCacheList a
 use pocketmine\network\mcpe\protocol\types\SubChunkPacketHeightMapInfo;
 use pocketmine\network\mcpe\protocol\types\SubChunkPacketHeightMapType;
 use pocketmine\network\mcpe\protocol\types\SubChunkPosition;
-
 use function count;
 
-class SubChunkPacket extends DataPacket
-{
+class SubChunkPacket extends DataPacket {
 	public const NETWORK_ID = ProtocolInfo::SUB_CHUNK_PACKET;
 
 	private int $dimension;
@@ -56,7 +54,7 @@ class SubChunkPacket extends DataPacket
 		?SubChunkPacketHeightMapInfo $heightMapData,
 		?int $usedBlobHash,
 		ListWithBlobHashes|ListWithoutBlobHashes $entries
-	) : self {
+	) : self{
 		$result = new self();
 		$result->dimension = $dimension;
 		$result->baseSubChunkPosition = $baseSubChunkPosition;
@@ -68,48 +66,23 @@ class SubChunkPacket extends DataPacket
 		return $result;
 	}
 
-	public function isCacheEnabled() : bool
-	{
-		return $this->entries instanceof ListWithBlobHashes;
-	}
+	public function isCacheEnabled() : bool{ return $this->entries instanceof ListWithBlobHashes; }
 
-	public function getDimension() : int
-	{
-		return $this->dimension;
-	}
+	public function getDimension() : int{ return $this->dimension; }
 
-	public function getBaseSubChunkPosition() : SubChunkPosition
-	{
-		return $this->baseSubChunkPosition;
-	}
+	public function getBaseSubChunkPosition() : SubChunkPosition{ return $this->baseSubChunkPosition; }
 
-	public function getData() : string
-	{
-		return $this->data;
-	}
+	public function getData() : string{ return $this->data; }
 
-	public function getRequestResult() : int
-	{
-		return $this->requestResult;
-	}
+	public function getRequestResult() : int{ return $this->requestResult; }
 
-	public function getHeightMapData() : ?SubChunkPacketHeightMapInfo
-	{
-		return $this->heightMapData;
-	}
+	public function getHeightMapData() : ?SubChunkPacketHeightMapInfo{ return $this->heightMapData; }
 
-	public function getUsedBlobHash() : ?int
-	{
-		return $this->usedBlobHash;
-	}
+	public function getUsedBlobHash() : ?int{ return $this->usedBlobHash; }
 
-	public function getEntries() : ListWithBlobHashes|ListWithoutBlobHashes
-	{
-		return $this->entries;
-	}
+	public function getEntries() : ListWithBlobHashes|ListWithoutBlobHashes{ return $this->entries; }
 
-	protected function decodePayload() : void
-	{
+	protected function decodePayload() : void{
 		$cacheEnabled = true;
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_486) {
 			$cacheEnabled = $this->getBool();
@@ -137,7 +110,7 @@ class SubChunkPacket extends DataPacket
 			$this->data = $this->getString();
 			$this->requestResult = $this->getVarInt();
 			$heightMapDataType = $this->getByte();
-			$this->heightMapData = match($heightMapDataType) {
+			$this->heightMapData = match($heightMapDataType){
 				SubChunkPacketHeightMapType::NO_DATA => null,
 				SubChunkPacketHeightMapType::DATA => SubChunkPacketHeightMapInfo::read($this),
 				SubChunkPacketHeightMapType::ALL_TOO_HIGH => SubChunkPacketHeightMapInfo::allTooHigh(),
@@ -151,8 +124,7 @@ class SubChunkPacket extends DataPacket
 		}
 	}
 
-	protected function encodePayload() : void
-	{
+	protected function encodePayload() : void{
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_486) {
 			$this->putBool($this->entries instanceof ListWithBlobHashes);
 		}
@@ -169,13 +141,13 @@ class SubChunkPacket extends DataPacket
 		} else {
 			$this->putString($this->data);
 			$this->putVarInt($this->requestResult);
-			if ($this->heightMapData === null) {
+			if($this->heightMapData === null){
 				$this->putByte(SubChunkPacketHeightMapType::NO_DATA);
-			} elseif ($this->heightMapData->isAllTooLow()) {
+			}elseif($this->heightMapData->isAllTooLow()){
 				$this->putByte(SubChunkPacketHeightMapType::ALL_TOO_LOW);
-			} elseif ($this->heightMapData->isAllTooHigh()) {
+			}elseif($this->heightMapData->isAllTooHigh()){
 				$this->putByte(SubChunkPacketHeightMapType::ALL_TOO_HIGH);
-			} else {
+			}else{
 				$heightMapData = $this->heightMapData; //avoid PHPStan purity issue
 				$this->putByte(SubChunkPacketHeightMapType::DATA);
 				$heightMapData->write($this);
@@ -187,8 +159,7 @@ class SubChunkPacket extends DataPacket
 		}
 	}
 
-	public function handle(NetworkSession $session) : bool
-	{
+	public function handle(NetworkSession $session) : bool{
 		return $session->handleSubChunk($this);
 	}
 }

@@ -124,7 +124,14 @@ class ItemFrame extends Spawnable
 			return false;
 		}
 
-		$player->sendDataPacket(BlockActorDataPacket::create($this->x, $this->y, $this->z, $this->getProtocolSerializedSpawnCompound($player->getProtocolVersion())));
+		$pk = new BlockActorDataPacket();
+		$pk->x = $this->x;
+		$pk->y = $this->y;
+		$pk->z = $this->z;
+		$pk->namedtag = $this->getProtocolSerializedSpawnCompound($player->getProtocolVersion());
+
+		$player->sendDataPacket($pk);
+
 		return true;
 	}
 

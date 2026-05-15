@@ -22,58 +22,11 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\CopperMaterial;
-use pocketmine\block\utils\CopperOxidation;
 use pocketmine\item\TieredTool;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
-class ChiseledCopper extends Solid implements CopperMaterial
+class ChiseledCopper extends Solid
 {
-	public function getOxidation() : int{
-		return match ($this->id) {
-			BlockIds::WAXED_OXIDIZED_CHISELED_COPPER, BlockIds::OXIDIZED_CHISELED_COPPER => CopperOxidation::OXIDIZED,
-			BlockIds::WAXED_WEATHERED_CHISELED_COPPER, BlockIds::WEATHERED_CHISELED_COPPER => CopperOxidation::WEATHERED,
-			BlockIds::WAXED_EXPOSED_CHISELED_COPPER, BlockIds::EXPOSED_CHISELED_COPPER => CopperOxidation::EXPOSED,
-			default => CopperOxidation::NONE
-		};
-	}
-
-	public function getPreviousOxidationId() : ?int
-	{
-		return match ($this->id) {
-			BlockIds::OXIDIZED_CHISELED_COPPER => BlockIds::WEATHERED_CHISELED_COPPER,
-			BlockIds::WEATHERED_CHISELED_COPPER => BlockIds::EXPOSED_CHISELED_COPPER,
-			BlockIds::EXPOSED_CHISELED_COPPER => BlockIds::CHISELED_COPPER,
-			default => null
-		};
-	}
-
-	public function isWaxed() : bool
-	{
-		return match ($this->id) {
-			BlockIds::WAXED_CHISELED_COPPER, BlockIds::WAXED_EXPOSED_CHISELED_COPPER, BlockIds::WAXED_WEATHERED_CHISELED_COPPER, BlockIds::WAXED_OXIDIZED_CHISELED_COPPER => true,
-			default => false
-		};
-	}
-
-	public function getWaxedId() : int{
-		return match ($this->id) {
-			BlockIds::OXIDIZED_CHISELED_COPPER => BlockIds::WAXED_OXIDIZED_CHISELED_COPPER,
-			BlockIds::WEATHERED_CHISELED_COPPER => BlockIds::WAXED_WEATHERED_CHISELED_COPPER,
-			BlockIds::EXPOSED_CHISELED_COPPER => BlockIds::WAXED_EXPOSED_CHISELED_COPPER,
-			default => BlockIds::WAXED_CHISELED_COPPER
-		};
-	}
-
-	public function getNonWaxedId() : int{
-		return match ($this->id) {
-			BlockIds::WAXED_OXIDIZED_CHISELED_COPPER => BlockIds::OXIDIZED_CHISELED_COPPER,
-			BlockIds::WAXED_WEATHERED_CHISELED_COPPER => BlockIds::WEATHERED_CHISELED_COPPER,
-			BlockIds::WAXED_EXPOSED_CHISELED_COPPER => BlockIds::EXPOSED_CHISELED_COPPER,
-			default => BlockIds::CHISELED_COPPER
-		};
-	}
-
 	public function getHardness() : float
 	{
 		return 3;
@@ -92,9 +45,9 @@ class ChiseledCopper extends Solid implements CopperMaterial
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_630) {
-			return BlockFactory::get(BlockIds::STONE, Stone::POLISHED_ANDESITE);
+			return Block::get(Block::STONE, 6);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -28,17 +28,8 @@ class AddBehaviorTreePacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::ADD_BEHAVIOR_TREE_PACKET;
 
-	public string $behaviorTreeJson;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(string $behaviorTreeJson) : self
-	{
-		$result = new self();
-		$result->behaviorTreeJson = $behaviorTreeJson;
-		return $result;
-	}
+	/** @var string */
+	public $behaviorTreeJson;
 
 	protected function decodePayload() : void
 	{

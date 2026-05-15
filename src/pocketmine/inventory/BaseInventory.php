@@ -28,19 +28,19 @@ use pocketmine\item\ItemFactory;
 use pocketmine\item\ItemIds;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\convert\TypeConverter;
+use pocketmine\network\mcpe\protocol\ContainerSetContentPacket;
+use pocketmine\network\mcpe\protocol\ContainerSetSlotPacket;
+use pocketmine\network\mcpe\protocol\InventoryContentPacket;
+use pocketmine\network\mcpe\protocol\InventorySlotPacket;
 use pocketmine\network\mcpe\protocol\PlayerHotbarPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\Player;
-use pocketmine\utils\AssumptionFailedError;
 use SplFixedArray;
 
 use function array_map;
 use function array_slice;
-use function array_values;
 use function count;
 use function max;
 use function min;
@@ -194,24 +194,15 @@ abstract class BaseInventory implements Inventory
 		return true;
 	}
 
-	/**
-	 * Helper for utility functions which search the inventory.
-	 * TODO: make this abstract instead of providing a slow default implementation (BC break)
-	 */
-	protected function getMatchingItemCount(int $slot, Item $test, bool $checkDamage, bool $checkTags) : int{
-		$item = $this->getItem($slot);
-		return $item->equals($test, $checkDamage, $checkTags) ? $item->getCount() : 0;
-	}
-
-	public function contains(Item $item) : bool{
+	public function contains(Item $item) : bool
+	{
 		$count = max(1, $item->getCount());
 		$checkDamage = !$item->hasAnyDamageValue();
-		$checkTags = $item->hasNamedTag();
-		for($i = 0, $size = $this->getSize(); $i < $size; $i++){
-			$slotCount = $this->getMatchingItemCount($i, $item, $checkDamage, $checkTags);
-			if($slotCount > 0){
-				$count -= $slotCount;
-				if($count <= 0){
+		$checkTags = $item->hasCompoundTag();
+		foreach ($this->getContents() as $i) {
+			if ($item->equals($i, $checkDamage, $checkTags)) {
+				$count -= $i->getCount();
+				if ($count <= 0) {
 					return true;
 				}
 			}
@@ -220,13 +211,14 @@ abstract class BaseInventory implements Inventory
 		return false;
 	}
 
-	public function all(Item $item) : array{
+	public function all(Item $item) : array
+	{
 		$slots = [];
 		$checkDamage = !$item->hasAnyDamageValue();
-		$checkTags = $item->hasNamedTag();
-		for($i = 0, $size = $this->getSize(); $i < $size; $i++){
-			if($this->getMatchingItemCount($i, $item, $checkDamage, $checkTags) > 0){
-				$slots[$i] = $this->getItem($i);
+		$checkTags = $item->hasCompoundTag();
+		foreach ($this->getContents() as $index => $i) {
+			if ($item->equals($i, $checkDamage, $checkTags)) {
+				$slots[$index] = $i;
 			}
 		}
 
@@ -236,24 +228,24 @@ abstract class BaseInventory implements Inventory
 	public function remove(Item $item) : void
 	{
 		$checkDamage = !$item->hasAnyDamageValue();
-		$checkTags = $item->hasNamedTag();
+		$checkTags = $item->hasCompoundTag();
 
-		for($i = 0, $size = $this->getSize(); $i < $size; $i++){
-			if($this->getMatchingItemCount($i, $item, $checkDamage, $checkTags) > 0){
-				$this->clear($i);
+		foreach ($this->getContents() as $index => $i) {
+			if ($item->equals($i, $checkDamage, $checkTags)) {
+				$this->clear($index);
 			}
 		}
 	}
 
-	public function first(Item $item, bool $exact = false) : int{
+	public function first(Item $item, bool $exact = false) : int
+	{
 		$count = $exact ? $item->getCount() : max(1, $item->getCount());
 		$checkDamage = $exact || !$item->hasAnyDamageValue();
-		$checkTags = $exact || $item->hasNamedTag();
+		$checkTags = $exact || $item->hasCompoundTag();
 
-		for($i = 0, $size = $this->getSize(); $i < $size; $i++){
-			$slotCount = $this->getMatchingItemCount($i, $item, $checkDamage, $checkTags);
-			if($slotCount > 0 && ($slotCount === $count || (!$exact && $slotCount > $count))){
-				return $i;
+		foreach ($this->getContents() as $index => $i) {
+			if ($item->equals($i, $checkDamage, $checkTags) && ($i->getCount() === $count || (!$exact && $i->getCount() > $count))) {
+				return $index;
 			}
 		}
 
@@ -287,30 +279,25 @@ abstract class BaseInventory implements Inventory
 		return $this->slots[$index] === null || $this->slots[$index]->isNull();
 	}
 
-	public function canAddItem(Item $item) : bool{
-		return $this->getAddableItemQuantity($item) === $item->getCount();
-	}
-
-	public function getAddableItemQuantity(Item $item) : int{
-		$count = $item->getCount();
-		$maxStackSize = min($this->getMaxStackSize(), $item->getMaxStackSize());
-
-		for($i = 0, $size = $this->getSize(); $i < $size; ++$i){
-			if($this->isSlotEmpty($i)){
-				$count -= $maxStackSize;
-			}else{
-				$slotCount = $this->getMatchingItemCount($i, $item, true, true);
-				if($slotCount > 0 && ($diff = $maxStackSize - $slotCount) > 0){
-					$count -= $diff;
+	public function canAddItem(Item $item) : bool
+	{
+		$item = clone $item;
+		for ($i = 0, $size = $this->getSize(); $i < $size; ++$i) {
+			$slot = $this->getItem($i);
+			if ($item->equals($slot)) {
+				if (($diff = $slot->getMaxStackSize() - $slot->getCount()) > 0) {
+					$item->setCount($item->getCount() - $diff);
 				}
+			} elseif ($slot->isNull()) {
+				$item->setCount($item->getCount() - $this->getMaxStackSize());
 			}
 
-			if($count <= 0){
-				return $item->getCount();
+			if ($item->getCount() <= 0) {
+				return true;
 			}
 		}
 
-		return $item->getCount() - $count;
+		return false;
 	}
 
 	public function addItem(Item ...$slots) : array
@@ -330,18 +317,11 @@ abstract class BaseInventory implements Inventory
 			$item = $this->getItem($i);
 			if ($item->isNull()) {
 				$emptySlots[] = $i;
-				continue;
 			}
 
 			foreach ($itemSlots as $index => $slot) {
-				$slotCount = $this->getMatchingItemCount($i, $slot, true, true);
-				if($slotCount === 0){
-					continue;
-				}
-
-				$maxStackSize = min($this->getMaxStackSize(), $slot->getMaxStackSize());
-				if($slotCount < $maxStackSize){
-					$amount = min($maxStackSize - $slotCount, $slot->getCount());
+				if ($slot->equals($item) && $item->getCount() < $item->getMaxStackSize()) {
+					$amount = min($item->getMaxStackSize() - $item->getCount(), $slot->getCount(), $this->getMaxStackSize());
 					if ($amount > 0) {
 						$slot->setCount($slot->getCount() - $amount);
 						$item->setCount($item->getCount() + $amount);
@@ -389,21 +369,19 @@ abstract class BaseInventory implements Inventory
 			}
 		}
 
-		for($i = 0, $size = $this->getSize(); $i < $size; ++$i){
-			if($this->isSlotEmpty($i)){
+		for ($i = 0, $size = $this->getSize(); $i < $size; ++$i) {
+			$item = $this->getItem($i);
+			if ($item->isNull()) {
 				continue;
 			}
 
 			foreach ($itemSlots as $index => $slot) {
-				$slotCount = $this->getMatchingItemCount($i, $slot, !$slot->hasAnyDamageValue(), $slot->hasNamedTag());
-				if($slotCount > 0){
-					$amount = min($slotCount, $slot->getCount());
+				if ($slot->equals($item, !$slot->hasAnyDamageValue(), $slot->hasCompoundTag())) {
+					$amount = min($item->getCount(), $slot->getCount());
 					$slot->setCount($slot->getCount() - $amount);
-
-					$slotItem = $this->getItem($i);
-					$slotItem->setCount($slotItem->getCount() - $amount);
-					$this->setItem($i, $slotItem);
-					if($slot->getCount() <= 0){
+					$item->setCount($item->getCount() - $amount);
+					$this->setItem($i, $item);
+					if ($slot->getCount() <= 0) {
 						unset($itemSlots[$index]);
 					}
 				}
@@ -502,58 +480,39 @@ abstract class BaseInventory implements Inventory
 			$target = [$target];
 		}
 
-		$contents = $this->getContents(true);
-		$typeConverter = TypeConverter::getInstance();
+		$items = $this->getContents(true);
 
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
 		foreach ($target as $player) {
-			$protocolPlayers[$player->getProtocolVersion()][] = $player;
-		}
-
-		foreach ($protocolPlayers as $protocolVersion => $players) {
-			$itemStacks = array_map(fn(Item $item) => $typeConverter->coreItemStackToNet($item, $protocolVersion), $contents);
-
-			foreach ($players as $player) {
-				if (($windowId = $player->getWindowId($this)) === ContainerIds::NONE) {
-					$this->close($player);
-					continue;
-				}
-
-				$hotbar = [];
-				if ($this instanceof PlayerInventory && $player->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
-					$air = $typeConverter->coreItemStackToNet(ItemFactory::air(), $protocolVersion);
-					for ($i = 0; $i < $this->getHotbarSize(); $i++) {
-						$itemStacks[] = clone $air;
-					}
-
-					$hotbar = range($this->getHotbarSize(), $this->getHotbarSize() * 2, 1);
-				}
-
-				if ($this instanceof FakeInventory) {
-					$netSlots = array_values($this->getUIOffsets($player));
-					foreach ($itemStacks as $slotId => $itemStack) {
-						$packetSlot = $netSlots[$slotId] ?? null;
-						if ($packetSlot === null) {
-							continue;
-						}
-						$player->sendInventorySlotPackets($windowId, $packetSlot, ItemStackWrapper::legacy($itemStack));
-					}
-				} else {
-					$player->sendInventoryContentPackets($windowId, array_map(fn(ItemStack $itemStack) => ItemStackWrapper::legacy($itemStack), $itemStacks), $hotbar);
-				}
-
-				if (
-					$this instanceof PlayerInventory &&
-					$player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137 &&
-					$player->getProtocolVersion() <= ProtocolInfo::PROTOCOL_201
-				) {
+			if (($id = $player->getWindowId($this)) === ContainerIds::NONE) {
+				$this->close($player);
+				continue;
+			}
+			if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+				$pk = new InventoryContentPacket();
+				$pk->items = array_map(fn (Item $item) => ItemStackWrapper::legacy($item), $items);
+				$pk->windowId = $id;
+				$pk->storage = ItemStackWrapper::legacy(Item::get(Item::AIR));
+				$player->dataPacket(clone $pk);
+				if ($this instanceof PlayerInventory && $player->getProtocolVersion() <= ProtocolInfo::PROTOCOL_201) {
 					$pk = new PlayerHotbarPacket();
 					$pk->windowId = ContainerIds::INVENTORY;
 					$pk->selectedHotbarSlot = $this->getHeldItemIndex();
 					$pk->slots = range(0, $this->getHotbarSize() - 1, 1);
-					$player->sendDataPacket($pk);
+					$player->dataPacket(clone $pk);
 				}
+			} else {
+				$pk = new ContainerSetContentPacket();
+				$pk->windowId = $id;
+				$pk->targetEid = $player->getId();
+				$pk->slots = array_map(fn (Item $item) => ItemStackWrapper::legacy($item), $items);
+				if ($this instanceof PlayerInventory) {
+					for ($i = 0; $i < $this->getHotbarSize(); $i++) {
+						$pk->slots[] = ItemStackWrapper::legacy(ItemFactory::get(ItemIds::AIR, 0));
+					}
+
+					$pk->hotbar = range($this->getHotbarSize(), $this->getHotbarSize() * 2, 1);
+				}
+				$player->dataPacket(clone $pk);
 			}
 		}
 	}
@@ -567,40 +526,24 @@ abstract class BaseInventory implements Inventory
 			$target = [$target];
 		}
 
-		$item = $this->getItem($index);
-		$typeConverter = TypeConverter::getInstance();
-
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
 		foreach ($target as $player) {
-			$protocolPlayers[$player->getProtocolVersion()][] = $player;
-		}
-
-		foreach ($protocolPlayers as $protocolVersion => $players) {
-			$itemStack = $typeConverter->coreItemStackToNet($item, $protocolVersion);
-
-			foreach ($players as $player) {
-				if (($windowId = $player->getWindowId($this)) === ContainerIds::NONE) {
-					$this->close($player);
-					continue;
-				}
-
-				$netSlot = $index;
-				if ($this instanceof FakeInventory) {
-					$windowId = ContainerIds::UI;
-					$netSlot = array_values($this->getUIOffsets($player))[$index] ?? throw new AssumptionFailedError("We already have an ItemStackInfo, so this should not be null");
-				}
-
-				if ($windowId === ContainerIds::OFFHAND) {
-					//TODO: HACK!
-					//The client may sometimes ignore the InventorySlotPacket for the offhand slot.
-					//This can cause a lot of problems (totems, arrows, and more...).
-					//The workaround is to send an InventoryContentPacket instead
-					//BDS (Bedrock Dedicated Server) also seems to work this way.
-					$player->sendInventoryContentPackets($windowId, [ItemStackWrapper::legacy($itemStack)]);
-				} else {
-					$player->sendInventorySlotPackets($windowId, $netSlot, ItemStackWrapper::legacy($itemStack));
-				}
+			if (($id = $player->getWindowId($this)) === ContainerIds::NONE) {
+				$this->close($player);
+				continue;
+			}
+			if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+				$pk = new InventorySlotPacket();
+				$pk->inventorySlot = $index;
+				$pk->windowId = $id;
+				$pk->item = ItemStackWrapper::legacy($this->getItem($index));
+				$pk->storage = ItemStackWrapper::legacy(Item::get(Item::AIR));
+				$player->dataPacket(clone $pk);
+			} else {
+				$pk = new ContainerSetSlotPacket();
+				$pk->slot = $index;
+				$pk->item = ItemStackWrapper::legacy($this->getItem($index));
+				$pk->windowid = $id;
+				$player->dataPacket(clone $pk);
 			}
 		}
 	}

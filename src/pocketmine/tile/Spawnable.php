@@ -43,8 +43,15 @@ abstract class Spawnable extends Tile
 		$this->spawnToAll();
 	}
 
-	public function createSpawnPacket() : BlockActorDataPacket{
-		return BlockActorDataPacket::create($this->x, $this->y, $this->z, $this->getSerializedSpawnCompound());
+	public function createSpawnPacket() : BlockActorDataPacket
+	{
+		$pk = new BlockActorDataPacket();
+		$pk->x = $this->x;
+		$pk->y = $this->y;
+		$pk->z = $this->z;
+		$pk->namedtag = $this->getSerializedSpawnCompound();
+
+		return $pk;
 	}
 
 	public function spawnTo(Player $player) : bool

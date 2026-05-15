@@ -30,7 +30,6 @@ use pocketmine\network\mcpe\protocol\types\command\CommandOverload;
 use pocketmine\network\mcpe\protocol\types\command\CommandParameter;
 use pocketmine\Player;
 use pocketmine\utils\TextFormat;
-
 use function count;
 
 class PingCommand extends VanillaCommand

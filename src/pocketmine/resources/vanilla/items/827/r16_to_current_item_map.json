@@ -94,6 +94,21 @@
         "minecraft:coal": {
             "1": "minecraft:charcoal"
         },
+        "minecraft:cobblestone_wall": {
+            "1": "minecraft:mossy_cobblestone_wall",
+            "10": "minecraft:end_stone_brick_wall",
+            "11": "minecraft:prismarine_wall",
+            "12": "minecraft:red_sandstone_wall",
+            "13": "minecraft:red_nether_brick_wall",
+            "2": "minecraft:granite_wall",
+            "3": "minecraft:diorite_wall",
+            "4": "minecraft:andesite_wall",
+            "5": "minecraft:sandstone_wall",
+            "6": "minecraft:brick_wall",
+            "7": "minecraft:stone_brick_wall",
+            "8": "minecraft:mossy_stone_brick_wall",
+            "9": "minecraft:nether_brick_wall"
+        },
         "minecraft:colored_torch_bp": {
             "0": "minecraft:colored_torch_blue",
             "10": "minecraft:colored_torch_purple",
@@ -797,7 +812,6 @@
         "minecraft:record_creator": "minecraft:music_disc_creator",
         "minecraft:record_creator_music_box": "minecraft:music_disc_creator_music_box",
         "minecraft:record_far": "minecraft:music_disc_far",
-        "minecraft:record_lava_chicken": "minecraft:music_disc_lava_chicken",
         "minecraft:record_mall": "minecraft:music_disc_mall",
         "minecraft:record_mellohi": "minecraft:music_disc_mellohi",
         "minecraft:record_otherside": "minecraft:music_disc_otherside",

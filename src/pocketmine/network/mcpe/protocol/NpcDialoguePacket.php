@@ -30,15 +30,15 @@ class NpcDialoguePacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::NPC_DIALOGUE_PACKET;
 
-	public const int ACTION_OPEN = 0;
-	public const int ACTION_CLOSE = 1;
+	public const ACTION_OPEN = 0;
+	public const ACTION_CLOSE = 1;
 
-	public int $npcActorUniqueId;
-	public int $actionType;
-	public string $dialogue;
-	public string $sceneName;
-	public string $npcName;
-	public string $actionJson;
+	private $npcActorUniqueId;
+	private $actionType;
+	private $dialogue;
+	private $sceneName;
+	private $npcName;
+	private $actionJson;
 
 	public static function create(int $npcActorUniqueId, int $actionType, string $dialogue, string $sceneName, string $npcName, string $actionJson) : self
 	{

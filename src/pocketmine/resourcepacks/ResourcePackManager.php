@@ -36,11 +36,11 @@ use function gettype;
 use function is_array;
 use function is_dir;
 use function is_float;
+
 use function is_int;
 use function is_string;
 use function mkdir;
 use function strtolower;
-
 use const DIRECTORY_SEPARATOR;
 
 class ResourcePackManager

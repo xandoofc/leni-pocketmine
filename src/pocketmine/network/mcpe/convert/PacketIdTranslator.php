@@ -70,6 +70,8 @@ use pocketmine\network\mcpe\convert\protocol\ProtocolInfo800;
 use pocketmine\network\mcpe\convert\protocol\ProtocolInfo818;
 use pocketmine\network\mcpe\convert\protocol\ProtocolInfo844;
 use pocketmine\network\mcpe\convert\protocol\ProtocolInfo859;
+use pocketmine\network\mcpe\convert\protocol\ProtocolInfo898;
+use pocketmine\network\mcpe\convert\protocol\ProtocolInfo975;
 use pocketmine\network\mcpe\protocol\PacketDecodeException;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\utils\SingletonTrait;
@@ -87,6 +89,11 @@ class PacketIdTranslator
 	private static function make() : self
 	{
 		return new self([
+			ProtocolInfo::PROTOCOL_975 => ProtocolInfo975::class,
+			ProtocolInfo::PROTOCOL_944 => ProtocolInfo975::class,
+			ProtocolInfo::PROTOCOL_924 => ProtocolInfo975::class,
+			ProtocolInfo::PROTOCOL_898 => ProtocolInfo898::class,
+			ProtocolInfo::PROTOCOL_860 => ProtocolInfo859::class,
 			ProtocolInfo::PROTOCOL_859 => ProtocolInfo859::class,
 			ProtocolInfo::PROTOCOL_844 => ProtocolInfo844::class,
 			ProtocolInfo::PROTOCOL_818 => ProtocolInfo818::class,

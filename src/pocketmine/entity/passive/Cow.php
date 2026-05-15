@@ -78,10 +78,9 @@ class Cow extends Animal
 		return "Cow";
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
-			$item = $player->getInventory()->getItemInHand();
 			if ($item instanceof Bucket && $item->getDamage() === 0) {
 				if ($this->milkingTicks > 0) {
 					return false;
@@ -94,7 +93,7 @@ class Cow extends Animal
 			}
 		}
 
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function entityBaseTick(int $diff = 1) : bool

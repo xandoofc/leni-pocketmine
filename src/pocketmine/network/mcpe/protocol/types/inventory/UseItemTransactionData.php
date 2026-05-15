@@ -37,7 +37,6 @@ class UseItemTransactionData extends TransactionData
 	public const ACTION_CLICK_BLOCK = 0;
 	public const ACTION_CLICK_AIR = 1;
 	public const ACTION_BREAK_BLOCK = 2;
-	public const ACTION_USE_AS_ATTACK = 3;
 
 	private int $actionType;
 	private TriggerType $triggerType;
@@ -111,7 +110,7 @@ class UseItemTransactionData extends TransactionData
 		$this->blockPos = new Vector3($x, $y, $z);
 		$this->face = $stream->getVarInt();
 		$this->hotbarSlot = $stream->getVarInt();
-		$this->itemInHand = $stream->getItemStackWrapper($playerProtocol);
+		$this->itemInHand = $stream->getSlot($playerProtocol);
 		$this->playerPos = $stream->getVector3();
 		$this->clickPos = $stream->getVector3();
 		if ($playerProtocol >= ProtocolInfo::PROTOCOL_340) {
@@ -131,7 +130,7 @@ class UseItemTransactionData extends TransactionData
 		$stream->putBlockPosition($this->blockPos->x, $this->blockPos->y, $this->blockPos->z);
 		$stream->putVarInt($this->face);
 		$stream->putVarInt($this->hotbarSlot);
-		$stream->putItemStackWrapper($this->itemInHand, $playerProtocol);
+		$stream->putSlot($this->itemInHand, $playerProtocol);
 		$stream->putVector3($this->playerPos);
 		$stream->putVector3($this->clickPos);
 		if ($playerProtocol >= ProtocolInfo::PROTOCOL_340) {

@@ -43,7 +43,6 @@ use function count;
 use function intval;
 use function mt_rand;
 use function sin;
-
 use const M_PI;
 
 abstract class AbstractHorse extends Tamable
@@ -172,7 +171,7 @@ abstract class AbstractHorse extends Tamable
 		return $hasUpdate;
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
 			if (!$this->isBaby() && $this->getRiddenByEntity() === null) {
@@ -180,7 +179,7 @@ abstract class AbstractHorse extends Tamable
 				return true;
 			}
 		}
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function getXpDropAmount() : int

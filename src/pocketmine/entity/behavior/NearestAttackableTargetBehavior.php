@@ -27,9 +27,7 @@ use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
 use pocketmine\entity\Mob;
 use pocketmine\Player;
-
 use function get_class;
-
 use const PHP_INT_MAX;
 
 class NearestAttackableTargetBehavior extends TargetBehavior

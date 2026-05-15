@@ -96,10 +96,9 @@ class LeashKnot extends Entity
 		return parent::entityBaseTick($tickDiff);
 	}
 
-	public function onFirstInteract(Player $player, Vector3 $clickPos) : bool
+	public function onFirstInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		$flag = false;
-		$item = $player->getInventory()->getItemInHand();
 
 		if ($item->getId() === Item::LEAD) {
 			$f = 7.0;

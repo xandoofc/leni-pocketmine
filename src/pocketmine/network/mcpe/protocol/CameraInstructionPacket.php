@@ -24,12 +24,10 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\camera\CameraFadeInstruction;
 use pocketmine\network\mcpe\protocol\types\camera\CameraFovInstruction;
 use pocketmine\network\mcpe\protocol\types\camera\CameraSetInstruction;
-use pocketmine\network\mcpe\protocol\types\camera\CameraSplineInstruction;
 use pocketmine\network\mcpe\protocol\types\camera\CameraTargetInstruction;
 
 class CameraInstructionPacket extends DataPacket
@@ -42,9 +40,6 @@ class CameraInstructionPacket extends DataPacket
 	public ?CameraTargetInstruction $target;
 	public ?bool $removeTarget;
 	public ?CameraFovInstruction $fieldOfView;
-	private ?CameraSplineInstruction $spline;
-	private ?int $attachToEntity;
-	private ?bool $detachFromEntity;
 
 	/** @phpstan-var CompoundTag */
 	public CompoundTag $data; //old
@@ -56,15 +51,11 @@ class CameraInstructionPacket extends DataPacket
 			$this->clear = $this->readOptional($this->getBool(...));
 			$this->fade = $this->readOptional(fn () => CameraFadeInstruction::read($this));
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_729) {
-				$this->target = $this->readOptional(fn () => CameraTargetInstruction::read($this));
+				$this->target = $this->readOptional(fn() => CameraTargetInstruction::read($this));
 				$this->removeTarget = $this->readOptional($this->getBool(...));
+
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_827) {
-					$this->fieldOfView = $this->readOptional(fn () => CameraFovInstruction::read($this));
-					if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_859) {
-						$this->spline = $this->readOptional(CameraSplineInstruction::read(...));
-						$this->attachToEntity = $this->readOptional($this->getLLong(...)); //WHY IS THIS NON-STANDARD?
-						$this->detachFromEntity = $this->readOptional($this->getBool(...));
-					}
+					$this->fieldOfView = $this->readOptional(fn() => CameraFovInstruction::read($this));
 				}
 			}
 		} else {
@@ -81,13 +72,9 @@ class CameraInstructionPacket extends DataPacket
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_729) {
 				$this->writeOptional($this->target, fn (CameraTargetInstruction $v) => $v->write($this));
 				$this->writeOptional($this->removeTarget, $this->putBool(...));
+
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_827) {
-					$this->writeOptional($this->fieldOfView, fn (CameraFovInstruction $v) => $v->write($this));
-					if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_859) {
-						$this->writeOptional($this->spline, fn(NetworkBinaryStream $out, CameraSplineInstruction $v) => $v->write($out));
-						$this->writeOptional($this->attachToEntity, $this->putLLong(...)); //WHY IS THIS NON-STANDARD?
-						$this->writeOptional($this->detachFromEntity, $this->putBool(...));
-					}
+					$this->writeOptional($this->fieldOfView, fn(CameraFovInstruction $v) => $v->write($this));
 				}
 			}
 		} else {

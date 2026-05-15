@@ -26,6 +26,7 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class OpenEyeblossom extends Eyeblossom
 {
+
 	protected $id = self::OPEN_EYEBLOSSOM;
 
 	public function getName() : string
@@ -36,9 +37,8 @@ class OpenEyeblossom extends Eyeblossom
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::RED_FLOWER);
+			return BlockFactory::get(Block::RED_FLOWER);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

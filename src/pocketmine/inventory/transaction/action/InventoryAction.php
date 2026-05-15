@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace pocketmine\inventory\transaction\action;
 
+use pocketmine\inventory\transaction\InventoryTransaction;
 use pocketmine\item\Item;
 use pocketmine\Player;
 
@@ -63,6 +64,14 @@ abstract class InventoryAction
 	abstract public function isValid(Player $source) : bool;
 
 	/**
+	 * Called when the action is added to the specified InventoryTransaction.
+	 */
+	public function onAddToTransaction(InventoryTransaction $transaction) : void
+	{
+
+	}
+
+	/**
 	 * Called by inventory transactions before any actions are processed. If this returns false, the transaction will
 	 * be cancelled.
 	 */
@@ -76,11 +85,16 @@ abstract class InventoryAction
 	 * false if plugins cancelled events. This will only be called if the transaction which it is part of is considered
 	 * valid.
 	 */
-	abstract public function execute(Player $source) : void;
+	abstract public function execute(Player $source) : bool;
+
+	/**
+	 * Performs additional actions when this inventory-action completed successfully.
+	 */
+	abstract public function onExecuteSuccess(Player $source) : void;
 
 	/**
 	 * Performs additional actions when this inventory-action did not complete successfully.
 	 */
-	abstract public function revert(Player $source) : void;
+	abstract public function onExecuteFail(Player $source) : void;
 
 }

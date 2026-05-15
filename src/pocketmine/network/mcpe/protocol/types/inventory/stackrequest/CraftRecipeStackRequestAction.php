@@ -57,7 +57,7 @@ final class CraftRecipeStackRequestAction extends ItemStackRequestAction
 		if ($playerProtocol >= ProtocolInfo::PROTOCOL_712) {
 			$repetitions = $in->getByte();
 		}
-		return new self($recipeId, $repetitions ?? 1);
+		return new self($recipeId, $repetitions ?? 0);
 	}
 
 	public function write(NetworkBinaryStream $out, int $playerProtocol) : void

@@ -24,21 +24,46 @@ namespace pocketmine\block;
 
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
-class PaleOakFence extends WoodenFence
+class PaleOakFence extends Fence
 {
 	protected $id = self::PALE_OAK_FENCE;
+
+	public function getHardness() : float
+	{
+		return 2;
+	}
+
+	public function getToolType() : int
+	{
+		return BlockToolType::TYPE_AXE;
+	}
 
 	public function getName() : string
 	{
 		return "Pale Oak Fence";
 	}
 
+	public function getFuelTime() : int
+	{
+		return 300;
+	}
+
+	public function getFlameEncouragement() : int
+	{
+		return 5;
+	}
+
+	public function getFlammability() : int
+	{
+		return 20;
+	}
+
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::FENCE, $this->meta);
+			return Block::get(Block::FENCE, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

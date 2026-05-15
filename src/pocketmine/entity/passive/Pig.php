@@ -75,9 +75,9 @@ class Pig extends Animal
 		return "Pig";
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
-		if (parent::onInteract($player, $clickPos)) {
+		if (parent::onInteract($player, $item, $clickPos)) {
 			return true;
 		}
 

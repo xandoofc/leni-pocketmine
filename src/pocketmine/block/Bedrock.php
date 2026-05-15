@@ -55,6 +55,6 @@ class Bedrock extends Solid
 
 	public function getBlock() : Block
 	{
-		return BlockFactory::get(Block::BED_BLOCK);
+		return Block::get(Block::BED_BLOCK);
 	}
 }

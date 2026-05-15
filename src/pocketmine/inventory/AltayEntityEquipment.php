@@ -25,9 +25,7 @@ namespace pocketmine\inventory;
 use pocketmine\entity\Living;
 use pocketmine\inventory\utils\EquipmentSlot;
 use pocketmine\item\Item;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
-use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\Player;
 
@@ -63,24 +61,17 @@ class AltayEntityEquipment extends BaseInventory
 			$target = [$target];
 		}
 
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
-		foreach ($target as $player) {
-			$protocolPlayers[$player->getProtocolVersion()][] = $player;
+		$pk = new MobEquipmentPacket();
+		$pk->entityRuntimeId = $this->holder->getId();
+		$pk->inventorySlot = $pk->hotbarSlot = $index;
+		$pk->item = ItemStackWrapper::legacy($this->getItem($index));
+
+		if ($target instanceof Player) {
+			$target = [$target];
 		}
 
-		foreach ($protocolPlayers as $protocolVersion => $players) {
-			$pk = MobEquipmentPacket::create(
-				$this->holder->getId(),
-				ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->getItem($index), $protocolVersion)),
-				$index,
-				$index,
-				ContainerIds::INVENTORY
-			);
-
-			foreach ($players as $player) {
-				$player->sendDataPacket($pk);
-			}
+		foreach ($target as $player) {
+			$player->sendDataPacket($pk);
 		}
 	}
 

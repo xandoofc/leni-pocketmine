@@ -31,7 +31,6 @@ use pocketmine\level\Level;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Facing;
 use pocketmine\nbt\tag\CompoundTag;
-
 use function array_filter;
 use function count;
 

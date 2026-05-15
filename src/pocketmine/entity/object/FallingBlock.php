@@ -31,7 +31,6 @@ use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\level\Position;
-use pocketmine\level\sound\BlockBreakSound;
 use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
@@ -129,13 +128,12 @@ class FallingBlock extends Entity
 				$block = $this->level->getBlock($pos);
 				if (($block->isTransparent() && !$block->canBeReplaced()) || ($this->onGround && abs($this->y - $this->getFloorY()) > 0.001)) {
 					//FIXME: anvils are supposed to destroy torches
-					$this->level->dropItem($this, ItemFactory::get($this->getBlock(), $this->getDamage()));
-					$this->level->addSound(new BlockBreakSound($pos->add(0.5, 0.5, 0.5), $blockTarget));
+					$this->getLevel()->dropItem($this, ItemFactory::get($this->getBlock(), $this->getDamage()));
 				} else {
 					$ev = new EntityBlockChangeEvent($this, $block, $blockTarget ?? $this->block);
 					$ev->call();
 					if (!$ev->isCancelled()) {
-						$this->level->setBlock($pos, $ev->getTo(), true);
+						$this->getLevel()->setBlock($pos, $ev->getTo(), true);
 					}
 				}
 				$hasUpdate = true;
@@ -169,26 +167,29 @@ class FallingBlock extends Entity
 
 	public function sendSpawnPacket(Player $player) : void
 	{
-		$metadata = $this->propertyManager->getAll();
-		if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_223 && isset($metadata[self::DATA_VARIANT])) {
-			$metadata[self::DATA_VARIANT][1] = RuntimeBlockMapping::getInstance($player->getProtocolVersion())->toRuntimeId($this->block->getFullId());
+		$pk = new AddActorPacket();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->type = static::NETWORK_ID;
+		$pk->position = $this->asVector3();
+		$pk->motion = $this->getMotion();
+		$pk->yaw = $this->yaw;
+		$pk->headYaw = $this->yaw; //TODO
+		$pk->pitch = $this->pitch;
+		$pk->attributes = $this->attributeMap->getAll();
+		$pk->metadata = $this->propertyManager->getAll();
+		$pk->syncedProperties = new PropertySyncData([], []);
+
+		if (
+			$player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_223 &&
+			isset($pk->metadata[self::DATA_VARIANT])
+		) {
+			try {
+				$pk->metadata[self::DATA_VARIANT][1] = RuntimeBlockMapping::getInstance($player->getProtocolVersion())->toRuntimeId(($this->getBlock() << Block::INTERNAL_METADATA_BITS) | $this->getDamage());
+			} catch (UnexpectedValueException $exception) {
+			}
 		}
 
-		$player->sendDataPacket(AddActorPacket::create(
-			$this->getId(),
-			$this->getId(),
-			static::NETWORK_ID,
-			$this->asVector3(),
-			$this->getMotion(),
-			$this->pitch,
-			$this->yaw,
-			$this->yaw,
-			$this->yaw,
-			$this->attributeMap->getAll(),
-			$metadata,
-			new PropertySyncData([], []),
-			[]
-		));
+		$player->dataPacket($pk);
 	}
 
 	/**
@@ -206,20 +207,15 @@ class FallingBlock extends Entity
 		$pk->metadata = $data ?? $this->propertyManager->getAll();
 		$pk->syncedProperties = new PropertySyncData([], []);
 
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
-		foreach ($player as $target) {
-			$protocolPlayers[$target->getProtocolVersion()][] = $target;
-		}
-
-		foreach ($protocolPlayers as $protocolVersion => $targets) {
-			if (isset($pk->metadata[self::DATA_VARIANT]) && $protocolVersion >= ProtocolInfo::PROTOCOL_223) {
-				$pk->metadata[self::DATA_VARIANT][1] = RuntimeBlockMapping::getInstance($protocolVersion)->toRuntimeId($this->block->getFullId());
+		foreach ($player as $p) {
+			if (isset($pk->metadata[self::DATA_VARIANT])) {
+				try {
+					$pk->metadata[self::DATA_VARIANT][1] = RuntimeBlockMapping::getInstance($p->getProtocolVersion())->toRuntimeId(($this->getBlock() << Block::INTERNAL_METADATA_BITS) | $this->getDamage());
+				} catch (UnexpectedValueException $exception) {
+				}
 			}
 
-			foreach ($targets as $target) {
-				$target->sendDataPacket(clone $pk);
-			}
+			$p->dataPacket(clone $pk);
 		}
 	}
 }

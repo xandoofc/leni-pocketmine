@@ -88,9 +88,7 @@ use pocketmine\network\mcpe\protocol\CreatePhotoPacket;
 use pocketmine\network\mcpe\protocol\CreativeContentPacket;
 use pocketmine\network\mcpe\protocol\CurrentStructureFeaturePacket;
 use pocketmine\network\mcpe\protocol\DataPacket;
-use pocketmine\network\mcpe\protocol\DataStoreSyncPacket;
 use pocketmine\network\mcpe\protocol\DeathInfoPacket;
-use pocketmine\network\mcpe\protocol\DebugDrawerPacket;
 use pocketmine\network\mcpe\protocol\DebugInfoPacket;
 use pocketmine\network\mcpe\protocol\DimensionDataPacket;
 use pocketmine\network\mcpe\protocol\DisconnectPacket;
@@ -106,7 +104,6 @@ use pocketmine\network\mcpe\protocol\FilterTextPacket;
 use pocketmine\network\mcpe\protocol\GameRulesChangedPacket;
 use pocketmine\network\mcpe\protocol\GameTestRequestPacket;
 use pocketmine\network\mcpe\protocol\GameTestResultsPacket;
-use pocketmine\network\mcpe\protocol\GraphicsOverrideParameterPacket;
 use pocketmine\network\mcpe\protocol\GuiDataPickItemPacket;
 use pocketmine\network\mcpe\protocol\HurtArmorPacket;
 use pocketmine\network\mcpe\protocol\InteractPacket;
@@ -195,6 +192,7 @@ use pocketmine\network\mcpe\protocol\ScriptMessagePacket;
 use pocketmine\network\mcpe\protocol\ServerboundDiagnosticsPacket;
 use pocketmine\network\mcpe\protocol\ServerboundLoadingScreenPacket;
 use pocketmine\network\mcpe\protocol\ServerPlayerPostMovePositionPacket;
+use pocketmine\network\mcpe\protocol\ServerScriptDebugDrawerPacket;
 use pocketmine\network\mcpe\protocol\ServerSettingsRequestPacket;
 use pocketmine\network\mcpe\protocol\ServerSettingsResponsePacket;
 use pocketmine\network\mcpe\protocol\ServerStatsPacket;
@@ -1153,11 +1151,6 @@ abstract class NetworkSession
 		return false;
 	}
 
-	public function handleDataStoreSync(DataStoreSyncPacket $packet) : bool
-	{
-		return false;
-	}
-
 	public function handleDeathInfo(DeathInfoPacket $packet) : bool
 	{
 		return false;
@@ -1348,11 +1341,6 @@ abstract class NetworkSession
 		return false;
 	}
 
-	public function handleGraphicsOverrideParameter(GraphicsOverrideParameterPacket $packet) : bool
-	{
-		return false;
-	}
-
 	public function handleServerStats(ServerStatsPacket $packet) : bool
 	{
 		return false;
@@ -1408,7 +1396,7 @@ abstract class NetworkSession
 		return false;
 	}
 
-	public function handleDebugDrawer(DebugDrawerPacket $packet) : bool
+	public function handleServerScriptDebugDrawer(ServerScriptDebugDrawerPacket $packet) : bool
 	{
 		return false;
 	}

@@ -28,10 +28,12 @@ class PositionTrackingDBClientRequestPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::POSITION_TRACKING_D_B_CLIENT_REQUEST_PACKET;
 
-	public const int ACTION_QUERY = 0;
+	public const ACTION_QUERY = 0;
 
-	private int $action;
-	private int $trackingId;
+	/** @var int */
+	private $action;
+	/** @var int */
+	private $trackingId;
 
 	public static function create(int $action, int $trackingId) : self
 	{

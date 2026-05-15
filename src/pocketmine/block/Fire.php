@@ -88,21 +88,12 @@ class Fire extends Flowable
 		return [];
 	}
 
-	private function canBeSupportedBy(Block $block) : bool
-	{
-		return $block->isSolid();
-	}
-
 	public function onNearbyBlockChange() : void
 	{
-		$level = $this->level;
-		$down = $this->getSide(Facing::DOWN);
-		if (SoulFire::canBeSupportedBy($down)) {
-			$level->setBlock($this, BlockFactory::get(BlockIds::SOUL_FIRE), true);
-		} elseif (!$this->canBeSupportedBy($this->getSide(Facing::DOWN)) && !$this->hasAdjacentFlammableBlocks()) {
-			$level->setBlock($this, BlockFactory::get(BlockIds::AIR), true);
+		if (!$this->getSide(Facing::DOWN)->isSolid() && !$this->hasAdjacentFlammableBlocks()) {
+			$this->getLevel()->setBlock($this, BlockFactory::get(Block::AIR), true);
 		} else {
-			$level->scheduleDelayedBlockUpdate($this, mt_rand(30, 40));
+			$this->level->scheduleDelayedBlockUpdate($this, mt_rand(30, 40));
 		}
 	}
 

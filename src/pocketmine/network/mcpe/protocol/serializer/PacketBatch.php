@@ -29,13 +29,11 @@ use pocketmine\network\mcpe\protocol\PacketPool;
 use pocketmine\network\mcpe\protocol\UnknownPacket;
 use pocketmine\utils\BinaryDataException;
 use pocketmine\utils\BinaryStream;
-
 use function strlen;
 
-class PacketBatch
-{
-	private function __construct()
-	{
+class PacketBatch{
+
+	private function __construct(){
 		//NOOP
 	}
 
@@ -43,14 +41,13 @@ class PacketBatch
 	 * @phpstan-return \Generator<int, string, void, void>
 	 * @throws PacketDecodeException
 	 */
-	final public static function decodeRaw(BinaryStream $stream) : \Generator
-	{
+	final public static function decodeRaw(BinaryStream $stream) : \Generator{
 		$c = 0;
-		while (!$stream->feof()) {
-			try {
+		while(!$stream->feof()){
+			try{
 				$length = $stream->getUnsignedVarInt();
 				$buffer = $stream->get($length);
-			} catch (BinaryDataException $e) {
+			}catch(BinaryDataException $e){
 				throw new PacketDecodeException("Error decoding packet $c in batch: " . $e->getMessage(), 0, $e);
 			}
 			yield $buffer;
@@ -62,9 +59,8 @@ class PacketBatch
 	 * @param string[] $packets
 	 * @phpstan-param list<string> $packets
 	 */
-	final public static function encodeRaw(BinaryStream $stream, array $packets) : void
-	{
-		foreach ($packets as $packet) {
+	final public static function encodeRaw(BinaryStream $stream, array $packets) : void{
+		foreach($packets as $packet){
 			$stream->putUnsignedVarInt(strlen($packet));
 			$stream->put($packet);
 		}
@@ -74,20 +70,19 @@ class PacketBatch
 	 * @phpstan-return \Generator<int, DataPacket, void, void>
 	 * @throws PacketDecodeException
 	 */
-	final public static function decodePackets(BinaryStream $stream, int $protocolVersion) : \Generator
-	{
+	final public static function decodePackets(BinaryStream $stream, int $protocolVersion) : \Generator{
 		$c = 0;
-		foreach (self::decodeRaw($stream) as $packetBuffer) {
+		foreach(self::decodeRaw($stream) as $packetBuffer){
 			$packet = PacketPool::getPacket($packetBuffer, $protocolVersion);
 			$packet->setProtocol($protocolVersion);
-			if (!($packet instanceof UnknownPacket)) {
-				try {
+			if(!($packet instanceof UnknownPacket)){
+				try{
 					$packet->decode();
-				} catch (PacketDecodeException $e) {
+				}catch(PacketDecodeException $e){
 					throw new PacketDecodeException("Error decoding packet $c in batch: " . $e->getMessage(), 0, $e);
 				}
 				yield $packet;
-			} else {
+			}else{
 				throw new PacketDecodeException("Unknown packet $c in batch");
 			}
 			$c++;
@@ -98,9 +93,8 @@ class PacketBatch
 	 * @param DataPacket[] $packets
 	 * @phpstan-param list<DataPacket> $packets
 	 */
-	final public static function encodePackets(BinaryStream $stream, array $packets, int $protocolVersion) : void
-	{
-		foreach ($packets as $packet) {
+	final public static function encodePackets(BinaryStream $stream, array $packets, int $protocolVersion) : void{
+		foreach($packets as $packet){
 			if (PacketIdTranslator::getInstance()->toNetworkId($protocolVersion, $packet->pid()) === null) {
 				continue;
 			}

@@ -33,7 +33,7 @@ class VersionInfo
 {
 	public const NAME = "Submarine";
 	public const BASE_VERSION = "3.28.1"; //Don't change this anymore. Change the FORK_VERSION instead.
-	public const FORK_VERSION = "2.3.1.1";
+	public const FORK_VERSION = "2.4.0.0";
 	public const IS_DEVELOPMENT_BUILD = true;
 	public const BUILD_CHANNEL = "stable";
 

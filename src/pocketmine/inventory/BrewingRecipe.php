@@ -24,6 +24,7 @@ namespace pocketmine\inventory;
 
 use pocketmine\item\Item;
 
-interface BrewingRecipe{
+interface BrewingRecipe extends Recipe
+{
 	public function getResultFor(Item $input) : ?Item;
 }

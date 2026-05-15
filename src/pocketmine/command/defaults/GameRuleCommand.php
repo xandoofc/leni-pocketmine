@@ -30,7 +30,6 @@ use pocketmine\network\mcpe\protocol\types\command\CommandEnum;
 use pocketmine\network\mcpe\protocol\types\command\CommandOverload;
 use pocketmine\network\mcpe\protocol\types\command\CommandParameter;
 use pocketmine\Player;
-
 use function count;
 use function strtolower;
 
@@ -99,7 +98,7 @@ class GameRuleCommand extends VanillaCommand
 			"pvp",
 			"recipesunlock", "respawnblocksexplode",
 			"sendcommandfeedback", "showbordereffect", "showcoordinates", "showdaysplayed", "showdeathmessages", "showrecipemessages", "showtags",
-			"tntexplodes", "tntexplosiondropdecay", "locatorbar"
+			"tntexplodes", "tntexplosiondropdecay"
 		];
 	}
 

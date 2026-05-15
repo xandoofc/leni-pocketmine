@@ -26,7 +26,6 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Color;
-
 use function boolval;
 use function intval;
 

@@ -65,7 +65,7 @@ class BeaconInventory extends ContainerInventory implements FakeInventory, FakeR
 		return 1;
 	}
 
-	public function getUIOffsets(?Player $player) : array
+	public function getUIOffsets() : array
 	{
 		return [
 			UIInventorySlotOffset::BEACON_PAYMENT => 0

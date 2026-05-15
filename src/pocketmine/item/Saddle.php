@@ -24,7 +24,6 @@ namespace pocketmine\item;
 
 use pocketmine\entity\Entity;
 use pocketmine\entity\passive\Pig;
-use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 
@@ -40,7 +39,7 @@ class Saddle extends Item
 		return 1;
 	}
 
-	public function onInteractEntity(Player $player, Entity $entity, Vector3 $clickVector) : bool
+	public function onInteractWithEntity(Player $player, Entity $entity) : bool
 	{
 		if ($entity instanceof Pig) {
 			if (!$entity->isSaddled() && !$entity->isBaby()) {

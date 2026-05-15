@@ -26,7 +26,6 @@ use Ahc\Json\Comment as CommentedJsonDecoder;
 use InvalidArgumentException;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\skin\SerializedSkin;
-
 use function array_keys;
 use function chr;
 use function imagecolorallocatealpha;

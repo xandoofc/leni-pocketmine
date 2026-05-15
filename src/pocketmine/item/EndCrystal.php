@@ -31,7 +31,6 @@ use pocketmine\level\Location;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
-
 use function count;
 
 class EndCrystal extends Item

@@ -27,15 +27,24 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 class StrippedPaleOakLog extends StrippedLog
 {
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	protected $id = self::STRIPPED_PALE_OAK_LOG;
+
+	public function __construct(int $meta = 0)
+	{
+		$this->meta = $meta;
+	}
+
+	public function getName() : string
+	{
+		return "Stripped Pale Oak Log";
+	}
+
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::LOG, match ($this->meta) {
-				0x01 => 0x04,
-				0x02 => 0x08,
-				default => 0,
-			});
+			return Block::get(Block::LOG, $this->getDamage());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

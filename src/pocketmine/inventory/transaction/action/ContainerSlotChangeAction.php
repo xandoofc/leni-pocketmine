@@ -23,9 +23,7 @@ declare(strict_types=1);
 namespace pocketmine\inventory\transaction\action;
 
 use pocketmine\event\player\PlayerBlockPickEvent;
-use pocketmine\inventory\FakeInventory;
 use pocketmine\item\ItemIds;
-use pocketmine\network\mcpe\cache\CreativeInventoryCache;
 use pocketmine\Player;
 
 use function abs;
@@ -36,24 +34,23 @@ use function implode;
  */
 class ContainerSlotChangeAction extends SlotChangeAction
 {
+
 	protected int $fails = 0;
 
 	/**
 	 * Sets the item into the target inventory.
 	 */
-	public function execute(Player $source) : void
+	public function execute(Player $source) : bool
 	{
-		//because we alternate actions every time, the slot in the inventory changes, and everything goes wrong
-		$sourceItem = $this->getInventory()->getItem($this->inventorySlot);
-
+		$craftingGird = $source->getCraftingGrid();
 		$out = null;
 		$in = null;
 
-		if ($sourceItem->equalsExact($this->targetItem)) {
+		if ($this->sourceItem->equalsExact($this->targetItem)) {
 			//This should never happen, somehow a change happened where nothing changed
-		} elseif ($sourceItem->equals($this->targetItem, true, true)) {
-			$item = clone $sourceItem;
-			$countDiff = $this->targetItem->getCount() - $sourceItem->getCount();
+		} elseif ($this->sourceItem->equals($this->targetItem, true, true)) {
+			$item = clone $this->sourceItem;
+			$countDiff = $this->targetItem->getCount() - $this->sourceItem->getCount();
 			$item->setCount(abs($countDiff));
 
 			if ($countDiff < 0) { //Count decreased
@@ -64,37 +61,34 @@ class ContainerSlotChangeAction extends SlotChangeAction
 				//Should be impossible (identical items and no count change)
 				//This should be caught by the first condition even if it was possible
 			}
-		} elseif ($sourceItem->getId() !== ItemIds::AIR && $this->targetItem->getId() === ItemIds::AIR) {
+		} elseif ($this->sourceItem->getId() !== ItemIds::AIR && $this->targetItem->getId() === ItemIds::AIR) {
 			//Slot emptied (item removed)
-			$out = clone $sourceItem;
-		} elseif ($sourceItem->getId() === ItemIds::AIR && $this->targetItem->getId() !== ItemIds::AIR) {
+			$out = $this->sourceItem;
+		} elseif ($this->sourceItem->getId() === ItemIds::AIR && $this->targetItem->getId() !== ItemIds::AIR) {
 			//Slot filled (item added)
-			$in = clone $this->targetItem;
+			$in = $this->targetItem;
 		} else {
 			//Some other slot change - an item swap (tool damage changes will be ignored as they are processed server-side before any change is sent by the client
 
-			$out = clone $sourceItem;
-			$in = clone $this->targetItem;
+			$out = $this->sourceItem;
+			$in = $this->targetItem;
 		}
 
 		if ($out !== null) {
 			if (!$this->inventory->getItem($this->getSlot())->equals($out, $out->hasAnyDamageValue(), !$out->hasNamedTag())) {
 				$source->getServer()->getLogger()->debug("Player inventory not contains " . $out . " in slot " . $this->getSlot() . ". Have " . $this->getInventory()->getItem($this->getSlot()));
-				if (++$this->fails >= 5) {
-					return;
-				}
-
-				$source->addInventoryTransactionActions($this);
-				return;
+				return false;
 			}
 		}
 
 		if ($in !== null) {
-			$validIsInItem = function () use ($source, $in) : bool {
-				if ($source->getCraftingGrid()->contains($in)) {
+			$validIsInItem = function () use ($source, $craftingGird, $in) : bool {
+				if ($craftingGird->contains($in)) {
 					return true;
-				} elseif ($source->isCreative(true)) {
-					if (CreativeInventoryCache::getInstance()->getItemIndex($in) !== -1) {
+				}
+
+				if ($source->isCreative(true)) {
+					if ($source->getCreativeInventory()->contains($in)) {
 						return true;
 					}
 
@@ -112,34 +106,28 @@ class ContainerSlotChangeAction extends SlotChangeAction
 			};
 
 			if (!$validIsInItem()) {
-				$source->getServer()->getLogger()->debug("Transaction inventory not contains " . $in . ". Transaction inventory contents: " . implode("; ", $source->getCraftingGrid()->getContents()));
-
-				if (++$this->fails >= 5) {
-					return;
-				}
-
-				$source->addInventoryTransactionActions($this);
-				return;
+				$source->getServer()->getLogger()->debug("Transaction inventory not contains " . $in . ". Transaction inventory contents: " . implode("; ", $craftingGird->getContents()));
+				return false;
 			}
 		}
 
 		if ($out !== null) {
-			$source->getCraftingGrid()->addItem($out);
+			$craftingGird->addItem($out);
 		}
 
 		if ($in !== null) {
-			$source->getCraftingGrid()->removeItem($in);
+			$craftingGird->removeItem($in);
 		}
 
-		$this->inventory->setItem($this->inventorySlot, $this->targetItem, false);
+		return $this->inventory->setItem($this->inventorySlot, $this->targetItem, false);
 	}
 
-	public function revert(Player $source) : void
-	{
-		if ($this->inventory instanceof FakeInventory) {
+	public function onExecuteFail(Player $source) : void{
+		if (++$this->fails >= 5) {
+			parent::onExecuteFail($source);
 			return;
 		}
 
-		$this->inventory->sendSlot($this->inventorySlot, $source);
+		$source->addInventoryTransactionActions($this);
 	}
 }

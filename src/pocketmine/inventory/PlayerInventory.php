@@ -28,8 +28,10 @@ use pocketmine\entity\Human;
 use pocketmine\event\player\PlayerItemHeldEvent;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
-use pocketmine\network\mcpe\cache\CreativeInventoryCache;
-use pocketmine\network\mcpe\convert\TypeConverter;
+use pocketmine\network\mcpe\cache\CreativeItemsCache;
+use pocketmine\network\mcpe\protocol\ContainerSetContentPacket;
+use pocketmine\network\mcpe\protocol\CreativeContentPacket;
+use pocketmine\network\mcpe\protocol\InventoryContentPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
@@ -37,7 +39,11 @@ use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\Player;
 use RuntimeException;
 use SplFixedArray;
+
+use function array_map;
 use function array_search;
+use function in_array;
+use function is_array;
 use function range;
 
 class PlayerInventory extends BaseInventory
@@ -250,30 +256,35 @@ class PlayerInventory extends BaseInventory
 	 */
 	public function sendHeldItem($target)
 	{
-		if ($target instanceof Player) {
-			$target = [$target];
-		}
+		$item = $this->getItemInHand();
 
-		/** @var Player[][] $protocolPlayers */
-		$protocolPlayers = [];
-		foreach ($target as $player) {
-			$protocolPlayers[$player->getProtocolVersion()][] = $player;
-		}
+		$pk = new MobEquipmentPacket();
+		$pk->entityRuntimeId = $this->getHolder()->getId();
+		$pk->item = ItemStackWrapper::legacy($item);
+		$pk->inventorySlot = $this->getHeldItemSlot();
+		$pk->hotbarSlot = $this->getHeldItemIndex();
+		$pk->windowId = ContainerIds::INVENTORY;
 
-		foreach ($protocolPlayers as $protocolVersion => $players) {
-			$pk = MobEquipmentPacket::create(
-				$this->getHolder()->getId(),
-				ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand(), $protocolVersion)),
-				($protocolVersion >= ProtocolInfo::PROTOCOL_137 ? $this->getHeldItemSlot() : $this->getHeldItemIndex()),
-				$this->getHeldItemIndex(),
-				ContainerIds::INVENTORY
-			);
+		if (!is_array($target)) {
+			if ($target->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+				$pk->inventorySlot = $pk->hotbarSlot;
+			}
 
-			foreach ($players as $player) {
-				$player->sendDataPacket($pk);
-				if ($this->getHeldItemSlot() !== -1 && $player === $this->getHolder()) {
-					$this->sendSlot($this->getHeldItemSlot(), $player);
+			$target->dataPacket($pk);
+			if ($this->getHeldItemSlot() !== -1 && $target === $this->getHolder()) {
+				$this->sendSlot($this->getHeldItemSlot(), $target);
+			}
+		} else {
+			foreach ($target as $player) {
+				$packet = clone $pk;
+				if ($player->getProtocolVersion() >= ProtocolInfo::PROTOCOL_137) {
+					$packet->inventorySlot = $pk->hotbarSlot;
 				}
+				$player->dataPacket($packet);
+			}
+
+			if ($this->getHeldItemSlot() !== -1 && in_array($this->getHolder(), $target, true)) {
+				$this->sendSlot($this->getHeldItemSlot(), $this->getHolder());
 			}
 		}
 	}
@@ -294,7 +305,38 @@ class PlayerInventory extends BaseInventory
 			throw new LogicException("Cannot send creative inventory contents to non-player inventory holder");
 		}
 
-		$holder->sendDataPacket(CreativeInventoryCache::getInstance()->buildPacket($holder));
+		if ($holder->getProtocolVersion() < ProtocolInfo::PROTOCOL_137) {
+			$pk = new ContainerSetContentPacket();
+			$pk->windowId = ContainerIds::CREATIVE;
+
+			if ($holder->getGamemode() === Player::CREATIVE) {
+				$creativeItemEntries = CreativeItemsCache::getInstance()->getItems($holder->getProtocolVersion());
+				foreach ($creativeItemEntries as $i => $creativeItemEntry) {
+					$pk->slots[$i] = ItemStackWrapper::legacy(clone $creativeItemEntry->getItem());
+				}
+			}
+
+			$pk->targetEid = $holder->getId();
+		} elseif ($holder->getProtocolVersion() >= ProtocolInfo::PROTOCOL_407) {
+			$pk = CreativeContentPacket::create(
+				CreativeItemsCache::getInstance()->getGroups($holder->getProtocolVersion()),
+				CreativeItemsCache::getInstance()->getItems($holder->getProtocolVersion())
+			);
+		} else {
+			$creativeItemEntries = $holder->isSpectator() ? [] : CreativeItemsCache::getInstance()->getItems($holder->getProtocolVersion());
+
+			$items = [];
+			foreach ($creativeItemEntries as $creativeItemEntry) {
+				$items[] = clone $creativeItemEntry->getItem();
+			}
+
+			$pk = new InventoryContentPacket();
+			$pk->windowId = ContainerIds::CREATIVE;
+			$pk->storage = ItemStackWrapper::legacy(Item::get(Item::AIR));
+			$pk->items = array_map(fn (Item $item) => ItemStackWrapper::legacy($item), $items);
+		}
+
+		$holder->sendDataPacket($pk);
 	}
 
 	public function clearAll(bool $send = true) : void

@@ -28,8 +28,10 @@ class CodeBuilderPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CODE_BUILDER_PACKET;
 
-	public string $url;
-	public bool $openCodeBuilder;
+	/** @var string */
+	private $url;
+	/** @var bool */
+	private $openCodeBuilder;
 
 	public static function create(string $url, bool $openCodeBuilder) : self
 	{

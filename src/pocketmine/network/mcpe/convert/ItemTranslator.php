@@ -22,14 +22,17 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\convert;
 
+use pocketmine\network\mcpe\convert\types\ItemTypeDictionary;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Filesystem;
 use pocketmine\utils\Utils;
+
 use function array_key_exists;
 use function is_array;
 use function is_numeric;
 use function is_string;
 use function json_decode;
+
 use const pocketmine\BEDROCK_DATA_PATH;
 
 /**

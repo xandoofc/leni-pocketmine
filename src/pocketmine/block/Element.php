@@ -34,9 +34,9 @@ class Element extends Solid
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return BlockFactory::get(BlockIds::SLIME_BLOCK);
+			return Block::get(Block::SLIME_BLOCK);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

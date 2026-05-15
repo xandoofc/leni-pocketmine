@@ -23,11 +23,12 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 use pocketmine\entity\Entity;
+use pocketmine\entity\EntityIds;
 use pocketmine\entity\projectile\Projectile;
 use pocketmine\event\entity\ProjectileLaunchEvent;
-use pocketmine\level\sound\ThrowSound;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 
 abstract class ProjectileItem extends Item
@@ -59,7 +60,9 @@ abstract class ProjectileItem extends Item
 			$projectile->entityShoot($player, $this->getPitchOffset(), $this->getThrowForce(), 1.0);
 		}
 
-		$this->pop();
+		if ($player->isSurvival()) {
+			$player->getInventory()->setItemInHand(--$this->count > 0 ? $this : ItemFactory::get(Item::AIR));
+		}
 
 		if ($projectile instanceof Projectile) {
 			$projectileEv = new ProjectileLaunchEvent($projectile);
@@ -69,7 +72,7 @@ abstract class ProjectileItem extends Item
 			} else {
 				$projectile->spawnToAll();
 
-				$player->getLevel()->addSound(new ThrowSound($player));
+				$player->getLevel()->broadcastLevelSoundEvent($player, LevelSoundEventPacket::SOUND_THROW, 0, EntityIds::PLAYER);
 			}
 		} elseif ($projectile !== null) {
 			$projectile->spawnToAll();

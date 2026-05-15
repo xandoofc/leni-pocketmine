@@ -27,7 +27,6 @@ use pocketmine\snooze\SleeperNotifier;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadException;
 use pocketmine\utils\Utils;
-
 use function extension_loaded;
 use function fclose;
 use function fgets;
@@ -44,7 +43,6 @@ use function readline_add_history;
 use function stream_select;
 use function trim;
 use function usleep;
-
 use const STDIN;
 
 class CommandReader extends Thread

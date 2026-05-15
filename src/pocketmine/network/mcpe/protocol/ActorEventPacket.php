@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
+use pocketmine\network\mcpe\convert\ItemTranslator;
 use pocketmine\network\mcpe\NetworkSession;
 
 class ActorEventPacket extends DataPacket
@@ -87,7 +88,6 @@ class ActorEventPacket extends DataPacket
 	public const GROW_UP = 76;
 	public const VIBRATION_DETECTED = 77;
 	public const DRINK_MILK = 78;
-	public const SHAKE_WETNESS_STOP = 79;
 
 	//TODO: add more events
 
@@ -95,30 +95,44 @@ class ActorEventPacket extends DataPacket
 	public int $event;
 	public int $data = 0;
 
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(int $entityRuntimeId, int $event, int $data) : self
-	{
-		$result = new self();
-		$result->entityRuntimeId = $entityRuntimeId;
-		$result->event = $event;
-		$result->data = $data;
-		return $result;
-	}
-
 	protected function decodePayload() : void
 	{
 		$this->entityRuntimeId = $this->getEntityRuntimeId();
 		$this->event = $this->getByte();
-		$this->data = $this->getVarInt();
+
+		$data = $this->getVarInt();
+
+		if ($this->event === self::EATING_ITEM) {
+			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
+				[$legacyId, $legacyMeta] = ItemTranslator::getInstance($this->getProtocol())->fromNetworkId($data >> 16, 0);
+				$this->data = $legacyId;
+			} elseif ($this->getProtocol() >= ProtocolInfo::PROTOCOL_388) {
+				$this->data = $data >> 16;
+			} else {
+				$this->data = $data;
+			}
+		} else {
+			$this->data = $data;
+		}
 	}
 
 	protected function encodePayload() : void
 	{
 		$this->putEntityRuntimeId($this->entityRuntimeId);
 		$this->putByte($this->event);
-		$this->putVarInt($this->data);
+
+		if ($this->event === self::EATING_ITEM) {
+			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
+				[$netId, $netMeta] = ItemTranslator::getInstance($this->getProtocol())->toNetworkIdQuiet($this->data, 0) ?? [0, 0];
+				$this->putVarInt($netId << 16);
+			} elseif ($this->getProtocol() >= ProtocolInfo::PROTOCOL_388) {
+				$this->putVarInt($this->data << 16);
+			} else {
+				$this->putVarInt($this->data);
+			}
+		} else {
+			$this->putVarInt($this->data);
+		}
 	}
 
 	public function handle(NetworkSession $session) : bool

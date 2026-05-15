@@ -32,18 +32,17 @@ use function floor;
 
 class Skull extends Spawnable
 {
-	public const int TYPE_SKELETON = 0;
-	public const int TYPE_WITHER_SKELETON = 1;
-	public const int TYPE_ZOMBIE = 2;
-	public const int TYPE_PLAYER = 3;
-	public const int TYPE_CREEPER = 4;
-	public const int TYPE_DRAGON = 5;
-	public const int TYPE_PIGLIN = 6;
+	public const TYPE_SKELETON = 0;
+	public const TYPE_WITHER = 1;
+	public const TYPE_ZOMBIE = 2;
+	public const TYPE_HUMAN = 3;
+	public const TYPE_CREEPER = 4;
+	public const TYPE_DRAGON = 5;
 
-	public const string TAG_SKULL_TYPE = "SkullType"; //TAG_Byte
-	public const string TAG_ROT = "Rot"; //TAG_Byte
-	public const string TAG_MOUTH_MOVING = "MouthMoving"; //TAG_Byte
-	public const string TAG_MOUTH_TICK_COUNT = "MouthTickCount"; //TAG_Int
+	public const TAG_SKULL_TYPE = "SkullType"; //TAG_Byte
+	public const TAG_ROT = "Rot"; //TAG_Byte
+	public const TAG_MOUTH_MOVING = "MouthMoving"; //TAG_Byte
+	public const TAG_MOUTH_TICK_COUNT = "MouthTickCount"; //TAG_Int
 
 	private int $skullType;
 	private int $skullRotation;

@@ -28,20 +28,14 @@ class BlockActorDataPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::BLOCK_ACTOR_DATA_PACKET;
 
-	public int $x = 0;
-	public int $y = 0;
-	public int $z = 0;
-	public string $namedtag;
-
-	public static function create(int $x, int $y, int $z, string $namedtag) : self
-	{
-		$result = new self();
-		$result->x = $x;
-		$result->y = $y;
-		$result->z = $z;
-		$result->namedtag = $namedtag;
-		return $result;
-	}
+	/** @var int */
+	public $x;
+	/** @var int */
+	public $y;
+	/** @var int */
+	public $z;
+	/** @var string */
+	public $namedtag;
 
 	protected function decodePayload() : void
 	{

@@ -55,15 +55,14 @@ class StoneSlab3 extends StoneSlab
 			self::TYPE_POLISHED_GRANITE => "Polized Granite",
 		];
 
-		return ($this->isTop() ? "Upper " : "") . ($names[$this->getVariant()] ?? "") . " Slab";
+		return (($this->meta & $this->getVariantTopBitmask()) > 0 ? "Upper " : "") . ($names[$this->getVariant()] ?? "") . " Slab";
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::STONE_SLAB, $this->isTop() ? 0x08 : 0);
+			return BlockFactory::get(Block::STONE_SLAB, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

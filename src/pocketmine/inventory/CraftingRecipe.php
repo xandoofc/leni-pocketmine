@@ -24,13 +24,22 @@ namespace pocketmine\inventory;
 
 use pocketmine\item\Item;
 
-interface CraftingRecipe{
+interface CraftingRecipe extends Recipe
+{
 	/**
 	 * Returns a list of items needed to craft this recipe. This MUST NOT include Air items or items with a zero count.
 	 *
 	 * @return Item[]
 	 */
 	public function getIngredientList() : array;
+
+	public function setIngredientList(array $ingredientList) : void;
+
+	public function getResults() : array;
+
+	public function setResults(array $results) : void;
+
+	public function setIngredient(mixed $idx, Item $item) : void;
 
 	/**
 	 * Returns a list of results this recipe will produce when the inputs in the given crafting grid are consumed.

@@ -22,30 +22,27 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\FortuneDropHelper;
 use pocketmine\event\block\LeavesDecayEvent;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
-use pocketmine\item\ItemIds;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 
-use SplQueue;
 use function mt_rand;
-use function spl_object_hash;
 
 class Leaves extends Transparent
 {
-	public const int OAK = 0;
-	public const int SPRUCE = 1;
-	public const int BIRCH = 2;
-	public const int JUNGLE = 3;
-	public const int ACACIA = 0;
-	public const int DARK_OAK = 1;
+	public const OAK = 0;
+	public const SPRUCE = 1;
+	public const BIRCH = 2;
+	public const JUNGLE = 3;
+	public const ACACIA = 0;
+	public const DARK_OAK = 1;
 
 	protected $id = self::LEAVES;
-	protected int $woodType = self::LOG;
+	/** @var int */
+	protected $woodType = self::LOG;
 
 	public function __construct(int $meta = 0)
 	{
@@ -78,34 +75,69 @@ class Leaves extends Transparent
 		return true;
 	}
 
-	protected function findLog() : bool {
-		$visited = [];
-		$queue = new SplQueue();
-		$distance = [];
-
-		$queue->enqueue($this);
-		$visited[spl_object_hash($this)] = true;
-		$distance[spl_object_hash($this)] = 0;
-
-		while (!$queue->isEmpty()) {
-			/** @var Block $currentBlock */
-			$currentBlock = $queue->dequeue();
-			$currentDistance = $distance[spl_object_hash($currentBlock)];
-
-			if ($currentDistance > 4) {
-				return false;
+	/**
+	 * @param true[] $visited reference parameter
+	 *
+	 * @phpstan-param array<string, true> $visited
+	 */
+	protected function findLog(Block $pos, array &$visited, int $distance, ?int $fromSide = null) : bool
+	{
+		$index = $pos->x . "." . $pos->y . "." . $pos->z;
+		if (isset($visited[$index])) {
+			return false;
+		}
+		if ($pos->getId() === $this->woodType) {
+			return true;
+		} elseif ($pos->getId() === $this->id && $distance < 3) {
+			$visited[$index] = true;
+			$down = $pos->getSide(Facing::DOWN)->getId();
+			if ($down === $this->woodType) {
+				return true;
 			}
-
-			foreach (Facing::ALL as $face) {
-				$nextBlock = $currentBlock->getSide($face); // If side chunk not loaded, do not load or decay
-				if ($nextBlock instanceof Log) {
-					return true;
+			if ($fromSide === null) {
+				for ($side = 2; $side <= 5; ++$side) {
+					if ($this->findLog($pos->getSide($side), $visited, $distance + 1, $side)) {
+						return true;
+					}
 				}
-
-				if ($nextBlock instanceof Leaves && !isset($visited[spl_object_hash($nextBlock)])) {
-					$queue->enqueue($nextBlock);
-					$visited[spl_object_hash($nextBlock)] = true;
-					$distance[spl_object_hash($nextBlock)] = $currentDistance + 1;
+			} else { //No more loops
+				switch ($fromSide) {
+					case 2:
+						if ($this->findLog($pos->getSide(Facing::NORTH), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::WEST), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::EAST), $visited, $distance + 1, $fromSide)) {
+							return true;
+						}
+						break;
+					case 3:
+						if ($this->findLog($pos->getSide(Facing::SOUTH), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::WEST), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::EAST), $visited, $distance + 1, $fromSide)) {
+							return true;
+						}
+						break;
+					case 4:
+						if ($this->findLog($pos->getSide(Facing::NORTH), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::SOUTH), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::WEST), $visited, $distance + 1, $fromSide)) {
+							return true;
+						}
+						break;
+					case 5:
+						if ($this->findLog($pos->getSide(Facing::NORTH), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::SOUTH), $visited, $distance + 1, $fromSide)) {
+							return true;
+						} elseif ($this->findLog($pos->getSide(Facing::EAST), $visited, $distance + 1, $fromSide)) {
+							return true;
+						}
+						break;
 				}
 			}
 		}
@@ -115,8 +147,8 @@ class Leaves extends Transparent
 
 	public function onNearbyBlockChange() : void
 	{
-		if (!$this->isPersistent() && !$this->isCheckDecay()) {
-			$this->setCheckDecay(true);
+		if (($this->meta & 0x12) === 0) {
+			$this->meta |= 0x08;
 			$this->getLevel()->setBlock($this, $this, true, false);
 		}
 	}
@@ -128,11 +160,13 @@ class Leaves extends Transparent
 
 	public function onRandomTick() : void
 	{
-		if (!$this->isPersistent() && $this->isCheckDecay()) {
+		if (($this->meta & 0x12) === 0x08) {
+			$this->meta &= 0x03;
+			$visited = [];
+
 			$ev = new LeavesDecayEvent($this);
 			$ev->call();
-			if ($ev->isCancelled() || $this->findLog()) {
-				$this->setCheckDecay(false);
+			if ($ev->isCancelled() || $this->findLog($this, $visited, 0)) {
 				$this->getLevel()->setBlock($this, $this, false, false);
 			} else {
 				$this->getLevel()->useBreakOn($this);
@@ -142,7 +176,7 @@ class Leaves extends Transparent
 
 	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
 	{
-		$this->setPersistent(true);
+		$this->meta |= 0x04;
 		$this->getLevel()->setBlock($this, $this, true);
 		return true;
 	}
@@ -159,17 +193,11 @@ class Leaves extends Transparent
 		}
 
 		$drops = [];
-		if (FortuneDropHelper::bonusChanceDivisor($item, 20, 4)) { //Saplings
+		if (mt_rand(1, 20) === 1) { //Saplings
 			$drops[] = $this->getSaplingItem();
 		}
-		if (
-			($this->canDropApples()) &&
-			FortuneDropHelper::bonusChanceDivisor($item, 200, 20)
-		) { //Apples
+		if ($this->canDropApples() && mt_rand(1, 200) === 1) { //Apples
 			$drops[] = ItemFactory::get(Item::APPLE);
-		}
-		if (FortuneDropHelper::bonusChanceDivisor($item, 50, 5)) {
-			$drops[] = ItemFactory::get(Item::STICK)->setCount(mt_rand(1, 2));
 		}
 
 		return $drops;
@@ -177,36 +205,12 @@ class Leaves extends Transparent
 
 	public function getSaplingItem() : Item
 	{
-		return ItemFactory::get(ItemIds::SAPLING, $this->getVariant());
+		return ItemFactory::get(Item::SAPLING, $this->getVariant());
 	}
 
 	public function canDropApples() : bool
 	{
 		return $this->getVariant() === self::OAK;
-	}
-
-	public function getCheckDecayBitmask() : int {
-		return 0x08;
-	}
-
-	public function isCheckDecay() : bool {
-		return ($this->meta & $this->getCheckDecayBitmask()) !== 0;
-	}
-
-	public function setCheckDecay(bool $value) : void{
-		$this->meta = ($this->meta & ~$this->getCheckDecayBitmask()) | ($value ? $this->getCheckDecayBitmask() : 0);
-	}
-
-	public function getPersistentBitmask() : int {
-		return 0x04;
-	}
-
-	public function isPersistent() : bool {
-		return ($this->meta & $this->getPersistentBitmask()) !== 0;
-	}
-
-	public function setPersistent(bool $value) : void{
-		$this->meta = ($this->meta & ~$this->getPersistentBitmask()) | ($value ? $this->getPersistentBitmask() : 0);
 	}
 
 	public function getFlameEncouragement() : int

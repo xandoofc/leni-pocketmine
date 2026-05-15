@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace pocketmine\entity\helper;
 
 use pocketmine\entity\Mob;
-
 use function atan2;
 use function floor;
 use function pi;

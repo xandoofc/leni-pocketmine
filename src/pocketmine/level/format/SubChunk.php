@@ -24,7 +24,6 @@ namespace pocketmine\level\format;
 
 use pocketmine\block\Block;
 use pocketmine\world\format\PalettedBlockArray;
-
 use function array_values;
 use function assert;
 use function chr;
@@ -72,9 +71,9 @@ class SubChunk implements SubChunkInterface
 		return (
 			count($this->blockLayers) === 0 &&
 			(!$checkLight || (
-				substr_count($this->skyLight, "\xff") === 2048 &&
+					substr_count($this->skyLight, "\xff") === 2048 &&
 					substr_count($this->blockLight, "\x00") === 2048
-			))
+				))
 		);
 	}
 

@@ -39,7 +39,6 @@ use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\Player;
-
 use function mt_rand;
 
 class Horse extends AbstractHorse implements InventoryHolder
@@ -136,7 +135,7 @@ class Horse extends AbstractHorse implements InventoryHolder
 		$this->setGenericFlag(self::DATA_FLAG_CAN_POWER_JUMP, $value);
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
 			// TODO: feeding
@@ -151,7 +150,7 @@ class Horse extends AbstractHorse implements InventoryHolder
 				return true;
 			}
 		}
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function sendSpawnPacket(Player $player) : void

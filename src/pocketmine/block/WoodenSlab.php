@@ -53,7 +53,7 @@ class WoodenSlab extends Slab
 			self::TYPE_ACACIA => "Acacia",
 			self::TYPE_DARK_OAK => "Dark Oak"
 		];
-		return ($this->isTop() ? "Upper " : "") . ($names[$this->getVariant()] ?? "") . " Wooden Slab";
+		return (($this->meta & 0x08) === 0x08 ? "Upper " : "") . ($names[$this->getVariant()] ?? "") . " Wooden Slab";
 	}
 
 	public function getToolType() : int

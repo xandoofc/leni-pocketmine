@@ -53,6 +53,6 @@ class StoneSlab2 extends StoneSlab
 			self::TYPE_RED_NETHER_BRICK => "Red Nether Brick"
 		];
 
-		return ($this->isTop() ? "Upper " : "") . ($names[$this->getVariant()] ?? "") . " Slab";
+		return (($this->meta & $this->getVariantTopBitmask()) > 0 ? "Upper " : "") . ($names[$this->getVariant()] ?? "") . " Slab";
 	}
 }

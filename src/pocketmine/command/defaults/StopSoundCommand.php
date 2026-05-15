@@ -30,7 +30,6 @@ use pocketmine\network\mcpe\protocol\StopSoundPacket;
 use pocketmine\network\mcpe\protocol\types\command\CommandOverload;
 use pocketmine\network\mcpe\protocol\types\command\CommandParameter;
 use pocketmine\utils\TextFormat;
-
 use function strlen;
 
 class StopSoundCommand extends VanillaCommand

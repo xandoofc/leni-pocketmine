@@ -41,11 +41,11 @@ class WoodenTrapdoor extends Trapdoor
 		return 300;
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return BlockFactory::get(BlockIds::WOODEN_TRAPDOOR, $this->meta);
+			return Block::get(Block::WOODEN_TRAPDOOR, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

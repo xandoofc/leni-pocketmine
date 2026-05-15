@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol\types\inventory;
 
+use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
@@ -29,19 +30,22 @@ final class CreativeItemEntry
 {
 	public function __construct(
 		private int $entryId,
-		private ItemStack $item,
+		private Item $item,
 		private readonly int $groupId
-	) {
-	}
+	) {}
 
 	public function getEntryId() : int
 	{
 		return $this->entryId;
 	}
 
-	public function getItem() : ItemStack
+	public function getItem() : Item
 	{
 		return $this->item;
+	}
+
+	public function setItem(Item $item) : void{
+		$this->item = $item;
 	}
 
 	public function getGroupId() : int
@@ -49,10 +53,21 @@ final class CreativeItemEntry
 		return $this->groupId;
 	}
 
+	public function setEntryId(int $entryId) : void
+	{
+		$this->entryId = $entryId;
+	}
+
 	public static function read(NetworkBinaryStream $in, int $protocolVersion) : self
 	{
-		$entryId = $in->readCreativeItemNetId();
-		$item = $in->getItemStackWithoutStackId($protocolVersion);
+		if ($protocolVersion > ProtocolInfo::PROTOCOL_419) {
+			$entryId = $in->readCreativeItemNetId();
+		} else {
+			$entryId = $in->getUnsignedVarInt();
+		}
+
+		$item = $in->getSlot($protocolVersion, false)->getItemStack();
+
 		if ($protocolVersion >= ProtocolInfo::PROTOCOL_776) {
 			$groupId = $in->getUnsignedVarInt();
 		}
@@ -61,8 +76,14 @@ final class CreativeItemEntry
 
 	public function write(NetworkBinaryStream $out, int $protocolVersion) : void
 	{
-		$out->writeCreativeItemNetId($this->entryId);
-		$out->putItemStackWithoutStackId($this->item, $protocolVersion);
+		if ($protocolVersion > ProtocolInfo::PROTOCOL_419) {
+			$out->writeCreativeItemNetId($this->entryId);
+		} else {
+			$out->putUnsignedVarInt($this->entryId);
+		}
+
+		$out->putSlot(ItemStackWrapper::legacy($this->item), $protocolVersion, false);
+
 		if ($protocolVersion >= ProtocolInfo::PROTOCOL_776) {
 			$out->putUnsignedVarInt($this->groupId);
 		}

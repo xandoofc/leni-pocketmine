@@ -56,13 +56,13 @@ class ItemBlock extends Item
 		return $this->getBlock()->getFuelTime();
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		$blockProtocol = $this->getBlock()->getBlockProtocol($playerProtocol);
 		if ($blockProtocol === null) {
 			return null;
 		}
 
-		return new TranslatedItemData($blockProtocol->getId(), $blockProtocol->getDamage());
+		return ItemFactory::get($blockProtocol->getId(), $blockProtocol->getDamage());
 	}
 }

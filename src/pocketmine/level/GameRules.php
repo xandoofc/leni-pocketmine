@@ -72,7 +72,6 @@ class GameRules
 	public const RULE_SPAWN_RADIUS = "spawnRadius";
 	public const RULE_TNT_EXPLODES = "tntExplodes";
 	public const RULE_TNT_EXPLOSION_DROP_DECAY = "tntExplosionDropDecay";
-	public const RULE_LOCALOR_BAER = "locatorbar";
 
 	public const RULE_TYPE_BOOL = 1;
 	public const RULE_TYPE_INT = 2;
@@ -123,7 +122,6 @@ class GameRules
 		$this->setInt(self::RULE_SPAWN_RADIUS, 10);
 		$this->setBool(self::RULE_TNT_EXPLODES, true);
 		$this->setBool(self::RULE_TNT_EXPLOSION_DROP_DECAY, false);
-		$this->setBool(self::RULE_LOCALOR_BAER, true);
 	}
 
 	public function setRule(string $name, $value, int $valueType) : bool
@@ -191,7 +189,10 @@ class GameRules
 		}
 	}
 
-	public function convertType(string $input, int $wantedType) : float|bool|int|string
+	/**
+	 * @return bool|float|int|string
+	 */
+	public function convertType(string $input, int $wantedType)
 	{
 		switch ($wantedType) {
 			default:

@@ -36,8 +36,6 @@ use pocketmine\utils\EnumTrait;
  * @method static TreeType JUNGLE()
  * @method static TreeType OAK()
  * @method static TreeType SPRUCE()
- * @method static TreeType CHERRY()
- * @method static TreeType PALE_OAK()
  */
 final class TreeType
 {
@@ -52,25 +50,39 @@ final class TreeType
 	protected static function setup() : void
 	{
 		self::registerAll(
-			new TreeType("oak", "Oak"),
-			new TreeType("spruce", "Spruce"),
-			new TreeType("birch", "Birch"),
-			new TreeType("jungle", "Jungle"),
-			new TreeType("acacia", "Acacia"),
-			new TreeType("dark_oak", "Dark Oak"),
-			new TreeType("cherry", "Cherry"),
-			new TreeType("pale_oak", "Pale Oak")
+			new TreeType("oak", "Oak", 0),
+			new TreeType("spruce", "Spruce", 1),
+			new TreeType("birch", "Birch", 2),
+			new TreeType("jungle", "Jungle", 3),
+			new TreeType("acacia", "Acacia", 4),
+			new TreeType("dark_oak", "Dark Oak", 5)
 		);
 	}
 
-	protected static function register(TreeType $member) : void
+	protected static function register(TreeType $type) : void
 	{
-		self::Enum_register($member);
+		self::Enum_register($type);
+		self::$numericIdMap[$type->getMagicNumber()] = $type;
+	}
+
+	/**
+	 * @internal
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public static function fromMagicNumber(int $magicNumber) : TreeType
+	{
+		self::checkInit();
+		if (!isset(self::$numericIdMap[$magicNumber])) {
+			throw new \InvalidArgumentException("Unknown tree type magic number $magicNumber");
+		}
+		return self::$numericIdMap[$magicNumber];
 	}
 
 	private function __construct(
 		string $enumName,
-		private string $displayName
+		private string $displayName,
+		private int $magicNumber
 	) {
 		$this->Enum___construct($enumName);
 	}
@@ -78,5 +90,10 @@ final class TreeType
 	public function getDisplayName() : string
 	{
 		return $this->displayName;
+	}
+
+	public function getMagicNumber() : int
+	{
+		return $this->magicNumber;
 	}
 }

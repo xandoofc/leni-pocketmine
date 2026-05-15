@@ -59,11 +59,11 @@ class EndBrickStairs extends Stair
 		return "End Stone Brick Stairs";
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::COBBLESTONE_STAIRS, $this->meta);
+			return Block::get(Block::COBBLESTONE_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

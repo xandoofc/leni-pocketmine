@@ -33,7 +33,6 @@ use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Binary;
 use pocketmine\utils\BinaryStream;
 use pocketmine\world\format\PalettedBlockArray;
-
 use function array_flip;
 use function chr;
 use function count;
@@ -103,12 +102,12 @@ final class ChunkSerializer
 	/**
 	 * Serializes the chunk for sending to players
 	 */
-	public static function serializeFullChunk(Chunk $chunk, int $playerProtocol, \Closure|null $legacyToRuntime, int $dimensionId, bool $fast) : string
+	public static function serializeFullChunk(Chunk $chunk, int $playerProtocol, \Closure|null $legacyToRuntime, int $dimensionId) : string
 	{
 		$stream = new BinaryStream();
 
 		$subChunkCount = self::getSubChunkCount($chunk, $dimensionId, $playerProtocol);
-        if ($playerProtocol < ProtocolInfo::PROTOCOL_361) {
+		if ($playerProtocol < ProtocolInfo::PROTOCOL_361) {
 			$stream->putByte($subChunkCount);
 		}
 
@@ -116,7 +115,7 @@ final class ChunkSerializer
 
 		[$minSubChunkIndex, $maxSubChunkIndex] = self::getDimensionChunkBounds($dimensionId, $playerProtocol);
 		for ($y = $minSubChunkIndex; $writtenCount < $subChunkCount; ++$y, ++$writtenCount) {
-			self::serializeSubChunk($chunk->getSubChunk($y), $legacyToRuntime, $playerProtocol, $stream, $fast);
+			self::serializeSubChunk($chunk->getSubChunk($y), $legacyToRuntime, $playerProtocol, $stream);
 		}
 
 		if ($playerProtocol >= ProtocolInfo::PROTOCOL_475) {
@@ -133,21 +132,17 @@ final class ChunkSerializer
 			$stream->put($chunk->getBiomeIdArray());
 		}
 
-        if ($fast) {
-            $stream->putVarInt(PHP_INT_MAX); //wtf? fast chunks
-        }
-
 		$stream->putByte(0); //border block array count
 		//Border block entry format: 1 byte (4 bits X, 4 bits Z). These are however useless since they crash the regular client.
 
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_274) {
-            $stream->putVarInt(0); // extraData (WTF)
+			$stream->putVarInt(0); // extraData (WTF)
 		}
 
 		return $stream->getBuffer();
 	}
 
-	public static function serializeSubChunk(SubChunkInterface $subChunk, \Closure|null $legacyToRuntime, int $playerProtocol, BinaryStream $stream, bool $fast) : string
+	public static function serializeSubChunk(SubChunkInterface $subChunk, \Closure|null $legacyToRuntime, int $playerProtocol, BinaryStream $stream) : string
 	{
 		if ($legacyToRuntime === null) {
 			$stream->putByte(0); //storage version
@@ -169,7 +164,7 @@ final class ChunkSerializer
 				$stream->put(self::$emptyBlockLight); // block light
 			}
 		} else {
-			$stream->putByte($fast ? 0 : 8); // storage version
+			$stream->putByte(8); // storage version
 
 			$blockLayers = $subChunk->getBlockLayers();
 			$stream->putByte(count($blockLayers)); // layer count

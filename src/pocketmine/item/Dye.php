@@ -54,7 +54,7 @@ class Dye extends Item
 		};
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_419) {
 			$colorsDyeNew = [
@@ -65,10 +65,11 @@ class Dye extends Item
 			];
 
 			if (isset($colorsDyeNew[$this->getDamage()])) {
-				return new TranslatedItemData($this->getId(), $colorsDyeNew[$this->getDamage()]);
+				$item = $this;
+				$item->setDamage($colorsDyeNew[$this->getDamage()]);
+				return $item;
 			}
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

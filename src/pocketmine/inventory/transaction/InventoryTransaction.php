@@ -61,6 +61,9 @@ class InventoryTransaction
 	/** @var Player */
 	protected $source;
 
+	/** @var Inventory[] */
+	protected $inventories = [];
+
 	/** @var InventoryAction[] */
 	protected $actions = [];
 
@@ -70,10 +73,9 @@ class InventoryTransaction
 	/**
 	 * @param InventoryAction[] $actions
 	 */
-	public function __construct(Player $source, array $actions = [], bool $skipValidation = false)
+	public function __construct(Player $source, array $actions = [])
 	{
 		$this->source = $source;
-		$this->skipValidation = $skipValidation;
 		foreach ($actions as $action) {
 			$this->addAction($action);
 		}
@@ -82,6 +84,14 @@ class InventoryTransaction
 	public function getSource() : Player
 	{
 		return $this->source;
+	}
+
+	/**
+	 * @return Inventory[]
+	 */
+	public function getInventories() : array
+	{
+		return $this->inventories;
 	}
 
 	/**
@@ -99,14 +109,11 @@ class InventoryTransaction
 
 	public function addAction(InventoryAction $action) : void
 	{
-		if ($this->skipValidation) {
-			$this->actions[] = $action;
+		if (!isset($this->actions[$hash = spl_object_hash($action)])) {
+			$this->actions[$hash] = $action;
+			$action->onAddToTransaction($this);
 		} else {
-			if (!isset($this->actions[$hash = spl_object_hash($action)])) {
-				$this->actions[$hash] = $action;
-			} else {
-				throw new InvalidArgumentException("Tried to add the same action to a transaction twice");
-			}
+			throw new InvalidArgumentException("Tried to add the same action to a transaction twice");
 		}
 	}
 
@@ -122,6 +129,17 @@ class InventoryTransaction
 			$actions[$key] = $this->actions[$key];
 		}
 		$this->actions = $actions;
+	}
+
+	/**
+	 * @internal This method should not be used by plugins, it's used to add tracked inventories for InventoryActions
+	 * involving inventories.
+	 */
+	public function addInventory(Inventory $inventory) : void
+	{
+		if (!isset($this->inventories[$hash = spl_object_hash($inventory)])) {
+			$this->inventories[$hash] = $inventory;
+		}
 	}
 
 	/**
@@ -286,8 +304,8 @@ class InventoryTransaction
 
 	protected function sendInventories() : void
 	{
-		foreach ($this->actions as $action) {
-			$action->revert($this->source);
+		foreach ($this->inventories as $inventory) {
+			$inventory->sendContents($this->source);
 		}
 	}
 
@@ -310,9 +328,9 @@ class InventoryTransaction
 			return false;
 		}
 
-		if (!$this->skipValidation) {
-			$this->shuffleActions();
+		$this->shuffleActions();
 
+		if (!$this->skipValidation) {
 			try {
 				$this->validate();
 			} catch (TransactionValidationException $e) {
@@ -334,7 +352,11 @@ class InventoryTransaction
 		}
 
 		foreach ($this->actions as $action) {
-			$action->execute($this->source);
+			if ($action->execute($this->source)) {
+				$action->onExecuteSuccess($this->source);
+			} else {
+				$action->onExecuteFail($this->source);
+			}
 		}
 
 		$this->hasExecuted = true;
@@ -347,13 +369,11 @@ class InventoryTransaction
 		return $this->hasExecuted;
 	}
 
-	public function isSkipValidation() : bool
-	{
+	public function isSkipValidation() : bool {
 		return $this->skipValidation;
 	}
 
-	public function setSkipValidation(bool $skipped) : void
-	{
+	public function setSkipValidation(bool $skipped) : void {
 		$this->skipValidation = $skipped;
 	}
 }

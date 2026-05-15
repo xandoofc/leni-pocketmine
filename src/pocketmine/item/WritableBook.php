@@ -201,10 +201,10 @@ class WritableBook extends Item
 		$this->setNamedTag($nbt);
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_223) {
-			return new TranslatedItemData(ItemIds::BOOK, $this->getDamage());
+			return ItemFactory::get(Item::BOOK, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
 
 		return parent::getItemProtocol($playerProtocol);

@@ -25,7 +25,7 @@ namespace pocketmine\level\sound;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelEventPacket;
 
-final class ButtonClickSound extends GenericSound
+class ButtonClickSound extends GenericSound
 {
 	public function __construct(Vector3 $pos, float $pitch = 0)
 	{

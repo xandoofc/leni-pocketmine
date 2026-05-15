@@ -112,21 +112,18 @@ class FloatingTextParticle extends Particle
 				$actorMetadata[Entity::DATA_VARIANT][1] = RuntimeBlockMapping::getInstance($this->protocol)->toRuntimeId(BlockFactory::get(BlockIds::AIR)->getFullId());
 			}
 
-			$p[] = AddActorPacket::create(
-				$this->entityId,
-				$this->entityId,
-				EntityIds::FALLING_BLOCK,
-				$this->asVector3(),
-				null,
-				0,
-				0,
-				0,
-				0,
-				[],
-				$actorMetadata,
-				new PropertySyncData([], []),
-				[]
-			);
+			$pk = new AddActorPacket();
+			$pk->entityUniqueId = $this->entityId;
+			$pk->entityRuntimeId = $this->entityId;
+			$pk->type = EntityIds::FALLING_BLOCK;
+			$pk->position = $this->asVector3();
+			$pk->motion = null;
+			$pk->yaw = $pk->pitch = $pk->headYaw = $pk->bodyYaw = 0;
+			$pk->attributes = [];
+			$pk->metadata = $actorMetadata;
+			$pk->syncedProperties = new PropertySyncData([], []);
+			$pk->links = [];
+			$p[] = $pk;
 		}
 
 		return $p;

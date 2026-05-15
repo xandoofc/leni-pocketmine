@@ -28,7 +28,7 @@ use pocketmine\math\Vector2;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\NetworkSession;
 
-class CorrectPlayerMovePredictionPacket extends DataPacket
+class CorrectPlayerMovePredictionPacket extends DataPacket /* implements ClientboundPacket*/
 {
 	public const NETWORK_ID = ProtocolInfo::CORRECT_PLAYER_MOVE_PREDICTION_PACKET;
 

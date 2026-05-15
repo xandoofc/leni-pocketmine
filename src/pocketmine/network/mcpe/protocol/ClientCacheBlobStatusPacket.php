@@ -31,9 +31,9 @@ class ClientCacheBlobStatusPacket extends DataPacket
 	public const NETWORK_ID = ProtocolInfo::CLIENT_CACHE_BLOB_STATUS_PACKET;
 
 	/** @var int[] xxHash64 subchunk data hashes */
-	public array $hitHashes = [];
+	private $hitHashes = [];
 	/** @var int[] xxHash64 subchunk data hashes */
-	public array $missHashes = [];
+	private $missHashes = [];
 
 	/**
 	 * @param int[] $hitHashes

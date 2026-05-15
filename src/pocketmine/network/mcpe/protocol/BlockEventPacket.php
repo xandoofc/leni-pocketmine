@@ -33,22 +33,16 @@ class BlockEventPacket extends DataPacket
 	public const DATA_CHEST_CLOSED = 0;
 	public const DATA_CHEST_OPEN = 1;
 
-	public int $x = 0;
-	public int $y = 0;
-	public int $z = 0;
-	public int $eventType;
-	public int $eventData;
-
-	public static function create(int $x, int $y, int $z, int $eventType, int $eventData) : self
-	{
-		$result = new self();
-		$result->x = $x;
-		$result->y = $y;
-		$result->z = $z;
-		$result->eventType = $eventType;
-		$result->eventData = $eventData;
-		return $result;
-	}
+	/** @var int */
+	public $x;
+	/** @var int */
+	public $y;
+	/** @var int */
+	public $z;
+	/** @var int */
+	public $eventType;
+	/** @var int */
+	public $eventData;
 
 	protected function decodePayload() : void
 	{

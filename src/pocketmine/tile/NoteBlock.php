@@ -26,7 +26,6 @@ use pocketmine\block\Block;
 use pocketmine\level\sound\NoteblockSound;
 use pocketmine\math\Facing;
 use pocketmine\nbt\tag\CompoundTag;
-
 use function boolval;
 use function intval;
 use function max;

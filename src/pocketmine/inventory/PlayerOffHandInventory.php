@@ -25,12 +25,10 @@ namespace pocketmine\inventory;
 use BadMethodCallException;
 use pocketmine\entity\Human;
 use pocketmine\item\Item;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\Player;
-
 use function array_merge;
 
 class PlayerOffHandInventory extends BaseInventory
@@ -95,15 +93,21 @@ class PlayerOffHandInventory extends BaseInventory
 		throw new BadMethodCallException("OffHand can only carry one item at a time");
 	}
 
+	public function sendSlot(int $index, $target) : void
+	{
+		$this->sendContents($target);
+	}
+
 	public function sendOffhand(Player $target) : void
 	{
-		$target->sendDataPacket(MobEquipmentPacket::create(
-			$this->holder->getId(),
-			ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->getItemInHand(), $target->getProtocolVersion())),
-			$this->getHeldItemIndex(),
-			$this->getHeldItemIndex(),
-			ContainerIds::OFFHAND
-		));
+		$pk = new MobEquipmentPacket();
+		$pk->entityRuntimeId = $this->holder->getId();
+		$pk->item = ItemStackWrapper::legacy($this->getItemInHand());
+		$pk->inventorySlot = $this->getHeldItemIndex();
+		$pk->hotbarSlot = $this->getHeldItemIndex();
+		$pk->windowId = ContainerIds::OFFHAND;
+
+		$target->sendDataPacket(clone $pk);
 	}
 
 	public function getItemInHand() : Item

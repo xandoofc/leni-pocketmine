@@ -28,8 +28,10 @@ class SettingsCommandPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::SETTINGS_COMMAND_PACKET;
 
-	public string $command;
-	public bool $suppressOutput;
+	/** @var string */
+	private $command;
+	/** @var bool */
+	private $suppressOutput;
 
 	public static function create(string $command, bool $suppressOutput) : self
 	{

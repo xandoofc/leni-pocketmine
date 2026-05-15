@@ -36,37 +36,14 @@ class AnimatePacket extends DataPacket
 	public const ACTION_ROW_LEFT = 129;
 
 	public int $action;
-	public int $actorRuntimeId;
-	public float $data = 0.0;
-	public float $rowingTime = 0.0;
-
-	public static function create(int $actorRuntimeId, int $actionId, float $data = 0.0) : self{
-		$result = new self();
-		$result->actorRuntimeId = $actorRuntimeId;
-		$result->action = $actionId;
-		$result->data = $data;
-		return $result;
-	}
-
-	public static function boatHack(int $actorRuntimeId, int $actionId, float $rowingTime) : self{
-		if($actionId !== self::ACTION_ROW_LEFT && $actionId !== self::ACTION_ROW_RIGHT){
-			throw new \InvalidArgumentException("Invalid actionId for boatHack: $actionId");
-		}
-
-		$result = self::create($actorRuntimeId, $actionId);
-		$result->rowingTime = $rowingTime;
-		return $result;
-	}
+	public int $entityRuntimeId;
+	public float $rowingTime = 0.0; // Boat rowing time
 
 	protected function decodePayload() : void
 	{
 		$this->action = $this->getVarInt();
-		$this->actorRuntimeId = $this->getEntityRuntimeId();
-		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_859) {
-			$this->data = $this->getLFloat();
-		}
-
-		if($this->action === self::ACTION_ROW_LEFT || $this->action === self::ACTION_ROW_RIGHT){
+		$this->entityRuntimeId = $this->getEntityRuntimeId();
+		if ($this->action & 0x80) {
 			$this->rowingTime = $this->getLFloat();
 		}
 	}
@@ -74,12 +51,8 @@ class AnimatePacket extends DataPacket
 	protected function encodePayload() : void
 	{
 		$this->putVarInt($this->action);
-		$this->putEntityRuntimeId($this->actorRuntimeId);
-		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_859) {
-			$this->putLFloat($this->data);
-		}
-
-		if($this->action === self::ACTION_ROW_LEFT || $this->action === self::ACTION_ROW_RIGHT){
+		$this->putEntityRuntimeId($this->entityRuntimeId);
+		if ($this->action & 0x80) {
 			$this->putLFloat($this->rowingTime);
 		}
 	}

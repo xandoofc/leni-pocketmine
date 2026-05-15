@@ -28,11 +28,11 @@ class CarvedPumpkin extends Pumpkin
 {
 	protected $id = self::CARVED_PUMPKIN;
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return BlockFactory::get(BlockIds::PUMPKIN, $this->meta);
+			return Block::get(Block::PUMPKIN, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

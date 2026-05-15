@@ -27,7 +27,6 @@ use pocketmine\entity\Entity;
 use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
-
 use function array_values;
 use function count;
 use function mt_rand;

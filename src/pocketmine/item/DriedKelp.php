@@ -41,12 +41,11 @@ class DriedKelp extends Food
 		return 0.6;
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return new TranslatedItemData(ItemIds::APPLE, $this->getDamage());
+			return ItemFactory::get(Item::APPLE, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

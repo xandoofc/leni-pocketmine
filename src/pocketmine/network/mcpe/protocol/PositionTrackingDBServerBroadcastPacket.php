@@ -30,13 +30,16 @@ class PositionTrackingDBServerBroadcastPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::POSITION_TRACKING_D_B_SERVER_BROADCAST_PACKET;
 
-	public const int ACTION_UPDATE = 0;
-	public const int ACTION_DESTROY = 1;
-	public const int ACTION_NOT_FOUND = 2;
+	public const ACTION_UPDATE = 0;
+	public const ACTION_DESTROY = 1;
+	public const ACTION_NOT_FOUND = 2;
 
-	public int $action;
-	public int $trackingId;
-	public CompoundTag $nbt;
+	/** @var int */
+	private $action;
+	/** @var int */
+	private $trackingId;
+	/** @var CompoundTag */
+	private $nbt;
 
 	public static function create(int $action, int $trackingId, CompoundTag $nbt) : self
 	{

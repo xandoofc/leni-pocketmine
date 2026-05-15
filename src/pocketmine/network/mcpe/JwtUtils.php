@@ -48,12 +48,12 @@ use function rtrim;
 use function sprintf;
 use function str_pad;
 use function str_repeat;
+
 use function str_replace;
 use function str_split;
 use function strlen;
 use function strtr;
 use function substr;
-
 use const JSON_THROW_ON_ERROR;
 use const OPENSSL_ALGO_SHA384;
 use const STR_PAD_LEFT;

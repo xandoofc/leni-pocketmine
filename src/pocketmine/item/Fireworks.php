@@ -31,11 +31,9 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\Player;
 use pocketmine\utils\Utils;
-
 use function cos;
 use function mt_rand;
 use function sin;
-
 use const M_PI;
 
 class Fireworks extends Item
@@ -143,10 +141,10 @@ class Fireworks extends Item
 		return true;
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_137) {
-			return new TranslatedItemData(ItemIds::NETHER_STAR, $this->getDamage());
+			return ItemFactory::get(self::NETHER_STAR, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
 
 		return parent::getItemProtocol($playerProtocol);

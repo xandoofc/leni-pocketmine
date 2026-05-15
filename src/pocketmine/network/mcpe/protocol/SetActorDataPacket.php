@@ -24,6 +24,7 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
+use function is_null;
 
 class SetActorDataPacket extends DataPacket
 {
@@ -56,7 +57,7 @@ class SetActorDataPacket extends DataPacket
 		$this->putEntityMetadata($this->metadata, $this->getProtocol());
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
 			if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_557) {
-				if ($this->syncedProperties === null) {
+				if (is_null($this->syncedProperties)) {
 					$this->syncedProperties = new PropertySyncData([], []);
 				}
 				$this->syncedProperties->write($this);

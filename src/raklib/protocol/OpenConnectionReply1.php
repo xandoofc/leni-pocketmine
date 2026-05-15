@@ -1,57 +1,59 @@
 <?php
 
 /*
+ * This file is part of RakLib.
+ * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/RakLib>
  *
- *   _____       _                          _
- *  / ____|     | |                        (_)
- * | (___  _   _| |__  _ __ ___   __ _ _ __ _ _ __   ___
- *  \___ \| | | | '_ \| '_ ` _ \ / _` | '__| | '_ \ / _ \
- *  ____) | |_| | |_) | | | | | | (_| | |  | | | | |  __/
- * |_____/ \__,_|_.__/|_| |_| |_|\__,_|_|  |_|_| |_|\___|
+ * RakLib is not affiliated with Jenkins Software LLC nor RakNet.
  *
- * This program is private software. No license required.
- * Publication of this program is forbidden and will be punished.
- *
- * @author SEMENNEJO
- * @link vk.com/vk.snikers && t.me/semennejo
- *
- *
+ * RakLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 declare(strict_types=1);
 
 namespace raklib\protocol;
 
-class OpenConnectionReply1 extends OfflineMessage
-{
+class OpenConnectionReply1 extends OfflineMessage{
 	public static $ID = MessageIdentifiers::ID_OPEN_CONNECTION_REPLY_1;
 
 	public int $serverID;
-	public bool $serverSecurity = false;
+	public ?int $cookie = null;
 	public int $mtuSize;
 
-	public static function create(int $serverId, bool $serverSecurity, int $mtuSize) : self
-	{
-		$result = new self();
+	public static function create(int $serverId, ?int $cookie, int $mtuSize) : self{
+		$result = new self;
 		$result->serverID = $serverId;
-		$result->serverSecurity = $serverSecurity;
+		$result->cookie = $cookie;
 		$result->mtuSize = $mtuSize;
 		return $result;
 	}
 
-	protected function encodePayload(PacketSerializer $out) : void
-	{
+	protected function encodePayload(PacketSerializer $out) : void{
 		$this->writeMagic($out);
 		$out->putLong($this->serverID);
-		$out->putByte($this->serverSecurity ? 1 : 0);
+		if($this->cookie !== null){
+			$out->putByte(1);
+			$out->putInt($this->cookie);
+			//TODO: If the client supports libcat security, we're expected to send a public key here.
+			//However this would require context-specific logic and I really cba with it
+		}else{
+			$out->putByte(0);
+		}
 		$out->putShort($this->mtuSize);
 	}
 
-	protected function decodePayload(PacketSerializer $in) : void
-	{
+	protected function decodePayload(PacketSerializer $in) : void{
 		$this->readMagic($in);
 		$this->serverID = $in->getLong();
-		$this->serverSecurity = $in->getByte() !== 0;
+		if($in->getByte() !== 0){
+			$this->cookie = $in->getInt();
+			//TODO: If the server supports libcat security, it'll send a public key here.
+		}else{
+			$this->cookie = null;
+		}
 		$this->mtuSize = $in->getShort();
 	}
 }

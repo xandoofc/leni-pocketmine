@@ -92,7 +92,10 @@ class Zombie extends Monster implements Ageable, Smite
 
 	public function onAttack(EntityDamageEvent $source) : void
 	{
-		$this->broadcastEntityEvent(ActorEventPacket::ARM_SWING);
+		$pk = new ActorEventPacket();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->event = ActorEventPacket::ARM_SWING;
+		$this->server->broadcastPacket($this->getViewers(), $pk);
 	}
 
 	protected function addBehaviors() : void

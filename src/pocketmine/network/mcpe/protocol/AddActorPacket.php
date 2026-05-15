@@ -32,6 +32,7 @@ use pocketmine\network\mcpe\protocol\types\EntityLink;
 
 use function array_search;
 use function count;
+use function is_null;
 
 class AddActorPacket extends DataPacket
 {
@@ -138,61 +139,33 @@ class AddActorPacket extends DataPacket
 		EntityIds::TRIPOD_CAMERA => "minecraft:tripod_camera"
 	];
 
-	public ?int $entityUniqueId = null; //TODO
-	public int $entityRuntimeId;
-	public int $type;
-	public Vector3 $position;
-	public ?Vector3 $motion = null;
-	public float $pitch = 0.0;
-	public float $yaw = 0.0;
-	public float $headYaw = 0.0;
-	public float $bodyYaw = 0.0;
+	/** @var int|null */
+	public $entityUniqueId = null; //TODO
+	/** @var int */
+	public $entityRuntimeId;
+	/** @var int */
+	public $type;
+	/** @var Vector3 */
+	public $position;
+	/** @var Vector3|null */
+	public $motion;
+	/** @var float */
+	public $pitch = 0.0;
+	/** @var float */
+	public $yaw = 0.0;
+	/** @var float */
+	public $headYaw = 0.0;
+	/** @var float */
+	public $bodyYaw = 0.0;
 
 	/** @var Attribute[] */
-	public array $attributes = [];
-	public array $metadata = [];
-	public ?PropertySyncData $syncedProperties = null;
+	public $attributes = [];
+	/** @var array */
+	public $metadata = [];
+	/** @var PropertySyncData */
+	public $syncedProperties = null;
 	/** @var EntityLink[] */
-	public array $links = [];
-
-	/**
-	 * @generate-create-func
-	 *
-	 * @param Attribute[]  $attributes
-	 * @param EntityLink[] $links
-	 */
-	public static function create(
-		int $entityUniqueId,
-		int $entityRuntimeId,
-		int $type,
-		Vector3 $position,
-		?Vector3 $motion,
-		float $pitch,
-		float $yaw,
-		float $headYaw,
-		float $bodyYaw,
-		array $attributes,
-		array $metadata,
-		PropertySyncData $syncedProperties,
-		array $links
-	) : self
-	{
-		$result = new self();
-		$result->entityUniqueId = $entityUniqueId;
-		$result->entityRuntimeId = $entityRuntimeId;
-		$result->type = $type;
-		$result->position = $position;
-		$result->motion = $motion;
-		$result->pitch = $pitch;
-		$result->yaw = $yaw;
-		$result->headYaw = $headYaw;
-		$result->bodyYaw = $bodyYaw;
-		$result->attributes = $attributes;
-		$result->metadata = $metadata;
-		$result->syncedProperties = $syncedProperties;
-		$result->links = $links;
-		return $result;
-	}
+	public $links = [];
 
 	protected function decodePayload() : void
 	{
@@ -279,10 +252,9 @@ class AddActorPacket extends DataPacket
 
 		$this->putEntityMetadata($this->metadata, $this->getProtocol());
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_557) {
-			if ($this->syncedProperties === null) {
+			if (is_null($this->syncedProperties)) {
 				$this->syncedProperties = new PropertySyncData([], []);
 			}
-
 			$this->syncedProperties->write($this);
 		}
 		$this->putUnsignedVarInt(count($this->links));

@@ -24,31 +24,40 @@ namespace pocketmine\inventory;
 
 use pocketmine\item\Item;
 
-class PotionTypeRecipe implements BrewingRecipe{
-
+class PotionTypeRecipe implements BrewingRecipe
+{
 	public function __construct(
 		private Item $input,
 		private Item $ingredient,
 		private Item $output
-	){
+	) {
 		$this->input = clone $input;
 		$this->ingredient = clone $ingredient;
 		$this->output = clone $output;
 	}
 
-	public function getInput() : Item{
+	public function getInput() : Item
+	{
 		return clone $this->input;
 	}
 
-	public function getIngredient() : Item{
+	public function getIngredient() : Item
+	{
 		return clone $this->ingredient;
 	}
 
-	public function getOutput() : Item{
+	public function getOutput() : Item
+	{
 		return clone $this->output;
 	}
 
-	public function getResultFor(Item $input) : ?Item{
+	public function getResultFor(Item $input) : ?Item
+	{
 		return $input->equals($this->input, true, false) ? $this->getOutput() : null;
+	}
+
+	public function registerToCraftingManager(CraftingManager $manager) : void
+	{
+		$manager->registerPotionTypeRecipe($this);
 	}
 }

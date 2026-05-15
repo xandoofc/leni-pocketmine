@@ -25,42 +25,31 @@ namespace pocketmine\network\mcpe\protocol\types;
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\utils\Binary;
 
-final class SubChunkPositionOffset
-{
+final class SubChunkPositionOffset{
+
 	public function __construct(
 		private int $xOffset,
 		private int $yOffset,
 		private int $zOffset,
-	) {
+	){
 		self::clampOffset($this->xOffset);
 		self::clampOffset($this->yOffset);
 		self::clampOffset($this->zOffset);
 	}
 
-	private static function clampOffset(int $v) : void
-	{
-		if ($v < INT8_MIN || $v > INT8_MAX) {
+	private static function clampOffset(int $v) : void{
+		if($v < INT8_MIN || $v > INT8_MAX){
 			throw new \InvalidArgumentException("Offsets must be within the range of a byte (" . INT8_MIN . " ... " . INT8_MAX . ")");
 		}
 	}
 
-	public function getXOffset() : int
-	{
-		return $this->xOffset;
-	}
+	public function getXOffset() : int{ return $this->xOffset; }
 
-	public function getYOffset() : int
-	{
-		return $this->yOffset;
-	}
+	public function getYOffset() : int{ return $this->yOffset; }
 
-	public function getZOffset() : int
-	{
-		return $this->zOffset;
-	}
+	public function getZOffset() : int{ return $this->zOffset; }
 
-	public static function read(NetworkBinaryStream $in) : self
-	{
+	public static function read(NetworkBinaryStream $in) : self{
 		$xOffset = Binary::signByte($in->getByte());
 		$yOffset = Binary::signByte($in->getByte());
 		$zOffset = Binary::signByte($in->getByte());
@@ -68,8 +57,7 @@ final class SubChunkPositionOffset
 		return new self($xOffset, $yOffset, $zOffset);
 	}
 
-	public function write(NetworkBinaryStream $out) : void
-	{
+	public function write(NetworkBinaryStream $out) : void{
 		$out->putByte($this->xOffset);
 		$out->putByte($this->yOffset);
 		$out->putByte($this->zOffset);

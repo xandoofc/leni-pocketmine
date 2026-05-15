@@ -79,7 +79,7 @@ class Ice extends Transparent
 	{
 		$level = $this->getLevel();
 		if ($level->getHighestAdjacentBlockLight($this->x, $this->y, $this->z) >= 12) {
-			$ev = new BlockMeltEvent($this, BlockFactory::get(Block::WATER));
+			$ev = new BlockMeltEvent($this, Block::get(Block::WATER));
 			$ev->call();
 			if (!$ev->isCancelled()) {
 				$level->setBlock($this, $ev->getNewState());

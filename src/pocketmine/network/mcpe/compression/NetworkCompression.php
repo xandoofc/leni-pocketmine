@@ -30,7 +30,6 @@ use function libdeflate_deflate_compress;
 use function libdeflate_zlib_compress;
 use function zlib_decode;
 use function zlib_encode;
-
 use const ZLIB_ENCODING_DEFLATE;
 use const ZLIB_ENCODING_RAW;
 

@@ -62,9 +62,8 @@ class RedNetherBrickStairs extends Stair
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::NETHER_BRICK_STAIRS, $this->meta);
+			return Block::get(Block::NETHER_BRICK_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

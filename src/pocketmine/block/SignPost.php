@@ -187,10 +187,12 @@ class SignPost extends Transparent
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::SIGN_POST, $this->meta);
+		if (
+			($playerProtocol < ProtocolInfo::PROTOCOL_766 && $this->id === self::PALE_OAK_STANDING_SIGN) ||
+			$playerProtocol < ProtocolInfo::PROTOCOL_332
+		) {
+			return Block::get(Block::SIGN_POST, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

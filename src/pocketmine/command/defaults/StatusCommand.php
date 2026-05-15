@@ -26,10 +26,14 @@ use pocketmine\command\CommandSender;
 use pocketmine\utils\Process;
 use pocketmine\utils\TextFormat;
 
+use function arsort;
 use function count;
+use function date;
 use function floor;
+use function function_exists;
 use function microtime;
 use function number_format;
+use function opcache_get_status;
 use function round;
 
 class StatusCommand extends VanillaCommand
@@ -84,11 +88,11 @@ class StatusCommand extends VanillaCommand
 		$sender->sendMessage(TextFormat::GOLD . "Uptime: " . TextFormat::RED . $uptime);
 
 		$tpsColor = TextFormat::GREEN;
-		if ($server->getTicksPerSecond() < 12) {
-			$tpsColor = TextFormat::RED;
-		} elseif ($server->getTicksPerSecond() < 17) {
-			$tpsColor = TextFormat::GOLD;
-		}
+			if ($server->getTicksPerSecond() < 12) {
+				   $tpsColor = TextFormat::RED;
+			} elseif ($server->getTicksPerSecond() < 17) {
+				   $tpsColor = TextFormat::GOLD;
+			}
 
 		$sender->sendMessage(TextFormat::GOLD . "Current TPS: {$tpsColor}{$server->getTicksPerSecond()} ({$server->getTickUsage()}%)");
 		$sender->sendMessage(TextFormat::GOLD . "Average TPS: {$tpsColor}{$server->getTicksPerSecondAverage()} ({$server->getTickUsageAverage()}%)");
@@ -105,19 +109,50 @@ class StatusCommand extends VanillaCommand
 		$sender->sendMessage(TextFormat::GOLD . "Total virtual memory: " . TextFormat::RED . number_format(round(($mUsage[2] / 1024) / 1024, 2), 2) . " MB.");
 		$sender->sendMessage(TextFormat::GOLD . "Heap memory: " . TextFormat::RED . number_format(round(($rUsage[0] / 1024) / 1024, 2), 2) . " MB.");
 
-		$globalLimit = $server->getMemoryManager()->getGlobalMemoryLimit();
-		if($globalLimit > 0){
-			$sender->sendMessage(TextFormat::GOLD . "Maximum memory (manager): " . TextFormat::RED . number_format(round(($globalLimit / 1024) / 1024, 2), 2) . " MB.");
+		if ($server->getProperty("memory.global-limit") > 0) {
+			$sender->sendMessage(TextFormat::GOLD . "Maximum memory (manager): " . TextFormat::RED . number_format(round($server->getProperty("memory.global-limit"), 2), 2) . " MB.");
 		}
 
-		foreach($server->getLevels() as $level){
+		foreach ($server->getLevels() as $level) {
 			$levelName = $level->getFolderName() !== $level->getName() ? " (" . $level->getName() . ")" : "";
 			$timeColor = $level->getTickRateTime() > 40 ? TextFormat::RED : TextFormat::YELLOW;
-			$sender->sendMessage(TextFormat::GOLD . "World \"{$level->getFolderName()}\"$levelName: " .
+			$sender->sendMessage(
+				TextFormat::GOLD . "World \"{$level->getFolderName()}\"$levelName: " .
 				TextFormat::RED . number_format(count($level->getChunks())) . TextFormat::GREEN . " chunks, " .
+						TextFormat::RED . number_format(count($level->getPlayers())) . TextFormat::GREEN . " players, " .
 				TextFormat::RED . number_format(count($level->getEntities())) . TextFormat::GREEN . " entities. " .
 				"Time $timeColor" . round($level->getTickRateTime(), 2) . "ms"
 			);
+		}
+
+		if (function_exists('opcache_get_status')) {
+			$scripts = opcache_get_status()["scripts"];
+			foreach ($scripts as $path => $info) {
+				$scripts[$path] = $info["memory_consumption"];
+			}
+			arsort($scripts);
+
+			$status = opcache_get_status();
+			$cachedKeys = $status['opcache_statistics']['num_cached_scripts'];
+			$startTime = date('Y-m-d H:i:s', $status['opcache_statistics']['start_time']);
+			$usedMemory = round($status['memory_usage']['used_memory'] / 1024 / 1024, 2) . " MB";
+
+			$sender->sendMessage("\n" . TextFormat::GOLD . "OPcache status: " . TextFormat::GREEN . "on");
+			$sender->sendMessage(TextFormat::GOLD . "- Cached Keys: " . TextFormat::GREEN . $cachedKeys);
+			$sender->sendMessage(TextFormat::GOLD . "- Started At: " . TextFormat::GREEN . $startTime);
+			$sender->sendMessage(TextFormat::GOLD . "- Used Memory: " . TextFormat::RED . $usedMemory);
+
+			$sender->sendMessage("\n" . TextFormat::GOLD . "The most memory consuming files:");
+			$count = 0;
+			foreach ($scripts as $path => $memoryConsumption) {
+				$sender->sendMessage(TextFormat::GOLD . "- " . TextFormat::GREEN . round($memoryConsumption / 1024 / 1024, 2) . "MB ($path)");
+				$count++;
+				if ($count === 10) {
+					break;
+				}
+			}
+		} else {
+			$sender->sendMessage(TextFormat::GOLD . "OPcache status: " . TextFormat::RED . "off");
 		}
 		return true;
 	}

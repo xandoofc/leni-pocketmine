@@ -28,17 +28,14 @@ namespace pocketmine\network;
 
 use pocketmine\event\server\NetworkInterfaceRegisterEvent;
 use pocketmine\event\server\NetworkInterfaceUnregisterEvent;
-use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
 use pocketmine\network\mcpe\protocol\PacketPool;
 use pocketmine\utils\Utils;
 use raklib\generic\PacketHandlingException;
-
 use function base64_encode;
 use function get_class;
 use function preg_match;
 use function spl_object_id;
 use function time;
-
 use const PHP_INT_MAX;
 
 class Network
@@ -66,8 +63,6 @@ class Network
 		private \Logger $logger
 	) {
 		PacketPool::init();
-
-		RuntimeBlockMapping::getInstance(844);
 	}
 
 	public function addStatistics(float $upload, float $download) : void

@@ -27,12 +27,15 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 final class SpawnSettings
 {
-	public const int BIOME_TYPE_DEFAULT = 0;
-	public const int BIOME_TYPE_USER_DEFINED = 1;
+	public const BIOME_TYPE_DEFAULT = 0;
+	public const BIOME_TYPE_USER_DEFINED = 1;
 
-	private int $biomeType;
-	private string $biomeName;
-	private int $dimension;
+	/** @var int */
+	private $biomeType;
+	/** @var string */
+	private $biomeName;
+	/** @var int */
+	private $dimension;
 
 	public function __construct(int $biomeType, string $biomeName, int $dimension)
 	{

@@ -38,7 +38,8 @@ class CompressedBiomeDefinitionListPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::COMPRESSED_BIOME_DEFINITION_LIST_PACKET;
 
-	public string $payload;
+	/** @var string */
+	private $payload;
 
 	/**
 	 * @generate-create-func

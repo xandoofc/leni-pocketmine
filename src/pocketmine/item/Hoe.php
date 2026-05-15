@@ -47,14 +47,13 @@ class Hoe extends TieredTool
 		return false;
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_407) {
-			if ($this->getId() === ItemIds::NETHERITE_HOE) {
-				return new TranslatedItemData(ItemIds::DIAMOND_HOE, $this->getDamage());
+			if ($this->getId() === Item::NETHERITE_HOE) {
+				return Item::get(Item::DIAMOND_HOE, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 			}
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

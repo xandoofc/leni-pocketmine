@@ -28,8 +28,10 @@ class DebugInfoPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::DEBUG_INFO_PACKET;
 
-	public int $entityUniqueId;
-	public string $data;
+	/** @var int */
+	private $entityUniqueId;
+	/** @var string */
+	private $data;
 
 	public static function create(int $entityUniqueId, string $data) : self
 	{

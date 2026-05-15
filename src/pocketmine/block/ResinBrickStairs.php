@@ -62,9 +62,8 @@ class ResinBrickStairs extends Stair
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::STONE_STAIRS, $this->meta);
+			return Block::get(Block::STONE_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

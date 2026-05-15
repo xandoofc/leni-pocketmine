@@ -115,7 +115,7 @@ class SnowLayer extends Flowable
 	{
 		$level = $this->getLevel();
 		if ($level->getBlockLightAt($this->x, $this->y, $this->z) >= 12) {
-			$ev = new BlockMeltEvent($this, BlockFactory::get(Block::AIR));
+			$ev = new BlockMeltEvent($this, Block::get(Block::AIR));
 			$ev->call();
 			if (!$ev->isCancelled()) {
 				$level->setBlock($this, $ev->getNewState());

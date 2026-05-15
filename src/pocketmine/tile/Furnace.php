@@ -27,9 +27,9 @@ use pocketmine\block\BlockFactory;
 use pocketmine\event\inventory\FurnaceBurnEvent;
 use pocketmine\event\inventory\FurnaceCookEvent;
 use pocketmine\event\inventory\FurnaceSmeltEvent;
+use pocketmine\inventory\CraftingManager;
 use pocketmine\inventory\FurnaceInventory;
 use pocketmine\inventory\FurnaceRecipe;
-use pocketmine\inventory\FurnaceType;
 use pocketmine\inventory\Inventory;
 use pocketmine\inventory\InventoryEventProcessor;
 use pocketmine\inventory\InventoryHolder;
@@ -158,10 +158,6 @@ class Furnace extends Spawnable implements InventoryHolder, Container, Nameable
 		return $this->maxTime > 0 ? (int) ceil($this->burnTime / $this->maxTime * 200) : 0;
 	}
 
-	public function getFurnaceType() : FurnaceType {
-		return FurnaceType::FURNACE;
-	}
-
 	public function onUpdate() : bool
 	{
 		//TODO: move this to Block
@@ -180,7 +176,7 @@ class Furnace extends Spawnable implements InventoryHolder, Container, Nameable
 		$raw = $this->inventory->getSmelting();
 		$product = $this->inventory->getResult();
 
-		$smelt = $this->level->getServer()->getCraftingManager()->matchFurnaceRecipe($raw);
+		$smelt = CraftingManager::matchFurnaceRecipe($raw);
 		$canSmelt = ($smelt instanceof FurnaceRecipe && $raw->getCount() > 0 && (($smelt->getResult()->equals($product) && $product->getCount() < $product->getMaxStackSize()) || $product->isNull()));
 
 		if ($this->burnTime <= 0 && $canSmelt && $fuel->getFuelTime() > 0 && $fuel->getCount() > 0) {

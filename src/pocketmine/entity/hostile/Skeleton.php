@@ -40,10 +40,8 @@ use pocketmine\entity\Smite;
 use pocketmine\inventory\AltayEntityEquipment;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
-use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\Player;
 
@@ -141,12 +139,10 @@ class Skeleton extends Monster implements RangedAttackerMob, Smite
 		$this->equipment->sendContents([$player]);
 
 		// stupid hack for 1.1
-		$player->sendDataPacket(MobEquipmentPacket::create(
-			$this->getId(),
-			ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet($this->equipment->getItemInHand(), $player->getProtocolVersion())),
-			10,
-			10,
-			ContainerIds::INVENTORY
-		));
+		$pk = new MobEquipmentPacket();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->inventorySlot = $pk->hotbarSlot = 10;
+		$pk->item = ItemStackWrapper::legacy($this->equipment->getItemInHand());
+		$player->sendDataPacket($pk);
 	}
 }

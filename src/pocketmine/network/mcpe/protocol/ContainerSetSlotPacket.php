@@ -22,49 +22,35 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkSession;
-use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 
 class ContainerSetSlotPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CONTAINER_SET_SLOT_PACKET;
 
-	public int $windowId;
-	public int $inventorySlot;
-	public int $hotbarSlot = 0;
-	public Item|ItemStack $item;
-	public int $selectSlot = 0;
-
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(int $windowId, int $inventorySlot, int $hotbarSlot, Item|ItemStack $item, int $selectSlot) : self
-	{
-		$result = new self();
-		$result->windowId = $windowId;
-		$result->hotbarSlot = $hotbarSlot;
-		$result->inventorySlot = $inventorySlot;
-		$result->item = $item;
-		$result->selectSlot = $selectSlot;
-		return $result;
-	}
+	public $windowid;
+	public $slot;
+	public $hotbarSlot = 0;
+	/** @var ItemStackWrapper */
+	public $item;
+	public $selectSlot = 0;
 
 	protected function decodePayload() : void
 	{
-		$this->windowId = $this->getByte();
-		$this->inventorySlot = $this->getVarInt();
+		$this->windowid = $this->getByte();
+		$this->slot = $this->getVarInt();
 		$this->hotbarSlot = $this->getVarInt();
-		$this->item = $this->getItemStackWithoutStackId($this->getProtocol());
+		$this->item = $this->getSlot($this->getProtocol());
 		$this->selectSlot = $this->getByte();
 	}
 
 	protected function encodePayload() : void
 	{
-		$this->putByte($this->windowId);
-		$this->putVarInt($this->inventorySlot);
+		$this->putByte($this->windowid);
+		$this->putVarInt($this->slot);
 		$this->putVarInt($this->hotbarSlot);
-		$this->putItemStackWithoutStackId($this->item, $this->getProtocol());
+		$this->putSlot($this->item, $this->getProtocol());
 		$this->putByte($this->selectSlot);
 	}
 

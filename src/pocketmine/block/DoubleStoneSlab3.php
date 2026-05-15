@@ -36,9 +36,8 @@ class DoubleStoneSlab3 extends DoubleStoneSlab
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::DOUBLE_STONE_SLAB, StoneSlab::STONE);
+			return BlockFactory::get(Block::DOUBLE_STONE_SLAB, StoneSlab::STONE);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

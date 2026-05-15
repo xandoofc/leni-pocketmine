@@ -48,11 +48,11 @@ class Barrier extends Transparent
 		return 18000000.0;
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block{
+	public function getBlockProtocol(int $playerProtocol) : ?Block
+	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_282) {
-			return BlockFactory::get(BlockIds::INVISIBLEBEDROCK);
+			return Block::get(Block::INVISIBLEBEDROCK);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

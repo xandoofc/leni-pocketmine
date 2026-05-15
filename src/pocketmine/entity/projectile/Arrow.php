@@ -32,12 +32,12 @@ use pocketmine\item\ItemFactory;
 use pocketmine\item\Potion;
 use pocketmine\level\Level;
 use pocketmine\level\particle\MobSpellParticle;
-use pocketmine\level\sound\ArrowHitSound;
 use pocketmine\math\RayTraceResult;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
 use pocketmine\Player;
 
@@ -179,7 +179,7 @@ class Arrow extends Projectile
 	protected function onHit(ProjectileHitEvent $event) : void
 	{
 		$this->setCritical(false);
-		$this->broadcastSound(new ArrowHitSound($this));
+		$this->level->broadcastLevelSoundEvent($this, LevelSoundEventPacket::SOUND_BOW_HIT);
 	}
 
 	protected function onHitBlock(Block $blockHit, RayTraceResult $hitResult) : void

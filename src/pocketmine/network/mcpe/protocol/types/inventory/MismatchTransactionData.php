@@ -26,7 +26,6 @@ use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\PacketDecodeException;
 use pocketmine\network\mcpe\protocol\types\GetTypeIdFromConstTrait;
-
 use function count;
 
 class MismatchTransactionData extends TransactionData

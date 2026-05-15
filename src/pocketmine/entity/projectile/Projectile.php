@@ -47,10 +47,10 @@ use function assert;
 use function atan2;
 use function ceil;
 use function cos;
+
 use function log;
 use function sin;
 use function sqrt;
-
 use const M_PI;
 use const PHP_INT_MAX;
 
@@ -260,6 +260,7 @@ abstract class Projectile extends Entity
 		}
 
 		$entityDistance = PHP_INT_MAX;
+
 		$newDiff = $end->subtractVector($start);
 		foreach ($this->level->getCollidingEntities($this->boundingBox->addCoord($newDiff->x, $newDiff->y, $newDiff->z)->expand(1, 1, 1), $this) as $entity) {
 			if ($entity->getId() === $this->getOwningEntityId() && $this->ticksLived < 5) {
@@ -394,6 +395,5 @@ abstract class Projectile extends Entity
 		$this->blockHit = $blockHit->asVector3();
 		$this->blockHitId = $blockHit->getId();
 		$this->blockHitData = $blockHit->getDamage();
-		$blockHit->onProjectileHit($this, $hitResult);
 	}
 }

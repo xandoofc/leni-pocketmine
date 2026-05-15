@@ -22,60 +22,8 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
-interface ItemIds
-{
-	public const ACACIA_SHELF = -860;
-	public const BAMBOO_SHELF = -859;
-	public const BIRCH_SHELF = -858;
-	public const CHERRY_SHELF = -857;
-	public const COPPER_BARS = -856;
-	public const COPPER_CHAIN = -855;
-	public const COPPER_GOLEM_STATUE = -854;
-	public const COPPER_LANTERN = -853;
-	public const COPPER_TORCH = -852;
-	public const CRIMSON_SHELF = -851;
-	public const DARK_OAK_SHELF = -850;
-	public const EXPOSED_COPPER_BARS = -849;
-	public const EXPOSED_COPPER_CHAIN = -848;
-	public const EXPOSED_COPPER_GOLEM_STATUE = -847;
-	public const EXPOSED_COPPER_LANTERN = -846;
-	public const EXPOSED_LIGHTNING_ROD = -845;
-	public const JUNGLE_SHELF = -843;
-	public const MANGROVE_SHELF = -842;
-	public const OAK_SHELF = -841;
-	public const OXIDIZED_COPPER_BARS = -840;
-	public const OXIDIZED_COPPER_CHAIN = -839;
-	public const OXIDIZED_COPPER_GOLEM_STATUE = -838;
-	public const OXIDIZED_COPPER_LANTERN = -837;
-	public const OXIDIZED_LIGHTNING_ROD = -836;
-	public const PALE_OAK_SHELF = -835;
-	public const SPRUCE_SHELF = -834;
-	public const WARPED_SHELF = -833;
-	public const WAXED_COPPER_BARS = -832;
-	public const WAXED_COPPER_CHAIN = -831;
-	public const WAXED_COPPER_GOLEM_STATUE = -830;
-	public const WAXED_COPPER_LANTERN = -829;
-	public const WAXED_EXPOSED_COPPER_BARS = -828;
-	public const WAXED_EXPOSED_COPPER_CHAIN = -827;
-	public const WAXED_EXPOSED_COPPER_GOLEM_STATUE = -826;
-	public const WAXED_EXPOSED_COPPER_LANTERN = -825;
-	public const WAXED_EXPOSED_LIGHTNING_ROD = -824;
-	public const WAXED_LIGHTNING_ROD = -823;
-	public const WAXED_OXIDIZED_COPPER_BARS = -822;
-	public const WAXED_OXIDIZED_COPPER_CHAIN = -821;
-	public const WAXED_OXIDIZED_COPPER_GOLEM_STATUE = -820;
-	public const WAXED_OXIDIZED_COPPER_LANTERN = -819;
-	public const WAXED_OXIDIZED_LIGHTNING_ROD = -818;
-	public const WAXED_WEATHERED_COPPER_BARS = -817;
-	public const WAXED_WEATHERED_COPPER_CHAIN = -816;
-	public const WAXED_WEATHERED_COPPER_GOLEM_STATUE = -815;
-	public const WAXED_WEATHERED_COPPER_LANTERN = -814;
-	public const WAXED_WEATHERED_LIGHTNING_ROD = -813;
-	public const WEATHERED_COPPER_BARS = -812;
-	public const WEATHERED_COPPER_CHAIN = -811;
-	public const WEATHERED_COPPER_GOLEM_STATUE = -810;
-	public const WEATHERED_COPPER_LANTERN = -809;
-	public const WEATHERED_LIGHTNING_ROD = -808;
+interface ItemIds {
+
 	public const WEATHERED_COPPER_CHEST = -807;
 	public const WAXED_WEATHERED_COPPER_CHEST = -806;
 	public const WAXED_OXIDDIZED_COPPER_CHEST = -805;
@@ -131,19 +79,6 @@ interface ItemIds
 	public const VAULT = -702;
 	public const TRIAL_SPAWNER = -701;
 
-	public const RED_NETHER_BRICK_WALL = -630;
-	public const RED_SANDSTONE_WALL = -629;
-	public const PRISMARINE_WALL = -628;
-	public const END_STONE_BRICK_WALL = -627;
-	public const NETHER_BRICK_WALL = -626;
-	public const MOSSY_STONE_BRICK_WALL = -625;
-	public const STONE_BRICK_WALL = -624;
-	public const BRICK_WALL = -623;
-	public const SANDSTONE_WALL = -622;
-	public const ANDESITE_WALL = -621;
-	public const DIORITE_WALL = -620;
-	public const GRANITE_WALL = -619;
-	public const MOSSY_COBBLESTONE_WALL = -618;
 	public const ACACIA_HANGING_SIGN = -617;
 	public const RESIN_CLUMP = -616;
 	public const CHERRY_DOOR = -615;
@@ -1382,11 +1317,10 @@ interface ItemIds
 	public const COPPER_CHESTPLATE = 962;
 	public const COPPER_HELMET = 963;
 	public const COPPER_HOE = 964;
-	public const COPPER_LEGGINGS = 965;
+	public const COPPER_LEGGING = 965;
 	public const COPPER_NUGGET = 966;
 	public const COPPER_PICKAXE = 967;
 	public const COPPER_SHOVEL = 968;
 	public const COPPER_SWORD = 969;
 	public const RECORD_LAVA_CHICKEN = 970;
-	public const COPPER_HORSE_ARMOR = 971;
 }

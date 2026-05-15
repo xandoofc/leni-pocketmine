@@ -52,7 +52,7 @@ class EnchantInventory extends ContainerInventory implements FakeInventory
 		return 2; //1 input, 1 lapis
 	}
 
-	public function getUIOffsets(?Player $player) : array
+	public function getUIOffsets() : array
 	{
 		return UIInventorySlotOffset::ENCHANTING_TABLE;
 	}

@@ -32,7 +32,8 @@ use pocketmine\Player;
  */
 class PlayerLoginEvent extends PlayerEvent implements Cancellable
 {
-	protected string $kickMessage;
+	/** @var string */
+	protected $kickMessage;
 
 	public function __construct(Player $player, string $kickMessage)
 	{

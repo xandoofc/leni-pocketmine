@@ -28,7 +28,6 @@ namespace pocketmine\block;
 
 use InvalidArgumentException;
 use pocketmine\entity\Entity;
-use pocketmine\entity\projectile\Projectile;
 use pocketmine\event\entity\EntityBlockBounceEvent;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\Item;
@@ -45,13 +44,13 @@ use pocketmine\tile\Tile;
 use function abs;
 use function array_merge;
 use function count;
-use function get_class;
 
+use function get_class;
 use const PHP_INT_MAX;
 
 class Block extends Position implements BlockIds
 {
-	public const INTERNAL_METADATA_BITS = 8;
+	public const INTERNAL_METADATA_BITS = 6;
 	public const INTERNAL_METADATA_MASK = ~(~0 << self::INTERNAL_METADATA_BITS);
 
 	/**
@@ -138,10 +137,9 @@ class Block extends Position implements BlockIds
 
 	final public function setDamage(int $meta) : self
 	{
-		if($meta < 0 || $meta >= (1 << Block::INTERNAL_METADATA_BITS)){
-			throw new InvalidArgumentException("Block meta value $meta is out of bounds");
+		if ($meta < 0 || $meta > 0xf) {
+			throw new InvalidArgumentException("Block damage values must be 0-15, not $meta");
 		}
-
 		$this->meta = $meta;
 
 		return $this;
@@ -267,8 +265,7 @@ class Block extends Position implements BlockIds
 		$harvestLevel = $this->getToolHarvestLevel();
 
 		return $toolType === BlockToolType::TYPE_NONE || $harvestLevel === 0 || (
-			($toolType & $tool->getBlockToolType()) !== 0 && $tool->getBlockToolHarvestLevel() >= $harvestLevel
-		);
+			($toolType & $tool->getBlockToolType()) !== 0 && $tool->getBlockToolHarvestLevel() >= $harvestLevel);
 	}
 
 	/**
@@ -700,11 +697,6 @@ class Block extends Position implements BlockIds
 
 	}
 
-	public function onProjectileHit(Projectile $projectile, RayTraceResult $hitResult) : void
-	{
-
-	}
-
 	public function onEntityFallenUpon(Entity $entity, float $fallDistance) : void
 	{
 		$ev = new EntityBlockBounceEvent($entity, $this, $this->getBounceMotionMultiplier(), $this->getBounceFallDistanceMultiplier());
@@ -828,40 +820,6 @@ class Block extends Position implements BlockIds
 	{
 		[$xLen, $yLen, $zLen] = [$bb->maxX - $bb->minX, $bb->maxY - $bb->minY, $bb->maxZ - $bb->minZ];
 		return abs($xLen - $yLen) < $epsilon && abs($yLen - $zLen) < $epsilon;
-	}
-
-	public function canSupportToFullSolid(Block $block) : bool
-	{
-		if ($block->isTransparent()) {
-			return match ($block->getId()) {
-				BlockIds::BEACON, BlockIds::ICE, BlockIds::GLASS, BlockIds::STAINED_GLASS, BlockIds::HARD_GLASS, BlockIds::HARD_STAINED_GLASS, BlockIds::BARRIER, BlockIds::GLOWSTONE, BlockIds::SEA_LANTERN, BlockIds::MANGROVE_ROOTS, BlockIds::MUDDY_MANGROVE_ROOTS, BlockIds::MONSTER_SPAWNER => true,
-				default => false,
-			};
-		}
-		return true;
-	}
-
-	protected function canStayOnFullSolid(Block $block) : bool
-	{
-		if ($this->canSupportToFullSolid($block)) {
-			return true;
-		}
-		switch ($block->getId()) {
-			case BlockIds::SCAFFOLDING:
-			case BlockIds::HOPPER_BLOCK:
-				return true;
-		}
-		if ($block instanceof Slab) {
-			return $block->isTop();
-		}
-		return $block instanceof Trapdoor && $block->isTop() && !$block->isOpen();
-	}
-
-	protected function isNarrowSurface() : bool
-	{
-		return $this instanceof GlassPane ||
-			$this instanceof Fence ||
-			$this instanceof IronBars; //TODO: Chain and Wall
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block

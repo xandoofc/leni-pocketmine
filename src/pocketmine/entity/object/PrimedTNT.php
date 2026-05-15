@@ -31,6 +31,7 @@ use pocketmine\item\ItemFactory;
 use pocketmine\level\Explosion;
 use pocketmine\level\Position;
 use pocketmine\nbt\tag\ShortTag;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
 
 class PrimedTNT extends Entity implements Explosive
 {
@@ -67,6 +68,8 @@ class PrimedTNT extends Entity implements Explosive
 
 		$this->setGenericFlag(self::DATA_FLAG_IGNITED, true);
 		$this->propertyManager->setInt(self::DATA_FUSE_LENGTH, $this->fuse);
+
+		$this->level->broadcastLevelEvent($this, LevelEventPacket::EVENT_SOUND_IGNITE);
 	}
 
 	public function canCollideWith(Entity $entity) : bool

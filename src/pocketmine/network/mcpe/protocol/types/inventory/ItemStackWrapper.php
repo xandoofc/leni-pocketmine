@@ -22,15 +22,17 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol\types\inventory;
 
+use pocketmine\item\Item;
+
 final class ItemStackWrapper
 {
 	public function __construct(
 		private int $stackId,
-		private ItemStack $itemStack
+		private Item $itemStack
 	) {
 	}
 
-	public static function legacy(ItemStack $itemStack) : self
+	public static function legacy(Item $itemStack) : self
 	{
 		return new self($itemStack->getId() === 0 ? 0 : 1, $itemStack);
 	}
@@ -40,7 +42,7 @@ final class ItemStackWrapper
 		return $this->stackId;
 	}
 
-	public function getItemStack() : ItemStack
+	public function getItemStack() : Item
 	{
 		return $this->itemStack;
 	}

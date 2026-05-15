@@ -72,7 +72,7 @@ final class ItemStackRequest
 
 	private static function readAction(NetworkBinaryStream $in, int $typeId, int $playerProtocol) : ItemStackRequestAction
 	{
-		$typeId = ConstantTranslator::getInstance()->fromNetworkId(ItemStackRequestActionType::class, $typeId, $playerProtocol);
+		$typeId = ConstantTranslator::getInstance()->fromNetworkId(ItemStackRequestAction::class, $typeId, $playerProtocol);
 		return match($typeId) {
 			TakeStackRequestAction::ID => TakeStackRequestAction::read($in, $playerProtocol),
 			PlaceStackRequestAction::ID => PlaceStackRequestAction::read($in, $playerProtocol),
@@ -120,11 +120,10 @@ final class ItemStackRequest
 		$out->putUnsignedVarInt(count($this->actions));
 		foreach ($this->actions as $action) {
 			try {
-				$typeId = ConstantTranslator::getInstance()->toNetworkId(ItemStackRequestActionType::class, $action->getTypeId(), $playerProtocol);
+				$typeId = ConstantTranslator::getInstance()->toNetworkId(ItemStackRequestAction::class, $action->getTypeId(), $playerProtocol);
 				$out->putByte($typeId);
 				$action->write($out, $playerProtocol);
-			} catch (ConstantTranslatorException $exception) {
-			}
+			} catch (ConstantTranslatorException $exception) {}
 		}
 		$out->putUnsignedVarInt(count($this->filterStrings));
 		foreach ($this->filterStrings as $string) {

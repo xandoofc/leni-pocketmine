@@ -61,10 +61,9 @@ class AncientDebris extends Solid
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_419) {
-			return BlockFactory::get(BlockIds::OBSIDIAN);
+		if ($playerProtocol < ProtocolInfo::PROTOCOL_407) {
+			return Block::get(Block::RESERVED6);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -23,13 +23,11 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\entity\Entity;
-use pocketmine\entity\projectile\Projectile;
+use pocketmine\entity\projectile\Arrow;
 use pocketmine\item\Durable;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\FlintSteel;
 use pocketmine\item\Item;
-use pocketmine\level\sound\IgniteSound;
-use pocketmine\math\RayTraceResult;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\utils\Utils;
@@ -71,9 +69,14 @@ class TNT extends Solid
 		return false;
 	}
 
-	public function onProjectileHit(Projectile $projectile, RayTraceResult $hitResult) : void
+	public function hasEntityCollision() : bool
 	{
-		if ($projectile->isOnFire()) {
+		return true;
+	}
+
+	public function onEntityCollide(Entity $entity) : void
+	{
+		if ($entity instanceof Arrow && $entity->isOnFire()) {
 			$this->ignite();
 		}
 	}
@@ -90,8 +93,6 @@ class TNT extends Solid
 
 		if ($tnt !== null) {
 			$tnt->spawnToAll();
-
-			$tnt->broadcastSound(new IgniteSound($tnt));
 		}
 	}
 

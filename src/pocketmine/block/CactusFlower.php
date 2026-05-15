@@ -61,12 +61,11 @@ class CactusFlower extends Flowable
 		}
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block
-	{
+	public function getBlockProtocol(int $playerProtocol) : ?Block{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_786) {
 			return BlockFactory::get(BlockIds::RED_FLOWER, Flower::TYPE_PINK_TULIP);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -30,6 +30,7 @@ use pocketmine\Player;
 
 class FireflyBush extends Flowable
 {
+
 	protected $id = self::FIREFLY_BUSH;
 
 	public function __construct(int $meta = 1)
@@ -71,12 +72,11 @@ class FireflyBush extends Flowable
 		return 100;
 	}
 
-	public function getBlockProtocol(int $playerProtocol) : ?Block
-	{
+	public function getBlockProtocol(int $playerProtocol) : ?Block{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_786) {
-			return BlockFactory::get(BlockIds::TALL_GRASS, TallGrass::TYPE_TALL_GRASS);
+			return BlockFactory::get(BlockIds::TALL_GRASS, 1);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

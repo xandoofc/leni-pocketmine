@@ -27,8 +27,8 @@ use pocketmine\Player;
 /**
  * Interface implemented by objects that can be used.
  */
-interface Releasable
-{
+interface Releasable{
+
 	public function canStartUsingItem(Player $player) : bool;
 
 }

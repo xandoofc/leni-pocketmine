@@ -30,7 +30,6 @@ use pocketmine\network\mcpe\convert\PacketIdTranslator;
 use pocketmine\network\mcpe\PacketSender;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\network\mcpe\protocol\types\DisconnectFailReason;
 use pocketmine\network\Network;
 use pocketmine\network\PacketHandlingException;
 use pocketmine\Player;
@@ -55,7 +54,6 @@ use function mt_rand;
 use function print_r;
 use function rtrim;
 use function substr;
-
 use const PHP_INT_MAX;
 
 class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface, PacketSender
@@ -206,6 +204,7 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface, 
 		 * @var Player $player
 		 * @see Player::__construct()
 		 */
+		$this->server->getLogger()->info("New connection from $address:$port (Session ID: $sessionId, RakNet Protocol: $protocolVersion)");
 		$player = new $class($this, $ev->getAddress(), $ev->getPort(), $sessionId, $protocolVersion);
 		$this->sessions[$sessionId] = $player;
 		$this->server->addPlayer($player);
@@ -229,7 +228,7 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface, 
 				$logger = $player->getServer()->getLogger();
 
 				$address = $player->getAddress();
-				$player->close($player->getLeaveMessage(), "Bad packet: " . $e->getMessage(), true, DisconnectFailReason::BAD_PACKET);
+				$player->close($player->getLeaveMessage(), "Bad packet: " . $e->getMessage());
 				$this->interface->blockAddress($address, 5);
 
 				//intentionally doesn't use logException, we don't want spammy packet error traces to appear in release mode
@@ -247,7 +246,7 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface, 
 					$player->sendMessage("Internal server error");
 				} else {
 					$address = $player->getAddress();
-					$player->close($player->getLeaveMessage(), "Internal server error", true, DisconnectFailReason::BAD_PACKET);
+					$player->close($player->getLeaveMessage(), "Internal server error");
 					$this->interface->blockAddress($address, 5);
 				}
 			}

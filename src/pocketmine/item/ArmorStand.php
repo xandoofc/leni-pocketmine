@@ -29,7 +29,6 @@ use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\Player;
-
 use function round;
 
 class ArmorStand extends Item
@@ -61,12 +60,11 @@ class ArmorStand extends Item
 		return (round($yaw / 22.5 / 2) * 45) - 180;
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_137) {
-			return new TranslatedItemData(ItemIds::PLANKS, $this->getDamage());
+			return ItemFactory::get(Item::PLANKS, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

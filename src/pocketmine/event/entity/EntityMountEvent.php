@@ -39,18 +39,15 @@ class EntityMountEvent extends EntityEvent implements Cancellable
 		$this->causedByRider = $causedByRider;
 	}
 
-	public function getRidden() : Entity
-	{
+	public function getRidden() : Entity {
 		return $this->ridden;
 	}
 
-	public function getSeatNumber() : int
-	{
+	public function getSeatNumber() : int {
 		return $this->seatNumber;
 	}
 
-	public function getCausedByRider() : bool
-	{
+	public function getCausedByRider() : bool {
 		return $this->causedByRider;
 	}
 }

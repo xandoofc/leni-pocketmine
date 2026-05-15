@@ -37,17 +37,16 @@ class Spyglass extends Item implements Releasable
 		return 1;
 	}
 
+	public function getItemProtocol(int $playerProtocol) : ?Item
+	{
+		if ($playerProtocol < ProtocolInfo::PROTOCOL_440) {
+			return Item::get(Item::BLAZE_ROD, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
+		}
+		return parent::getItemProtocol($playerProtocol);
+	}
+
 	public function canStartUsingItem(Player $player) : bool
 	{
 		return true;
-	}
-
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
-	{
-		if ($playerProtocol < ProtocolInfo::PROTOCOL_440) {
-			return new TranslatedItemData(ItemIds::BLAZE_ROD, $this->getDamage());
-		}
-
-		return parent::getItemProtocol($playerProtocol);
 	}
 }

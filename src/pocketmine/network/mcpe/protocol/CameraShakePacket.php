@@ -28,16 +28,20 @@ class CameraShakePacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::CAMERA_SHAKE_PACKET;
 
-	public const int TYPE_POSITIONAL = 0;
-	public const int TYPE_ROTATIONAL = 1;
+	public const TYPE_POSITIONAL = 0;
+	public const TYPE_ROTATIONAL = 1;
 
-	public const int ACTION_ADD = 0;
-	public const int ACTION_STOP = 1;
+	public const ACTION_ADD = 0;
+	public const ACTION_STOP = 1;
 
-	public float $intensity;
-	public float $duration;
-	public int $shakeType;
-	public int $shakeAction;
+	/** @var float */
+	private $intensity;
+	/** @var float */
+	private $duration;
+	/** @var int */
+	private $shakeType;
+	/** @var int */
+	private $shakeAction;
 
 	public static function create(float $intensity, float $duration, int $shakeType, int $shakeAction) : self
 	{

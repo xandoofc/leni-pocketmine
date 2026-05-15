@@ -25,7 +25,6 @@ namespace pocketmine\item\enchantment;
 use pocketmine\entity\Entity;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\item\Armor;
-use pocketmine\item\ArmorSlot;
 use pocketmine\item\Axe;
 use pocketmine\item\Bow;
 use pocketmine\item\Durable;
@@ -306,13 +305,13 @@ class Enchantment
 		if (($item instanceof Shears || $item instanceof FlintSteel || $item instanceof Hoe) && $item instanceof Durable && $item->getMaxDurability() >= 0) {
 			return $this->hasPrimaryItemType(self::SLOT_TOOL) || $this->hasSecondaryItemType(self::SLOT_TOOL);
 		} elseif ($item instanceof Armor) {
-			if ($item->getArmorSlot() === ArmorSlot::SLOT_HELMET) {
+			if ($item->getArmorSlot() === Armor::SLOT_HELMET) {
 				return $this->hasPrimaryItemType(self::SLOT_HEAD) || $this->hasSecondaryItemType(self::SLOT_HEAD);
-			} elseif ($item->getArmorSlot() === ArmorSlot::SLOT_CHESTPLATE) {
+			} elseif ($item->getArmorSlot() === Armor::SLOT_CHESTPLATE) {
 				return $this->hasPrimaryItemType(self::SLOT_TORSO) || $this->hasSecondaryItemType(self::SLOT_TORSO);
-			} elseif ($item->getArmorSlot() === ArmorSlot::SLOT_LEGGINGS) {
+			} elseif ($item->getArmorSlot() === Armor::SLOT_LEGGINGS) {
 				return $this->hasPrimaryItemType(self::SLOT_LEGS) || $this->hasSecondaryItemType(self::SLOT_LEGS);
-			} elseif ($item->getArmorSlot() === ArmorSlot::SLOT_BOOTS) {
+			} elseif ($item->getArmorSlot() === Armor::SLOT_BOOTS) {
 				return $this->hasPrimaryItemType(self::SLOT_FEET) || $this->hasSecondaryItemType(self::SLOT_FEET);
 			}
 		} else {

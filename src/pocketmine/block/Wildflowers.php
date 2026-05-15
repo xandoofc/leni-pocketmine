@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\item\Fertilizer;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 use pocketmine\item\ItemIds;
@@ -31,7 +30,6 @@ use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\Player;
-use function floor;
 
 class Wildflowers extends Flowable
 {
@@ -47,16 +45,15 @@ class Wildflowers extends Flowable
 		return "Wildflowers";
 	}
 
-	public function getVariantBitmask() : int
-	{
+	public function getVariantBitmask() : int{
 		return 0;
 	}
 
 	public function onActivate(Item $item, Player $player = null) : bool
 	{
-		if ($item instanceof Fertilizer) {
-			if ($this->getFlowers() < 3) {
-				$this->setFlowers($this->getFlowers() + 1);
+		if ($item->getId() == Item::DYE && $item->getDamage() == 0x0f) {
+			if (($this->getDamage() & 0x03) < 3) {
+				$this->meta++;
 				$this->level->setBlock($this, $this, true);
 			} else {
 				$this->level->dropItem($this->add(0.5, 0.5, 0.5), ItemFactory::get(ItemIds::WILDFLOWERS));
@@ -66,8 +63,8 @@ class Wildflowers extends Flowable
 			return true;
 		}
 
-		if ($item->getId() == $this->getItemId() && $this->getFlowers() < 3) {
-			$this->setFlowers($this->getFlowers() + 1);
+		if ($item->getId() == $this->getItemId() && ($this->getDamage() & 0x03) < 3) {
+			$this->meta++;
 			$this->level->setBlock($this, $this, true);
 			$item->count--;
 			return true;
@@ -78,9 +75,17 @@ class Wildflowers extends Flowable
 
 	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
 	{
-		if (!$blockReplace->getSide(Facing::DOWN)->isTransparent()) {
-			$this->setFace($player->getDirection());
+		if ($this->getSide(Facing::DOWN)->isSolid()) {
+			$faces = [
+				0 => 4,
+				1 => 8,
+				2 => 12,
+				3 => 0
+			];
+			$this->meta = $faces[$player->getDirection() & 0x03];
+
 			$this->getLevel()->setBlock($blockReplace, $this, true);
+
 			return true;
 		}
 
@@ -97,35 +102,18 @@ class Wildflowers extends Flowable
 	public function getDropsForCompatibleTool(Item $item) : array
 	{
 		$items = [];
-		for ($i = 0; $i <= $this->getFlowers(); ++$i) {
-			$items[] = ItemFactory::get(ItemIds::WILDFLOWERS);
+		for ($i = 0; $i <= ($this->getDamage() & 0x03); ++$i) {
+			$items = ItemFactory::get(ItemIds::LEAF_LITTER);
 		}
 
 		return $items;
 	}
 
-	public function getFlowers() : int {
-		return $this->getDamage() & 0x03;
-	}
-
-	public function setFlowers(int $value) : void {
-		$this->meta = ($this->meta & ~0x03) | ($value ? ($value & 0x03) : 0);
-	}
-
-	public function getFace() : int {
-		return (floor($this->meta / 4) - 1 + 4) % 4;
-	}
-
-	public function setFace(int $face) : void {
-		$this->meta = (4 * (($face & 0x03) + 1) % 16) | $this->getFlowers();
-	}
-
-	public function getBlockProtocol(int $playerProtocol) : ?Block
-	{
+	public function getBlockProtocol(int $playerProtocol) : ?Block{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_786) {
 			return BlockFactory::get(BlockIds::YELLOW_FLOWER);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

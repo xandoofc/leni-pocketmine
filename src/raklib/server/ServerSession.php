@@ -1,21 +1,15 @@
 <?php
 
 /*
+ * This file is part of RakLib.
+ * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/RakLib>
  *
- *   _____       _                          _
- *  / ____|     | |                        (_)
- * | (___  _   _| |__  _ __ ___   __ _ _ __ _ _ __   ___
- *  \___ \| | | | '_ \| '_ ` _ \ / _` | '__| | '_ \ / _ \
- *  ____) | |_| | |_) | | | | | | (_| | |  | | | | |  __/
- * |_____/ \__,_|_.__/|_| |_| |_|\__,_|_|  |_|_| |_|\___|
+ * RakLib is not affiliated with Jenkins Software LLC nor RakNet.
  *
- * This program is private software. No license required.
- * Publication of this program is forbidden and will be punished.
- *
- * @author SEMENNEJO
- * @link vk.com/vk.snikers && t.me/semennejo
- *
- *
+ * RakLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 declare(strict_types=1);
@@ -30,18 +24,16 @@ use raklib\protocol\NewIncomingConnection;
 use raklib\protocol\Packet;
 use raklib\protocol\PacketReliability;
 use raklib\protocol\PacketSerializer;
-use raklib\RakLib;
 use raklib\utils\InternetAddress;
-
 use function ord;
 
-class ServerSession extends Session
-{
-	public const DEFAULT_MAX_SPLIT_PART_COUNT = 256;
+class ServerSession extends Session{
+	public const DEFAULT_MAX_SPLIT_PART_COUNT = 128;
 	public const DEFAULT_MAX_CONCURRENT_SPLIT_COUNT = 4;
 
 	private Server $server;
 	private int $internalId;
+	private int $protocol;
 
 	public function __construct(
 		Server $server,
@@ -52,40 +44,40 @@ class ServerSession extends Session
 		int $internalId,
 		int $recvMaxSplitParts = self::DEFAULT_MAX_SPLIT_PART_COUNT,
 		int $recvMaxConcurrentSplits = self::DEFAULT_MAX_CONCURRENT_SPLIT_COUNT,
-		int $protocol = RakLib::DEFAULT_PROTOCOL_VERSION
-	) {
+		int $protocol = \raklib\RakLib::DEFAULT_PROTOCOL_VERSION
+	){
 		$this->server = $server;
 		$this->internalId = $internalId;
-		parent::__construct($logger, $address, $clientId, $mtuSize, $recvMaxSplitParts, $recvMaxConcurrentSplits, $protocol);
+		$this->protocol = $protocol;
+		parent::__construct($logger, $address, $clientId, $mtuSize, $recvMaxSplitParts, $recvMaxConcurrentSplits);
 	}
 
 	/**
 	 * Returns an ID used to identify this session across threads.
 	 */
-	public function getInternalId() : int
-	{
+	public function getInternalId() : int{
 		return $this->internalId;
 	}
 
-	final protected function sendPacket(Packet $packet) : void
-	{
+	public function getProtocol() : int{
+		return $this->protocol;
+	}
+
+	final protected function sendPacket(Packet $packet) : void{
 		$this->server->sendPacket($packet, $this->address);
 	}
 
-	protected function onPacketAck(int $identifierACK) : void
-	{
+	protected function onPacketAck(int $identifierACK) : void{
 		$this->server->getEventListener()->onPacketAck($this->internalId, $identifierACK);
 	}
 
-	protected function onDisconnect(int $reason) : void
-	{
+	protected function onDisconnect(int $reason) : void{
 		$this->server->getEventListener()->onClientDisconnect($this->internalId, $reason);
 	}
 
-	final protected function handleRakNetConnectionPacket(string $packet) : void
-	{
+	final protected function handleRakNetConnectionPacket(string $packet) : void{
 		$id = ord($packet[0]);
-		if ($id === MessageIdentifiers::ID_CONNECTION_REQUEST) {
+		if($id === MessageIdentifiers::ID_CONNECTION_REQUEST){
 			$dataPacket = new ConnectionRequest();
 			$dataPacket->decode(new PacketSerializer($packet));
 			$this->queueConnectedPacket(ConnectionRequestAccepted::create(
@@ -94,11 +86,11 @@ class ServerSession extends Session
 				$dataPacket->sendPingTime,
 				$this->getRakNetTimeMS()
 			), PacketReliability::UNRELIABLE, 0, true);
-		} elseif ($id === MessageIdentifiers::ID_NEW_INCOMING_CONNECTION) {
+		}elseif($id === MessageIdentifiers::ID_NEW_INCOMING_CONNECTION){
 			$dataPacket = new NewIncomingConnection();
 			$dataPacket->decode(new PacketSerializer($packet));
 
-			if ($dataPacket->address->getPort() === $this->server->getPort() || !$this->server->portChecking) {
+			if($dataPacket->address->getPort() === $this->server->getPort() or !$this->server->portChecking){
 				$this->state = self::STATE_CONNECTED; //FINALLY!
 				$this->server->openSession($this);
 
@@ -108,13 +100,11 @@ class ServerSession extends Session
 		}
 	}
 
-	protected function onPacketReceive(string $packet) : void
-	{
+	protected function onPacketReceive(string $packet) : void{
 		$this->server->getEventListener()->onPacketReceive($this->internalId, $packet);
 	}
 
-	protected function onPingMeasure(int $pingMS) : void
-	{
+	protected function onPingMeasure(int $pingMS) : void{
 		$this->server->getEventListener()->onPingMeasure($this->internalId, $pingMS);
 	}
 }

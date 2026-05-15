@@ -62,9 +62,8 @@ class PrismarineStairs extends Stair
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_261) {
-			return BlockFactory::get(BlockIds::COBBLESTONE_STAIRS, $this->meta);
+			return Block::get(Block::COBBLESTONE_STAIRS, $this->getDamage());
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

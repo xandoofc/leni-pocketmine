@@ -62,9 +62,9 @@ class ResinBricks extends Solid
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::BRICK_BLOCK);
+			return Block::get(Block::BRICK_BLOCK);
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

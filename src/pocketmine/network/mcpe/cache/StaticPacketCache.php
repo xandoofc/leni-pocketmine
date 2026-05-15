@@ -35,7 +35,6 @@ use function count;
 use function json_decode;
 use function krsort;
 use function scandir;
-
 use const pocketmine\BEDROCK_DATA_PATH;
 
 class StaticPacketCache
@@ -44,8 +43,12 @@ class StaticPacketCache
 
 	private static function make() : self
 	{
-		$biomeDefs = [];
-		foreach (array_diff(scandir($biomeDefsDirectory = BEDROCK_DATA_PATH . 'biomes/'), ["..", "."]) as $protocol) {
+		$biomeDefs = $actorIds = [];
+
+		$biomeDefsDirectory = BEDROCK_DATA_PATH . 'biomes/';
+		$actorIdsDirectory = BEDROCK_DATA_PATH . 'actor/';
+
+		foreach (array_diff(scandir($biomeDefsDirectory), ["..", "."]) as $protocol) {
 			if ($protocol >= ProtocolInfo::PROTOCOL_800) {
 				$biomeEntries = json_decode(Filesystem::fileGetContents($biomeDefsDirectory . $protocol . '/biome_definitions.json'), true);
 				$entries = [];
@@ -55,11 +58,10 @@ class StaticPacketCache
 						$entry["id"],
 						$entry["temperature"],
 						$entry["downfall"],
-						$entry["foliageSnow"] ?? 0,
-						$entry["redSporeDensity"] ?? 0,
-						$entry["blueSporeDensity"] ?? 0,
-						$entry["ashDensity"] ?? 0,
-						$entry["whiteAshDensity"] ?? 0,
+						$entry["redSporeDensity"],
+						$entry["blueSporeDensity"],
+						$entry["ashDensity"],
+						$entry["whiteAshDensity"],
 						$entry["depth"],
 						$entry["scale"],
 						new Color(
@@ -78,12 +80,12 @@ class StaticPacketCache
 				$biomeDefs[$protocol] = BiomeDefinitionListPacket::create(Filesystem::fileGetContents($biomeDefsDirectory . $protocol . '/biome_definitions.nbt'), []);
 			}
 		}
-		krsort($biomeDefs);
 
-		$actorIds = [];
-		foreach (array_diff(scandir($actorIdsDirectory = BEDROCK_DATA_PATH . 'entity/'), ["..", "."]) as $protocol) {
+		foreach (array_diff(scandir($actorIdsDirectory), ["..", "."]) as $protocol) {
 			$actorIds[$protocol] = AvailableActorIdentifiersPacket::create(Filesystem::fileGetContents($actorIdsDirectory . $protocol . '/entity_identifiers.nbt'));
 		}
+
+		krsort($biomeDefs);
 		krsort($actorIds);
 
 		return new self(

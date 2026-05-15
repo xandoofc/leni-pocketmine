@@ -57,14 +57,13 @@ class Shovel extends TieredTool
 		return $this->applyDamage(2);
 	}
 
-	public function getItemProtocol(int $playerProtocol) : ?TranslatedItemData
+	public function getItemProtocol(int $playerProtocol) : ?Item
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_407) {
-			if ($this->getId() === ItemIds::NETHERITE_SHOVEL) {
-				return new TranslatedItemData(ItemIds::DIAMOND_SHOVEL, $this->getDamage());
+			if ($this->getId() === Item::NETHERITE_SHOVEL) {
+				return Item::get(Item::DIAMOND_SHOVEL, $this->getDamage(), $this->getCount(), $this->getCompoundTag());
 			}
 		}
-
 		return parent::getItemProtocol($playerProtocol);
 	}
 }

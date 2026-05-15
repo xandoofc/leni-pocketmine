@@ -71,8 +71,7 @@ class Lantern extends Transparent
 		return "Lantern";
 	}
 
-	public function isBlockAboveValid() : bool
-	{
+	public function isBlockAboveValid() : bool {
 		$up = $this->getSide(Facing::UP);
 
 		return
@@ -80,13 +79,12 @@ class Lantern extends Transparent
 			$up->getId() === BlockIds::HOPPER_BLOCK ||
 			$up->getId() === BlockIds::CHAIN ||
 			($up instanceof Fence) ||
-			($up instanceof Slab && !$up->isTop()) ||
+			($up instanceof Slab && ($up->getDamage() & $up->getVariantTopBitmask()) == 0) ||
 			($up instanceof Stair && ($up->getDamage() & 0x04) == 0x00) ||
 			(!$up->isTransparent() && $up->isSolid());
 	}
 
-	public function isBlockUnderValid() : bool
-	{
+	public function isBlockUnderValid() : bool {
 		$down = $this->getSide(Facing::DOWN);
 		return
 			!$down->isTransparent() ||
@@ -98,9 +96,8 @@ class Lantern extends Transparent
 			$down->isSolid();
 	}
 
-	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
-	{
-		if ($this->level->getBlock($this) instanceof Liquid) {
+	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool{
+		if($this->level->getBlock($this) instanceof Liquid) {
 			return false;
 		}
 
@@ -152,9 +149,8 @@ class Lantern extends Transparent
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_332) {
-			return BlockFactory::get(BlockIds::TORCH);
+			return Block::get(Block::TORCH, 0);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -52,7 +52,7 @@ abstract class TransactionData
 	 */
 	final public function decode(NetworkBinaryStream $stream, int $playerProtocol) : void
 	{
-		if ($playerProtocol >= ProtocolInfo::PROTOCOL_407 && $playerProtocol < ProtocolInfo::PROTOCOL_431) {
+		if($playerProtocol >= ProtocolInfo::PROTOCOL_407 && $playerProtocol < ProtocolInfo::PROTOCOL_431){
 			$this->hasItemStackIds = $stream->getBool();
 		}
 
@@ -71,7 +71,7 @@ abstract class TransactionData
 
 	final public function encode(NetworkBinaryStream $stream, int $playerProtocol) : void
 	{
-		if ($playerProtocol >= ProtocolInfo::PROTOCOL_407 && $playerProtocol < ProtocolInfo::PROTOCOL_431) {
+		if($playerProtocol >= ProtocolInfo::PROTOCOL_407 && $playerProtocol < ProtocolInfo::PROTOCOL_431){
 			$stream->putBool($this->hasItemStackIds);
 		}
 

@@ -86,7 +86,7 @@ class Wolf extends Tamable
 		return "Wolf";
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
 			if ($this->isTamed()) {
@@ -95,7 +95,6 @@ class Wolf extends Tamable
 					$this->setTargetEntity(null);
 				}
 			} else {
-				$item = $player->getInventory()->getItemInHand();
 				if ($item->getId() == Item::BONE) {
 					if ($player->isSurvival()) {
 						$item->pop();
@@ -117,7 +116,7 @@ class Wolf extends Tamable
 			}
 		}
 
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function setSittingFromBehavior(bool $value) : void

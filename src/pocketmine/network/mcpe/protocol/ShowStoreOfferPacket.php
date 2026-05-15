@@ -24,24 +24,20 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\ShowStoreOfferRedirectType;
-use pocketmine\utils\UUID;
 
 class ShowStoreOfferPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::SHOW_STORE_OFFER_PACKET;
 
-	public string|UUID $offerId;
-	public bool $showAll;
-	public ShowStoreOfferRedirectType $redirectType;
+	/** @var string */
+	public $offerId;
+	/** @var bool */
+	public $showAll;
+	/** @var ShowStoreOfferRedirectType */
+	public $redirectType;
 
 	protected function decodePayload() : void
 	{
-		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_859) {
-			$this->offerId = $this->getUUID();
-		} else {
-			$this->offerId = $this->getString();
-		}
-
 		$this->offerId = $this->getString();
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_630) {
 			$this->redirectType = ShowStoreOfferRedirectType::fromPacket($this->getByte());
@@ -52,13 +48,7 @@ class ShowStoreOfferPacket extends DataPacket
 
 	protected function encodePayload() : void
 	{
-
-		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_859) {
-			$this->putUUID($this->offerId);
-		} else {
-			$this->putString($this->offerId);
-		}
-
+		$this->putString($this->offerId);
 		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_630) {
 			$this->putByte($this->redirectType->value);
 		} else {

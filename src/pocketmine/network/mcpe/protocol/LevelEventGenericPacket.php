@@ -30,9 +30,10 @@ class LevelEventGenericPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::LEVEL_EVENT_GENERIC_PACKET;
 
-	public int $eventId;
+	/** @var int */
+	private $eventId;
 	/** @var string network-format NBT */
-	public string $eventData;
+	private $eventData;
 
 	public static function create(int $eventId, CompoundTag $data) : self
 	{

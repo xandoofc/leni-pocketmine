@@ -65,8 +65,8 @@ use function str_split;
 use function strpos;
 use function substr;
 use function zend_version;
-use function zlib_encode;
 
+use function zlib_encode;
 use const E_COMPILE_ERROR;
 use const E_CORE_ERROR;
 use const E_ERROR;

@@ -26,7 +26,6 @@ use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\GetTypeIdFromConstTrait;
-
 use function count;
 
 /**

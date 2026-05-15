@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol\types\biome;
 
-use pocketmine\network\mcpe\protocol\types\biome\chunkgen\BiomeDefinitionChunkGenData;
 use pocketmine\utils\Color;
 
 final class BiomeDefinitionEntry
@@ -36,7 +35,6 @@ final class BiomeDefinitionEntry
 		private ?int $id,
 		private float $temperature,
 		private float $downfall,
-		private float $foliageSnow,
 		private float $redSporeDensity,
 		private float $blueSporeDensity,
 		private float $ashDensity,
@@ -68,11 +66,6 @@ final class BiomeDefinitionEntry
 	public function getDownfall() : float
 	{
 		return $this->downfall;
-	}
-
-	public function getFoliageSnow() : float
-	{
-		return $this->foliageSnow;
 	}
 
 	public function getRedSporeDensity() : float

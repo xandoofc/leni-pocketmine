@@ -22,9 +22,10 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\FortuneDropHelper;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
+
+use function mt_rand;
 
 class Gravel extends Fallable
 {
@@ -52,17 +53,12 @@ class Gravel extends Fallable
 
 	public function getDropsForCompatibleTool(Item $item) : array
 	{
-		if (FortuneDropHelper::bonusChanceDivisor($item, 10, 3)) {
+		if (mt_rand(1, 10) === 1) {
 			return [
 				ItemFactory::get(Item::FLINT)
 			];
 		}
 
 		return parent::getDropsForCompatibleTool($item);
-	}
-
-	public function isAffectedBySilkTouch() : bool
-	{
-		return true;
 	}
 }

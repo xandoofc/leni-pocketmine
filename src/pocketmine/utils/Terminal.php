@@ -33,7 +33,6 @@ use function is_string;
 use function sapi_windows_vt100_support;
 use function shell_exec;
 use function stream_isatty;
-
 use const PHP_EOL;
 
 abstract class Terminal

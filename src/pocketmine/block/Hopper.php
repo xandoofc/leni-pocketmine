@@ -65,11 +65,6 @@ class Hopper extends Transparent
 		return "Hopper";
 	}
 
-	public function getVariantBitmask() : int
-	{
-		return 0;
-	}
-
 	public function onActivate(Item $item, Player $player = null) : bool
 	{
 		if ($player instanceof Player) {

@@ -42,10 +42,9 @@ class Mooshroom extends Cow
 		return "Mooshroom";
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
-			$item = $player->getInventory()->getItemInHand();
 			if ($item instanceof Bowl && !$this->isBaby()) {
 				$new = ItemFactory::get(Item::MUSHROOM_STEW);
 				if ($player->isSurvival()) {
@@ -78,6 +77,6 @@ class Mooshroom extends Cow
 				return true;
 			}
 		}
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 }

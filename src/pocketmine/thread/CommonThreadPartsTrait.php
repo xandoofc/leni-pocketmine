@@ -105,7 +105,7 @@ trait CommonThreadPartsTrait
 		//*before* the shutdown handler is invoked, so we might land here before the crash info has been set.
 		//In the future this should probably be fixed by running the shutdown handlers before setting isTerminated,Add commentMore actions
 		//but this workaround should be good enough for now.
-		if ($this->isTerminated() && !$this->isJoined()) {
+		if($this->isTerminated() && !$this->isJoined()){
 			$this->join();
 		}
 		return $this->crashInfo;

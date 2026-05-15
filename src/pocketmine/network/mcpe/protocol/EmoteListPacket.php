@@ -31,9 +31,10 @@ class EmoteListPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::EMOTE_LIST_PACKET;
 
-	public int $playerEntityRuntimeId;
+	/** @var int */
+	private $playerEntityRuntimeId;
 	/** @var UUID[] */
-	public array $emoteIds;
+	private $emoteIds;
 
 	/**
 	 * @param UUID[] $emoteIds

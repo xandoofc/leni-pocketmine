@@ -28,7 +28,7 @@ use pocketmine\entity\projectile\Projectile;
 use pocketmine\event\entity\EntityShootBowEvent;
 use pocketmine\event\entity\ProjectileLaunchEvent;
 use pocketmine\item\enchantment\Enchantment;
-use pocketmine\level\sound\BowShootSound;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 
 use function intdiv;
@@ -53,21 +53,30 @@ class Bow extends Tool implements Releasable
 
 	public function onReleaseUsing(Player $player) : bool
 	{
-		$arrow = ItemFactory::get(Item::ARROW, -1);
-		$inventory = match(true) {
-			$player->getOffHandInventory()->contains($arrow) => $player->getOffHandInventory(),
-			$player->getInventory()->contains($arrow) => $player->getInventory(),
-			default => null
-		};
+		$inventory = null;
+		if ($player->getOffHandInventory()->contains(ItemFactory::get(Item::ARROW, -1))) {
+			$inventory = $player->getOffHandInventory();
+		} elseif ($player->getInventory()->contains(ItemFactory::get(Item::ARROW, -1))) {
+			$inventory = $player->getInventory();
+		}
 
-		if ($player->hasFiniteResources() && $inventory === null) {
+		if ($player->isSurvival() && $inventory === null) {
 			$player->getInventory()->sendContents($player);
 			return false;
 		}
 
-		$diff = $player->getItemUseDuration();
-		$p = $diff / 20;
-		$baseForce = min((($p ** 2) + $p * 2) / 3, 1);
+		if ($inventory !== null) {
+			$index = $inventory->first(ItemFactory::get(Item::ARROW, -1));
+			if ($index !== -1) {
+				$arrow = $inventory->getItem($index);
+				$arrow->setCount(1);
+			} else {
+				$inventory->sendContents($player);
+				return false;
+			}
+		} else {
+			$arrow = ItemFactory::get(Item::ARROW, 0, 1);
+		}
 
 		$nbt = Entity::createBaseNBT(
 			$player->add(0, $player->getEyeHeight(), 0),
@@ -75,6 +84,10 @@ class Bow extends Tool implements Releasable
 			($player->yaw > 180 ? 360 : 0) - $player->yaw,
 			-$player->pitch
 		);
+
+		$diff = $player->getItemUseDuration();
+		$p = $diff / 20;
+		$baseForce = min((($p ** 2) + $p * 2) / 3, 1);
 
 		$entity = Entity::createEntity("Arrow", $player->getLevel(), $nbt, $player, $baseForce >= 1);
 		if ($entity instanceof Projectile) {
@@ -108,9 +121,11 @@ class Bow extends Tool implements Releasable
 				$player->getInventory()->sendContents($player);
 			} else {
 				$entity->entityShoot($player, 0.0, $ev->getForce(), $ev->getInaccuracy());
-				if ($player->hasFiniteResources()) {
+				if ($player->isSurvival()) {
 					if (!$infinity) { //TODO: tipped arrows are still consumed when Infinity is applied
-						$inventory?->removeItem($arrow);
+						if ($inventory !== null) {
+							$inventory->removeItem($arrow);
+						}
 					}
 					$this->applyDamage(1);
 				}
@@ -122,7 +137,7 @@ class Bow extends Tool implements Releasable
 						$ev->getProjectile()->flagForDespawn();
 					} else {
 						$ev->getProjectile()->spawnToAll();
-						$player->getLevel()->addSound(new BowShootSound($player));
+						$player->getLevel()->broadcastLevelSoundEvent($player, LevelSoundEventPacket::SOUND_BOW);
 					}
 				} else {
 					$entity->spawnToAll();

@@ -91,10 +91,10 @@ class Log extends Solid
 	}
 
 	public function getBlockProtocol(int $playerProtocol) : ?Block{
-		if ($playerProtocol >= ProtocolInfo::PROTOCOL_340 && $this->meta >= 12) {
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_340 && $this->meta >= 12 && $this->meta <= 15) {
 			return BlockFactory::get(BlockIds::WOOD, $this->getVariant());
 		}
 
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

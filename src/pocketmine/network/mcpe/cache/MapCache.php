@@ -29,11 +29,13 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\serializer\PacketBatch;
 use pocketmine\utils\BinaryStream;
 
-class MapCache
-{
+class MapCache {
 	/** @var self[] */
 	private static array $instances = [];
 
+	/**
+	 * Fetches the ChunkCache instance for the given level. This lazily creates cache systems as needed.
+	 */
 	public static function getInstance(int $protocolVersion) : MapCache
 	{
 		return self::$instances[$protocolVersion] ?? (self::$instances[$protocolVersion] = new MapCache($protocolVersion));
@@ -44,11 +46,9 @@ class MapCache
 
 	public function __construct(
 		private int $protocolVersion
-	) {
-	}
+	) {}
 
-	public function getCache(MapData $data) : string
-	{
+	public function getCache(MapData $data) : string {
 		$id = $data->getId();
 		if (isset($this->caches[$id])) {
 			return $this->caches[$id];
@@ -74,8 +74,7 @@ class MapCache
 		return $this->caches[$id] = NetworkCompression::compress($stream->getBuffer(), $this->protocolVersion);
 	}
 
-	public function getProtocolVersion() : int
-	{
+	public function getProtocolVersion() : int {
 		return $this->protocolVersion;
 	}
 }

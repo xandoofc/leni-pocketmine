@@ -25,29 +25,38 @@ namespace pocketmine\inventory;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
 
-class PotionContainerChangeRecipe implements BrewingRecipe{
-
+class PotionContainerChangeRecipe implements BrewingRecipe
+{
 	public function __construct(
 		private int $inputItemId,
 		private Item $ingredient,
 		private int $outputItemId
-	){
+	) {
 		$this->ingredient = clone $ingredient;
 	}
 
-	public function getInputItemId() : int{
+	public function getInputItemId() : int
+	{
 		return $this->inputItemId;
 	}
 
-	public function getIngredient() : Item{
+	public function getIngredient() : Item
+	{
 		return clone $this->ingredient;
 	}
 
-	public function getOutputItemId() : int{
+	public function getOutputItemId() : int
+	{
 		return $this->outputItemId;
 	}
 
-	public function getResultFor(Item $input) : ?Item{
+	public function getResultFor(Item $input) : ?Item
+	{
 		return $input->getId() === $this->getInputItemId() ? ItemFactory::get($this->getOutputItemId(), $input->getDamage()) : null;
+	}
+
+	public function registerToCraftingManager(CraftingManager $manager) : void
+	{
+		$manager->registerPotionContainerChangeRecipe($this);
 	}
 }

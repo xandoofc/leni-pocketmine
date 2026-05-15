@@ -28,16 +28,17 @@ class GameRulesChangedPacket extends DataPacket
 {
 	public const NETWORK_ID = ProtocolInfo::GAME_RULES_CHANGED_PACKET;
 
-	public array $gameRules = [];
+	/** @var array */
+	public $gameRules = [];
 
 	protected function decodePayload() : void
 	{
-		$this->gameRules = $this->getGameRules(false, $this->getProtocol());
+		$this->gameRules = $this->getGameRules($this->getProtocol());
 	}
 
 	protected function encodePayload() : void
 	{
-		$this->putGameRules($this->gameRules, false, $this->getProtocol());
+		$this->putGameRules($this->gameRules, $this->getProtocol());
 	}
 
 	public function mustBeDecoded() : bool

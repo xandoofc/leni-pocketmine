@@ -33,8 +33,8 @@ use pocketmine\Server;
 
 use function explode;
 use function sprintf;
-use function trim;
 
+use function trim;
 use const PHP_INT_MAX;
 
 class ConsoleCommandSender implements CommandSender
@@ -118,8 +118,7 @@ class ConsoleCommandSender implements CommandSender
 		}
 	}
 
-	public function sendMessagef(string $format, mixed ...$args) : void
-	{
+	public function sendMessagef(string $format, mixed ...$args) : void{
 		$this->sendMessage(sprintf($format, ...$args));
 	}
 

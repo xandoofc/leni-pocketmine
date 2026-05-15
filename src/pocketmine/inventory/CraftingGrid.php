@@ -70,7 +70,7 @@ class CraftingGrid extends BaseInventory implements FakeInventory
 		return $this->getGridWidth() ** 2;
 	}
 
-	public function getUIOffsets(?Player $player) : array
+	public function getUIOffsets() : array
 	{
 		return $this->gridWidth === self::SIZE_SMALL ? UIInventorySlotOffset::CRAFTING2X2_INPUT : UIInventorySlotOffset::CRAFTING3X3_INPUT;
 	}

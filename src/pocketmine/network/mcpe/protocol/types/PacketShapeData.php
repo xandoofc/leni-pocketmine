@@ -24,14 +24,14 @@ namespace pocketmine\network\mcpe\protocol\types;
 
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\NetworkBinaryStream;
-use pocketmine\network\mcpe\protocol\DebugDrawerPacket;
+use pocketmine\network\mcpe\protocol\ServerScriptDebugDrawerPacket;
 use pocketmine\utils\Color;
 
 /**
- * @see DebugDrawerPacket
+ * @see ServerScriptDebugDrawerPacket
  */
-final class PacketShapeData
-{
+final class PacketShapeData{
+
 	public function __construct(
 		private int $networkId,
 		private ?ScriptDebugShapeType $type,
@@ -46,83 +46,42 @@ final class PacketShapeData
 		private ?float $arrowHeadLength,
 		private ?float $arrowHeadRadius,
 		private ?int $segments,
-	) {
-	}
+	){}
 
-	public function getNetworkId() : int
-	{
-		return $this->networkId;
-	}
+	public function getNetworkId() : int{ return $this->networkId; }
 
-	public function getType() : ?ScriptDebugShapeType
-	{
-		return $this->type;
-	}
+	public function getType() : ?ScriptDebugShapeType{ return $this->type; }
 
-	public function getLocation() : ?Vector3
-	{
-		return $this->location;
-	}
+	public function getLocation() : ?Vector3{ return $this->location; }
 
-	public function getScale() : ?float
-	{
-		return $this->scale;
-	}
+	public function getScale() : ?float{ return $this->scale; }
 
-	public function getRotation() : ?Vector3
-	{
-		return $this->rotation;
-	}
+	public function getRotation() : ?Vector3{ return $this->rotation; }
 
-	public function getTotalTimeLeft() : ?float
-	{
-		return $this->totalTimeLeft;
-	}
+	public function getTotalTimeLeft() : ?float{ return $this->totalTimeLeft; }
 
-	public function getColor() : ?Color
-	{
-		return $this->color;
-	}
+	public function getColor() : ?Color{ return $this->color; }
 
-	public function getText() : ?string
-	{
-		return $this->text;
-	}
+	public function getText() : ?string{ return $this->text; }
 
-	public function getBoxBound() : ?Vector3
-	{
-		return $this->boxBound;
-	}
+	public function getBoxBound() : ?Vector3{ return $this->boxBound; }
 
-	public function getLineEndLocation() : ?Vector3
-	{
-		return $this->lineEndLocation;
-	}
+	public function getLineEndLocation() : ?Vector3{ return $this->lineEndLocation; }
 
-	public function getArrowHeadLength() : ?float
-	{
-		return $this->arrowHeadLength;
-	}
+	public function getArrowHeadLength() : ?float{ return $this->arrowHeadLength; }
 
-	public function getArrowHeadRadius() : ?float
-	{
-		return $this->arrowHeadRadius;
-	}
+	public function getArrowHeadRadius() : ?float{ return $this->arrowHeadRadius; }
 
-	public function getSegments() : ?int
-	{
-		return $this->segments;
-	}
+	public function getSegments() : ?int{ return $this->segments; }
 
-	public static function read(NetworkBinaryStream $in) : self
-	{
+	public static function read(NetworkBinaryStream $in) : self{
 		$networkId = $in->getUnsignedVarLong();
-		$type = $in->readOptional(fn () => ScriptDebugShapeType::fromPacket($in->getByte()));
+		$type = $in->readOptional(fn() => ScriptDebugShapeType::fromPacket($in->getByte()));
 		$location = $in->readOptional($in->getVector3(...));
 		$scale = $in->readOptional($in->getLFloat(...));
 		$rotation = $in->readOptional($in->getVector3(...));
 		$totalTimeLeft = $in->readOptional($in->getLFloat(...));
-		$color = $in->readOptional(fn () => Color::fromARGB($in->getLInt()));
+		$color = $in->readOptional(fn() => Color::fromARGB($in->getLInt()));
 		$text = $in->readOptional($in->getString(...));
 		$boxBound = $in->readOptional($in->getVector3(...));
 		$lineEndLocation = $in->readOptional($in->getVector3(...));
@@ -147,15 +106,14 @@ final class PacketShapeData
 		);
 	}
 
-	public function write(NetworkBinaryStream $out) : void
-	{
+	public function write(NetworkBinaryStream $out) : void{
 		$out->putUnsignedVarLong($this->networkId);
-		$out->writeOptional($this->type, fn (ScriptDebugShapeType $type) => $out->putByte($type->value));
+		$out->writeOptional($this->type, fn(ScriptDebugShapeType $type) => $out->putByte($type->value));
 		$out->writeOptional($this->location, $out->putVector3(...));
 		$out->writeOptional($this->scale, $out->putLFloat(...));
 		$out->writeOptional($this->rotation, $out->putVector3(...));
 		$out->writeOptional($this->totalTimeLeft, $out->putLFloat(...));
-		$out->writeOptional($this->color, fn (Color $color) => $out->putLInt($color->toARGB()));
+		$out->writeOptional($this->color, fn(Color $color) => $out->putLInt($color->toARGB()));
 		$out->writeOptional($this->text, $out->putString(...));
 		$out->writeOptional($this->boxBound, $out->putVector3(...));
 		$out->writeOptional($this->lineEndLocation, $out->putVector3(...));

@@ -41,6 +41,6 @@ class GoldChestplate extends Armor
 
 	public function getArmorSlot() : int
 	{
-		return ArmorSlot::SLOT_CHESTPLATE;
+		return 1;
 	}
 }

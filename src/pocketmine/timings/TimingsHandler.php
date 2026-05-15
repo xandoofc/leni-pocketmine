@@ -28,7 +28,6 @@ use pocketmine\promise\PromiseResolver;
 use pocketmine\Server;
 use pocketmine\utils\ObjectSet;
 use pocketmine\utils\Utils;
-
 use function array_merge;
 use function array_push;
 use function hrtime;

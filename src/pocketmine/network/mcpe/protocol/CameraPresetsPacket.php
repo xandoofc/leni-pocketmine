@@ -26,7 +26,6 @@ use pocketmine\nbt\NetworkLittleEndianNBTStream;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\types\camera\CameraPreset;
-
 use function count;
 
 class CameraPresetsPacket extends DataPacket

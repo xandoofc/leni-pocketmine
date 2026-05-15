@@ -24,9 +24,6 @@ namespace pocketmine\block;
 
 use pocketmine\event\block\ItemFrameDropItemEvent;
 use pocketmine\item\Item;
-use pocketmine\level\sound\ItemFrameAddItemSound;
-use pocketmine\level\sound\ItemFrameRemoveItemSound;
-use pocketmine\level\sound\ItemFrameRotateItemSound;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
@@ -62,12 +59,8 @@ class ItemFrame extends Flowable
 
 		if ($tile->hasItem()) {
 			$tile->setItemRotation(($tile->getItemRotation() + 1) % 8);
-
-			$this->level->addSound(new ItemFrameRotateItemSound($this));
 		} elseif (!$item->isNull()) {
 			$tile->setItem($item->pop());
-
-			$this->level->addSound(new ItemFrameAddItemSound($this));
 		}
 
 		return true;
@@ -127,7 +120,6 @@ class ItemFrame extends Flowable
 		$level = $this->getLevel();
 		if (Utils::getRandomFloat() <= $tile->getItemDropChance()) {
 			$level->dropItem($this->add(0.5, 0.5, 0.5), clone $tile->getItem());
-			$this->level->addSound(new ItemFrameRemoveItemSound($this));
 		}
 		$tile->setItem(null);
 		$tile->setItemRotation(0);

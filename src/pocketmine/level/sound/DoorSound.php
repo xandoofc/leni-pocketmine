@@ -25,10 +25,10 @@ namespace pocketmine\level\sound;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelEventPacket;
 
-final class DoorSound extends GenericSound
+class DoorSound extends GenericSound
 {
 	public function __construct(Vector3 $pos, float $pitch = 0)
 	{
-		parent::__construct($pos, LevelEventPacket::EVENT_SOUND_DOOR, (int) ($pitch * 1000));
+		parent::__construct($pos, LevelEventPacket::EVENT_SOUND_DOOR, $pitch);
 	}
 }

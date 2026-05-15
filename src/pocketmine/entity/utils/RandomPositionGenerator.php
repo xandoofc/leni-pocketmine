@@ -24,7 +24,6 @@ namespace pocketmine\entity\utils;
 
 use pocketmine\entity\Mob;
 use pocketmine\math\Vector3;
-
 use const PHP_INT_MIN;
 
 class RandomPositionGenerator

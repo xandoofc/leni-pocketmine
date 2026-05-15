@@ -95,10 +95,9 @@ class Ocelot extends Tamable
 		return "Ocelot";
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isImmobile()) {
-			$item = $player->getInventory()->getItemInHand();
 			if ($item->getId() == Item::RAW_SALMON || $item->getId() == Item::RAW_FISH) {
 				if ($player->isSurvival()) {
 					$item->pop();
@@ -122,7 +121,7 @@ class Ocelot extends Tamable
 				}
 			}
 		}
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function getXpDropAmount() : int

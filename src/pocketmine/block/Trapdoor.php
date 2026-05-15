@@ -71,7 +71,7 @@ abstract class Trapdoor extends Transparent
 		}
 
 		if (($damage & self::MASK_OPENED) > 0) {
-			if ($this->getFace() === self::MASK_SIDE_NORTH) {
+			if (($damage & 0x03) === self::MASK_SIDE_NORTH) {
 				$bb = new AxisAlignedBB(
 					$this->x,
 					$this->y,
@@ -80,7 +80,7 @@ abstract class Trapdoor extends Transparent
 					$this->y + 1,
 					$this->z + 1
 				);
-			} elseif ($this->getFace() === self::MASK_SIDE_SOUTH) {
+			} elseif (($damage & 0x03) === self::MASK_SIDE_SOUTH) {
 				$bb = new AxisAlignedBB(
 					$this->x,
 					$this->y,
@@ -90,7 +90,7 @@ abstract class Trapdoor extends Transparent
 					$this->z + $f
 				);
 			}
-			if ($this->getFace() === self::MASK_SIDE_WEST) {
+			if (($damage & 0x03) === self::MASK_SIDE_WEST) {
 				$bb = new AxisAlignedBB(
 					$this->x + 1 - $f,
 					$this->y,
@@ -100,7 +100,7 @@ abstract class Trapdoor extends Transparent
 					$this->z + 1
 				);
 			}
-			if ($this->getFace() === self::MASK_SIDE_EAST) {
+			if (($damage & 0x03) === self::MASK_SIDE_EAST) {
 				$bb = new AxisAlignedBB(
 					$this->x,
 					$this->y,
@@ -118,19 +118,17 @@ abstract class Trapdoor extends Transparent
 	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool
 	{
 		$directions = [
-			0 => self::MASK_SIDE_WEST,
-			1 => self::MASK_SIDE_NORTH,
-			2 => self::MASK_SIDE_EAST,
-			3 => self::MASK_SIDE_SOUTH
+			0 => 1,
+			1 => 3,
+			2 => 0,
+			3 => 2
 		];
 		if ($player !== null) {
 			$this->meta = $directions[$player->getDirection() & 0x03];
 		}
-
 		if (($clickVector->y > 0.5 && $face !== Facing::UP) || $face === Facing::DOWN) {
-			$this->setTop(true); //top half of block
+			$this->meta |= self::MASK_UPPER; //top half of block
 		}
-
 		$this->getLevel()->setBlock($blockReplace, $this, true, true);
 		return true;
 	}
@@ -142,29 +140,9 @@ abstract class Trapdoor extends Transparent
 
 	public function onActivate(Item $item, Player $player = null) : bool
 	{
-		$this->setOpen(!$this->isOpen());
+		$this->meta ^= self::MASK_OPENED;
 		$this->getLevel()->setBlock($this, $this, true);
 		$this->level->addSound(new DoorSound($this));
 		return true;
-	}
-
-	public function isOpen() : bool{
-		return ($this->meta & self::MASK_OPENED) !== 0;
-	}
-
-	public function setOpen(bool $value) : void {
-		$this->meta = ($this->meta & ~self::MASK_OPENED) | ($value ? self::MASK_OPENED : 0);
-	}
-
-	public function isTop() : bool{
-		return ($this->meta & self::MASK_UPPER) !== 0;
-	}
-
-	public function setTop(bool $value) : void {
-		$this->meta = ($this->meta & ~self::MASK_UPPER) | ($value ? self::MASK_UPPER : 0);
-	}
-
-	public function getFace() : int {
-		return $this->meta & self::MASK_SIDE;
 	}
 }

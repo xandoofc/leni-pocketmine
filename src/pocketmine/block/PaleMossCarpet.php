@@ -42,9 +42,8 @@ class PaleMossCarpet extends Carpet
 	public function getBlockProtocol(int $playerProtocol) : ?Block
 	{
 		if ($playerProtocol < ProtocolInfo::PROTOCOL_766) {
-			return BlockFactory::get(BlockIds::CARPET, ColorBlockMetaHelper::GRAY);
+			return BlockFactory::get(Block::CARPET, ColorBlockMetaHelper::GRAY);
 		}
-
-		return null;
+		return parent::getBlockProtocol($playerProtocol);
 	}
 }

@@ -42,7 +42,6 @@ use pocketmine\network\mcpe\convert\constants\actorMetadataList\flags\ActorFlags
 use pocketmine\network\mcpe\convert\constants\actorMetadataList\flags\ActorFlags786;
 use pocketmine\network\mcpe\convert\constants\actorMetadataList\flags\ActorFlags800;
 use pocketmine\network\mcpe\convert\constants\actorMetadataList\flags\ActorFlags818;
-use pocketmine\network\mcpe\convert\constants\actorMetadataList\flags\ActorFlags844;
 use pocketmine\network\mcpe\convert\constants\actorMetadataList\properties\ActorProperties110;
 use pocketmine\network\mcpe\convert\constants\actorMetadataList\properties\ActorProperties223;
 use pocketmine\network\mcpe\convert\constants\actorMetadataList\properties\ActorProperties340;
@@ -91,13 +90,8 @@ use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds712;
 use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds729;
 use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds766;
 use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds818;
-use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds819;
 use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds827;
-use pocketmine\network\mcpe\convert\constants\levelSoundIds\LevelSoundIds844;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds110;
-use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds137;
-use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds274;
-use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds313;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds361;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds389;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds431;
@@ -106,8 +100,6 @@ use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds630;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds649;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds662;
 use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds712;
-use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds766;
-use pocketmine\network\mcpe\convert\constants\particleIds\ParticleIds844;
 use pocketmine\network\mcpe\convert\constants\playerActionIds\PlayerActionIds110;
 use pocketmine\network\mcpe\convert\constants\playerActionIds\PlayerActionIds137;
 use pocketmine\network\mcpe\convert\constants\playerActionIds\PlayerActionIds419;
@@ -141,9 +133,9 @@ use ReflectionClass;
 use SplFixedArray;
 
 use function array_filter;
+
 use function max;
 use function str_starts_with;
-
 use const ARRAY_FILTER_USE_BOTH;
 
 class ConstantTranslator
@@ -159,9 +151,7 @@ class ConstantTranslator
 	public function __construct()
 	{
 		$this->collect(LevelSoundEventPacket::class, [
-			ProtocolInfo::PROTOCOL_844 => LevelSoundIds844::class,
 			ProtocolInfo::PROTOCOL_827 => LevelSoundIds827::class,
-			ProtocolInfo::PROTOCOL_819 => LevelSoundIds819::class,
 			ProtocolInfo::PROTOCOL_818 => LevelSoundIds818::class,
 			ProtocolInfo::PROTOCOL_766 => LevelSoundIds766::class,
 			ProtocolInfo::PROTOCOL_729 => LevelSoundIds729::class,
@@ -234,8 +224,6 @@ class ConstantTranslator
 		});
 
 		$this->collect(Particle::class, [
-			ProtocolInfo::PROTOCOL_844 => ParticleIds844::class,
-			ProtocolInfo::PROTOCOL_766 => ParticleIds766::class,
 			ProtocolInfo::PROTOCOL_712 => ParticleIds712::class,
 			ProtocolInfo::PROTOCOL_662 => ParticleIds662::class,
 			ProtocolInfo::PROTOCOL_649 => ParticleIds649::class,
@@ -244,9 +232,6 @@ class ConstantTranslator
 			ProtocolInfo::PROTOCOL_431 => ParticleIds431::class,
 			ProtocolInfo::PROTOCOL_389 => ParticleIds389::class,
 			ProtocolInfo::PROTOCOL_361 => ParticleIds361::class,
-			ProtocolInfo::PROTOCOL_313 => ParticleIds313::class,
-			ProtocolInfo::PROTOCOL_274 => ParticleIds274::class,
-			ProtocolInfo::PROTOCOL_137 => ParticleIds137::class,
 			ProtocolInfo::PROTOCOL_110 => ParticleIds110::class,
 		], function ($value, string $name) : bool {
 			return str_starts_with($name, "TYPE_");
@@ -265,7 +250,6 @@ class ConstantTranslator
 		]);
 
 		$this->collect(EntityMetadataFlags::class, [
-			ProtocolInfo::PROTOCOL_844 => ActorFlags844::class,
 			ProtocolInfo::PROTOCOL_818 => ActorFlags818::class,
 			ProtocolInfo::PROTOCOL_800 => ActorFlags800::class,
 			ProtocolInfo::PROTOCOL_786 => ActorFlags786::class,
@@ -300,8 +284,7 @@ class ConstantTranslator
 		]);
 	}
 
-	public function collect(string $coreClassConstants, array $netClassesConstants, ?Closure $filter = null) : void
-	{
+	public function collect(string $coreClassConstants, array $netClassesConstants, ?Closure $filter = null) : void {
 		try {
 			$coreConstants = (new ReflectionClass($coreClassConstants))->getConstants();
 			if ($filter !== null) {
@@ -337,8 +320,7 @@ class ConstantTranslator
 		}
 	}
 
-	public function fromNetworkId(string $coreClassConstants, int $id, int $playerProtocol) : int
-	{
+	public function fromNetworkId(string $coreClassConstants, int $id, int $playerProtocol) : int {
 		try {
 			if (!isset($this->constantsMapping[$coreClassConstants])) {
 				throw new ConstantTranslatorException("The $coreClassConstants class for translating constants was not found.");
@@ -358,8 +340,7 @@ class ConstantTranslator
 		}
 	}
 
-	public function toNetworkId(string $coreClassConstants, int $id, int $playerProtocol, int $default = null) : int
-	{
+	public function toNetworkId(string $coreClassConstants, int $id, int $playerProtocol, int $default = null) : int {
 		if (!isset($this->constantsMapping[$coreClassConstants])) {
 			throw new ConstantTranslatorException("The $coreClassConstants class for translating constants was not found.");
 		}
@@ -377,8 +358,7 @@ class ConstantTranslator
 		throw new ConstantTranslatorException("ID not found $id for class $coreClassConstants");
 	}
 
-	public function fromNetworkIds(string $coreClassConstants, int $playerProtocol) : array
-	{
+	public function fromNetworkIds(string $coreClassConstants, int $playerProtocol) : array{
 		try {
 			if (!isset($this->constantsMapping[$coreClassConstants])) {
 				throw new ConstantTranslatorException("The $coreClassConstants class for translating constants was not found.");
@@ -396,8 +376,7 @@ class ConstantTranslator
 		}
 	}
 
-	public function toNetworkIds(string $coreClassConstants, int $playerProtocol) : array
-	{
+	public function toNetworkIds(string $coreClassConstants, int $playerProtocol) : array {
 		if (!isset($this->constantsMapping[$coreClassConstants])) {
 			throw new ConstantTranslatorException("The $coreClassConstants class for translating constants was not found.");
 		}

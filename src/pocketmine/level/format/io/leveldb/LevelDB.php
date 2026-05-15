@@ -65,11 +65,11 @@ use function json_decode;
 use function mkdir;
 use function ord;
 use function str_repeat;
+
 use function strlen;
 use function substr;
 use function trim;
 use function unpack;
-
 use const LEVELDB_ZLIB_RAW_COMPRESSION;
 use const pocketmine\BEDROCK_DATA_PATH;
 

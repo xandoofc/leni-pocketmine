@@ -37,30 +37,6 @@ class AddPaintingPacket extends DataPacket
 	public int $direction;
 	public string $title;
 
-	/**
-	 * @generate-create-func
-	 */
-	public static function create(
-		int $entityUniqueId,
-		int $entityRuntimeId,
-		float|int $x,
-		float|int $y,
-		float|int $z,
-		int $direction,
-		string $title
-	) : self
-	{
-		$result = new self();
-		$result->entityUniqueId = $entityUniqueId;
-		$result->entityRuntimeId = $entityRuntimeId;
-		$result->x = $x;
-		$result->y = $y;
-		$result->z = $z;
-		$result->direction = $direction;
-		$result->title = $title;
-		return $result;
-	}
-
 	protected function decodePayload() : void
 	{
 		$this->entityUniqueId = $this->getEntityUniqueId();

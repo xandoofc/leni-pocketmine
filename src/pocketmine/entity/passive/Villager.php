@@ -34,6 +34,7 @@ use pocketmine\entity\Effect;
 use pocketmine\entity\EffectInstance;
 use pocketmine\entity\hostile\Zombie;
 use pocketmine\entity\Mob;
+use pocketmine\item\Item;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
@@ -206,13 +207,13 @@ class Villager extends Mob implements Ageable
 		return $this->getGenericFlag(self::DATA_FLAG_BABY);
 	}
 
-	public function onInteract(Player $player, Vector3 $clickPos) : bool
+	public function onInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		if (!$this->isBaby() && $this->offers instanceof CompoundTag && !$this->isImmobile() && !$this->isWilling()) {
 			// TODO: open trade inventory
 			return true;
 		}
-		return parent::onInteract($player, $clickPos);
+		return parent::onInteract($player, $item, $clickPos);
 	}
 
 	public function getDisplayName() : string

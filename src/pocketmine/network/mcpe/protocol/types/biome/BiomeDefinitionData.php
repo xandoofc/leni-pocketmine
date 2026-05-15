@@ -24,8 +24,6 @@ namespace pocketmine\network\mcpe\protocol\types\biome;
 
 use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\network\mcpe\protocol\types\biome\chunkgen\BiomeDefinitionChunkGenData;
-use pocketmine\network\mcpe\protocol\types\biome\chunkgen\BiomeTagsData;
 use pocketmine\utils\Color;
 
 final class BiomeDefinitionData
@@ -34,7 +32,6 @@ final class BiomeDefinitionData
 		private ?int $id,
 		private float $temperature,
 		private float $downfall,
-		private float $foliageSnow,
 		private float $redSporeDensity,
 		private float $blueSporeDensity,
 		private float $ashDensity,
@@ -61,11 +58,6 @@ final class BiomeDefinitionData
 	public function getDownfall() : float
 	{
 		return $this->downfall;
-	}
-
-	public function getFoliageSnow() : float
-	{
-		return $this->foliageSnow;
 	}
 
 	public function getRedSporeDensity() : float
@@ -128,31 +120,25 @@ final class BiomeDefinitionData
 
 		$temperature = $in->getLFloat();
 		$downfall = $in->getLFloat();
-		if ($protocolVersion >= ProtocolInfo::PROTOCOL_844) {
-			$foliageSnow = $in->getLFloat();
-		} else {
-			$redSporeDensity = $in->getLFloat();
-			$blueSporeDensity = $in->getLFloat();
-			$ashDensity = $in->getLFloat();
-			$whiteAshDensity = $in->getLFloat();
-		}
-
+		$redSporeDensity = $in->getLFloat();
+		$blueSporeDensity = $in->getLFloat();
+		$ashDensity = $in->getLFloat();
+		$whiteAshDensity = $in->getLFloat();
 		$depth = $in->getLFloat();
 		$scale = $in->getLFloat();
 		$mapWaterColor = Color::fromARGB($in->getLInt());
 		$rain = $in->getBool();
 		$tags = $in->readOptional(fn () => BiomeTagsData::read($in));
-		$chunkGenData = $in->readOptional(fn () => BiomeDefinitionChunkGenData::read($in, $protocolVersion));
+		$chunkGenData = $in->readOptional(fn () => BiomeDefinitionChunkGenData::read($in));
 
 		return new self(
 			$id,
 			$temperature,
 			$downfall,
-			$foliageSnow ?? 0,
-			$redSporeDensity ?? 0,
-			$blueSporeDensity ?? 0,
-			$ashDensity ?? 0,
-			$whiteAshDensity ?? 0,
+			$redSporeDensity,
+			$blueSporeDensity,
+			$ashDensity,
+			$whiteAshDensity,
 			$depth,
 			$scale,
 			$mapWaterColor,
@@ -172,20 +158,15 @@ final class BiomeDefinitionData
 
 		$out->putLFloat($this->temperature);
 		$out->putLFloat($this->downfall);
-		if ($protocolVersion >= ProtocolInfo::PROTOCOL_844) {
-			$out->putLFloat($this->foliageSnow);
-		} else {
-			$out->putLFloat($this->redSporeDensity);
-			$out->putLFloat($this->blueSporeDensity);
-			$out->putLFloat($this->ashDensity);
-			$out->putLFloat($this->whiteAshDensity);
-		}
-
+		$out->putLFloat($this->redSporeDensity);
+		$out->putLFloat($this->blueSporeDensity);
+		$out->putLFloat($this->ashDensity);
+		$out->putLFloat($this->whiteAshDensity);
 		$out->putLFloat($this->depth);
 		$out->putLFloat($this->scale);
 		$out->putLInt($this->mapWaterColor->toARGB());
 		$out->putBool($this->rain);
 		$out->writeOptional($this->tags, fn (BiomeTagsData $tags) => $tags->write($out));
-		$out->writeOptional($this->chunkGenData, fn (BiomeDefinitionChunkGenData $chunkGenData) => $chunkGenData->write($out, $protocolVersion));
+		$out->writeOptional($this->chunkGenData, fn (BiomeDefinitionChunkGenData $chunkGenData) => $chunkGenData->write($out));
 	}
 }

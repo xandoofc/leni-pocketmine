@@ -60,10 +60,10 @@ use function preg_match;
 use function print_r;
 use function round;
 use function spl_object_hash;
+
 use function sprintf;
 use function strlen;
 use function substr;
-
 use const JSON_PRETTY_PRINT;
 use const JSON_THROW_ON_ERROR;
 use const JSON_UNESCAPED_SLASHES;

@@ -1,21 +1,15 @@
 <?php
 
 /*
+ * This file is part of RakLib.
+ * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/RakLib>
  *
- *   _____       _                          _
- *  / ____|     | |                        (_)
- * | (___  _   _| |__  _ __ ___   __ _ _ __ _ _ __   ___
- *  \___ \| | | | '_ \| '_ ` _ \ / _` | '__| | '_ \ / _ \
- *  ____) | |_| | |_) | | | | | | (_| | |  | | | | |  __/
- * |_____/ \__,_|_.__/|_| |_| |_|\__,_|_|  |_|_| |_|\___|
+ * RakLib is not affiliated with Jenkins Software LLC nor RakNet.
  *
- * This program is private software. No license required.
- * Publication of this program is forbidden and will be punished.
- *
- * @author SEMENNEJO
- * @link vk.com/vk.snikers && t.me/semennejo
- *
- *
+ * RakLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 declare(strict_types=1);
@@ -25,13 +19,11 @@ namespace raklib\protocol;
 use pocketmine\utils\Binary;
 use pocketmine\utils\BinaryDataException;
 use pocketmine\utils\BinaryStream;
-
 use function ceil;
 use function chr;
 use function strlen;
 
-class EncapsulatedPacket
-{
+class EncapsulatedPacket{
 	private const RELIABILITY_SHIFT = 5;
 	private const RELIABILITY_FLAGS = 0b111 << self::RELIABILITY_SHIFT;
 
@@ -51,8 +43,7 @@ class EncapsulatedPacket
 	/**
 	 * @throws BinaryDataException
 	 */
-	public static function fromBinary(BinaryStream $stream) : EncapsulatedPacket
-	{
+	public static function fromBinary(BinaryStream $stream) : EncapsulatedPacket{
 		$packet = new EncapsulatedPacket();
 
 		$flags = $stream->getByte();
@@ -60,24 +51,24 @@ class EncapsulatedPacket
 		$hasSplit = ($flags & self::SPLIT_FLAG) !== 0;
 
 		$length = (int) ceil($stream->getShort() / 8);
-		if ($length === 0) {
+		if($length === 0){
 			throw new BinaryDataException("Encapsulated payload length cannot be zero");
 		}
 
-		if (PacketReliability::isReliable($reliability)) {
+		if(PacketReliability::isReliable($reliability)){
 			$packet->messageIndex = $stream->getLTriad();
 		}
 
-		if (PacketReliability::isSequenced($reliability)) {
+		if(PacketReliability::isSequenced($reliability)){
 			$packet->sequenceIndex = $stream->getLTriad();
 		}
 
-		if (PacketReliability::isSequencedOrOrdered($reliability)) {
+		if(PacketReliability::isSequencedOrOrdered($reliability)){
 			$packet->orderIndex = $stream->getLTriad();
 			$packet->orderChannel = $stream->getByte();
 		}
 
-		if ($hasSplit) {
+		if($hasSplit){
 			$splitCount = $stream->getInt();
 			$splitID = $stream->getShort();
 			$splitIndex = $stream->getInt();
@@ -88,14 +79,23 @@ class EncapsulatedPacket
 		return $packet;
 	}
 
-	public function toBinary() : string
-	{
+	public function toBinary() : string{
 		return
 			chr(($this->reliability << self::RELIABILITY_SHIFT) | ($this->splitInfo !== null ? self::SPLIT_FLAG : 0)) .
 			Binary::writeShort(strlen($this->buffer) << 3) .
-			(PacketReliability::isReliable($this->reliability) ? Binary::writeLTriad($this->messageIndex) : "") .
-			(PacketReliability::isSequenced($this->reliability) ? Binary::writeLTriad($this->sequenceIndex) : "") .
-			(PacketReliability::isSequencedOrOrdered($this->reliability) ? Binary::writeLTriad($this->orderIndex) . chr($this->orderChannel) : "") .
+			(PacketReliability::isReliable($this->reliability) ?
+				Binary::writeLTriad($this->messageIndex ?? throw new \LogicException("Message index must be set for reliability $this->reliability")) :
+				""
+			) .
+			(PacketReliability::isSequenced($this->reliability) ?
+				Binary::writeLTriad($this->sequenceIndex ?? throw new \LogicException("Sequence index must be set for reliability $this->reliability")) :
+				""
+			) .
+			(PacketReliability::isSequencedOrOrdered($this->reliability) ?
+				Binary::writeLTriad($this->orderIndex ?? throw new \LogicException("Order index must be set for reliability $this->reliability")) .
+					chr($this->orderChannel ?? throw new \LogicException("Order channel must be set for reliability $this->reliability")) :
+				""
+			) .
 			($this->splitInfo !== null ? Binary::writeInt($this->splitInfo->getTotalPartCount()) . Binary::writeShort($this->splitInfo->getId()) . Binary::writeInt($this->splitInfo->getPartIndex()) : "")
 			. $this->buffer;
 	}
@@ -103,8 +103,7 @@ class EncapsulatedPacket
 	/**
 	 * @phpstan-return int<3, 23>
 	 */
-	public function getHeaderLength() : int
-	{
+	public function getHeaderLength() : int{
 		return
 			1 + //reliability
 			2 + //length
@@ -114,13 +113,11 @@ class EncapsulatedPacket
 			($this->splitInfo !== null ? self::SPLIT_INFO_LENGTH : 0);
 	}
 
-	public function getTotalLength() : int
-	{
+	public function getTotalLength() : int{
 		return $this->getHeaderLength() + strlen($this->buffer);
 	}
 
-	public function __toString() : string
-	{
+	public function __toString() : string{
 		return $this->toBinary();
 	}
 }

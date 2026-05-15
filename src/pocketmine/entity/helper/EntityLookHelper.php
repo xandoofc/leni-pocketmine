@@ -24,10 +24,8 @@ namespace pocketmine\entity\helper;
 
 use pocketmine\entity\Entity;
 use pocketmine\entity\Mob;
-
 use function atan2;
 use function sqrt;
-
 use const M_PI;
 
 class EntityLookHelper

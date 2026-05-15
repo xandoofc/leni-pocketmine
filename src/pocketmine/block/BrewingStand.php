@@ -29,7 +29,6 @@ use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\tile\BrewingStand as BrewingStandTile;
-
 use function array_key_exists;
 
 class BrewingStand extends Transparent
@@ -97,6 +96,11 @@ class BrewingStand extends Transparent
 	public function getBlastResistance() : float
 	{
 		return 2.5;
+	}
+
+	public function getVariant() : int
+	{
+		return 0b111;
 	}
 
 	public function hasSlot(BrewingStandSlot $slot) : bool

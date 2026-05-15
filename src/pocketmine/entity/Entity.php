@@ -92,7 +92,6 @@ use pocketmine\level\Level;
 use pocketmine\level\Location;
 use pocketmine\level\Position;
 use pocketmine\level\sound\PlaySound;
-use pocketmine\level\sound\Sound;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector2;
@@ -140,6 +139,7 @@ use function in_array;
 use function intval;
 use function is_a;
 use function is_array;
+
 use function is_infinite;
 use function is_nan;
 use function max;
@@ -149,7 +149,6 @@ use function pi;
 use function reset;
 use function sin;
 use function spl_object_id;
-
 use function sqrt;
 use const M_PI_2;
 
@@ -752,16 +751,6 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 		$this->setGenericFlag(self::DATA_FLAG_INVISIBLE, $value);
 	}
 
-	public function isSilent() : bool
-	{
-		return $this->getGenericFlag(self::DATA_FLAG_SILENT);
-	}
-
-	public function setSilent(bool $value = true) : void
-	{
-		$this->setGenericFlag(self::DATA_FLAG_SILENT, $value);
-	}
-
 	public function isGliding() : bool
 	{
 		return $this->getGenericFlag(self::DATA_FLAG_GLIDING);
@@ -1342,7 +1331,7 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 
 	public function getOffsetPosition(Vector3 $vector3) : Vector3
 	{
-		return $vector3->add(0, $this->baseOffset, 0);
+		return new Vector3($vector3->x, $vector3->y + $this->baseOffset, $vector3->z);
 	}
 
 	protected function broadcastMovement(bool $teleport = false) : void
@@ -1696,8 +1685,8 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 
 	protected function updateFallState(float $distanceThisTick, bool $onGround) : void
 	{
-		if ($onGround) {
-			if ($this->fallDistance > 0) {
+		if($onGround){
+			if($this->fallDistance > 0){
 				$ev = new EntityFallEvent($this, $this->fallDistance);
 				$ev->call();
 				if (!$ev->isCancelled()) {
@@ -1711,11 +1700,11 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 
 				$this->resetFallDistance();
 			}
-		} elseif ($distanceThisTick < $this->fallDistance) {
+		}elseif($distanceThisTick < $this->fallDistance){
 			//we've fallen some distance (distanceThisTick is negative)
 			//or we ascended back towards where fall distance was measured from initially (distanceThisTick is positive but less than existing fallDistance)
 			$this->fallDistance -= $distanceThisTick;
-		} else {
+		}else{
 			//we ascended past the apex where fall distance was originally being measured from
 			//reset it so it will be measured starting from the new, higher position
 			$this->fallDistance = 0;
@@ -2036,7 +2025,9 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 
 			assert(abs($dx) <= 20 && abs($dy) <= 20 && abs($dz) <= 20, "Movement distance is excessive: dx=$dx, dy=$dy, dz=$dz");
 
-			$list = $this->level->getBlockCollisionBoxes($moveBB->addCoord($dx, $dy, $dz));
+			$list = $this->level->getCollisionCubes($this, $this->level->getTickRateTime() > 50 ?
+				$moveBB->offsetCopy($dx, $dy, $dz) :
+				$moveBB->addCoord($dx, $dy, $dz), false);
 
 			foreach ($list as $bb) {
 				$dy = $bb->calculateYOffset($moveBB, $dy);
@@ -2137,10 +2128,10 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 
 	protected function checkGroundState(float $wantedX, float $wantedY, float $wantedZ, float $dx, float $dy, float $dz) : void
 	{
-		$this->isCollidedVertically = $wantedY !== $dy;
-		$this->isCollidedHorizontally = ($wantedX !== $dx || $wantedZ !== $dz);
+		$this->isCollidedVertically = $wantedY != $dy;
+		$this->isCollidedHorizontally = ($wantedX != $dx || $wantedZ != $dz);
 		$this->isCollided = ($this->isCollidedHorizontally || $this->isCollidedVertically);
-		$this->onGround = ($wantedY !== $dy && $wantedY < 0);
+		$this->onGround = ($wantedY != $dy && $wantedY < 0);
 	}
 
 	/**
@@ -2457,32 +2448,30 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 	 */
 	protected function sendSpawnPacket(Player $player) : void
 	{
-		$links = [];
-		if (count($this->passengers) !== 0) {
+		$pk = new AddActorPacket();
+		$pk->entityRuntimeId = $this->getId();
+		$pk->type = static::NETWORK_ID;
+		$pk->position = $this->asVector3();
+		$pk->motion = $this->getMotion();
+		$pk->yaw = $this->yaw;
+		$pk->headYaw = $this->headYaw ?? $this->yaw;
+		$pk->bodyYaw = $this->yaw;
+		$pk->pitch = $this->pitch;
+		$pk->attributes = $this->attributeMap->getAll();
+		$pk->metadata = $this->propertyManager->getAll();
+		$pk->syncedProperties = new PropertySyncData([], []);
+
+		if (!empty($this->passengers)) {
 			foreach ($this->getPassengers() as $passenger) {
 				$passenger->spawnTo($player);
 			}
 
-			$links = array_map(function (int $entityId) {
+			$pk->links = array_map(function (int $entityId) {
 				return new EntityLink($this->getId(), $entityId, EntityLink::TYPE_RIDER, true, false);
 			}, $this->passengers);
 		}
 
-		$player->sendDataPacket(AddActorPacket::create(
-			$this->getId(),
-			$this->getId(),
-			static::NETWORK_ID,
-			$this->asVector3(),
-			$this->getMotion(),
-			$this->pitch,
-			$this->yaw,
-			$this->headYaw ?? $this->yaw,
-			$this->yaw,
-			$this->attributeMap->getAll(),
-			$this->propertyManager->getAll(),
-			new PropertySyncData([], []),
-			$links
-		));
+		$player->dataPacket($pk);
 	}
 
 	public function spawnTo(Player $player) : void
@@ -2673,27 +2662,25 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 		}
 	}
 
-	public function broadcastEntityEvent(int $eventId, ?int $eventData = null, ?array $targets = null) : void
-	{
-		$this->server->broadcastPacket(
-			$targets ?? $this->getViewers(),
-			ActorEventPacket::create($this->id, $eventId, $eventData ?? 0)
-		);
-	}
-
-	public function broadcastAnimation(int $animationId, ?array $targets = null) : void{
-		$this->server->broadcastPacket($players ?? $this->getViewers(), AnimatePacket::create($this->id, $animationId));
-	}
-
 	/**
-	 * Broadcasts a sound caused by the entity. If the entity is considered "silent", the sound will be dropped.
-	 * @param Player[]|null $targets
+	 * @param Player[]|null $players
 	 */
-	public function broadcastSound(Sound $sound, ?array $targets = null) : void
+	public function broadcastEntityEvent(int $eventId, ?int $eventData = null, ?array $players = null) : void
 	{
-		if (!$this->isSilent()) {
-			$this->level->addSound($sound, $targets ?? $this->getViewers());
-		}
+		$pk = new ActorEventPacket();
+		$pk->entityRuntimeId = $this->id;
+		$pk->event = $eventId;
+		$pk->data = $eventData ?? 0;
+
+		$this->server->broadcastPacket($players ?? $this->getViewers(), $pk);
+	}
+
+	public function broadcastAnimation(?array $players, int $animationId) : void
+	{
+		$pk = new AnimatePacket();
+		$pk->entityRuntimeId = $this->id;
+		$pk->action = $animationId;
+		$this->server->broadcastPacket($players ?? $this->getViewers(), $pk);
 	}
 
 	/**
@@ -2721,7 +2708,7 @@ abstract class Entity extends Location implements EntityIds, EntityMetadataPrope
 	/**
 	 * Called when interacted or tapped by a Player
 	 */
-	public function onFirstInteract(Player $player, Vector3 $clickPos) : bool
+	public function onFirstInteract(Player $player, Item $item, Vector3 $clickPos) : bool
 	{
 		return false;
 	}
