@@ -248,3 +248,44 @@ Soluções possíveis:
 3. **Desabilitar `enableClientSideChunkGeneration`** no StartGamePacket (já está false)
 
 Sem essas correções, o cliente consegue fazer login completo mas não consegue entrar no mundo (desconecta ao receber chunks).
+
+
+---
+
+## Integração BedrockProtocol
+
+Para resolver os problemas restantes (chunks, serialização), foi criada uma camada de compatibilidade com o `BedrockProtocol` (PocketMine-MP 5.x):
+
+### Wrappers criados
+
+| Arquivo | Função |
+|---|---|
+| `src/pmmp/encoding/ByteBufferReader.php` | Lê dados do BinaryStream do Submarine |
+| `src/pmmp/encoding/ByteBufferWriter.php` | Escreve dados no BinaryStream do Submarine |
+| `src/pmmp/encoding/Encoding.php` | Implementa `VarInt`, `LE`, `Byte` (métodos estáticos) |
+
+### Como usar
+
+```php
+// Em vez de:
+$pk->decodePayload();
+
+// Usar:
+$reader = new ByteBufferReader($this);
+VarInt::readSignedInt($reader); // lê varint signed
+LE::readFloat($reader);         // lê float little-endian
+```
+
+Os wrappers traduzem as chamadas do `BedrockProtocol` para os métodos equivalentes do `NetworkBinaryStream` do Submarine.
+
+### Próximos passos para completar a integração
+
+1. Copiar pacotes críticos do `BedrockProtocol/` para `src/pocketmine/network/mcpe/protocol/`
+2. Adaptar `DataPacket.php` para aceitar ambos os sistemas de encoding
+3. Para protocol >= 944, usar `ByteBufferReader/Writer` via wrappers
+4. Pacotes prioritários: `StartGamePacket`, `LevelChunkPacket`, `SubChunkPacket`, `CreativeContentPacket`
+
+O diretório de referência está em:
+```
+/home/inseto/projetos/multiversion/BedrockProtocol/
+```
