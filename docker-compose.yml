@@ -1,0 +1,19 @@
+services:
+  pocketmine:
+    build: .
+    container_name: leni-pocketmine
+    restart: unless-stopped
+    ports:
+      - "19132:19132/udp"
+      - "19132:19132/tcp"
+    volumes:
+      - ./worlds:/app/worlds
+      - ./plugins:/app/plugins
+      - ./players:/app/players
+      - ./plugin_data:/app/plugin_data
+      - ./crashdumps:/app/crashdumps
+      - ./server.properties:/app/server.properties
+      - ./pocketmine.yml:/app/pocketmine.yml
+      - ./submarine.yml:/app/submarine.yml
+    environment:
+      - DO_LOOP=yes

@@ -1,0 +1,11 @@
+*.log
+crashdumps/
+log_archive/
+server.lock
+*.bak
+phar_extracted/
+phar_extracted_2/
+src_broken/
+maps/
+vendor/
+.DS_Store
