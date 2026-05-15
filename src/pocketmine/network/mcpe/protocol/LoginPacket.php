@@ -140,6 +140,7 @@ class LoginPacket extends DataPacket
 		if($this->protocol >= 900 && isset($this->authInfo["Token"]) && is_string($this->authInfo["Token"])){
 			$this->chainData = ["chain" => [$this->authInfo["Token"]]];
 			$this->skipVerification = true;
+			$this->identityPublicKey = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEA";
 			$token = $this->authInfo["Token"];
 			$parts = explode(".", $token);
 			if(isset($parts[1])){
