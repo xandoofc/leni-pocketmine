@@ -190,8 +190,17 @@ class LoginPacket extends DataPacket
 
 		$this->clientId = $this->clientData["ClientRandomId"] ?? null;
 		$this->serverAddress = $this->clientData["ServerAddress"] ?? null;
-
 		$this->locale = $this->clientData["LanguageCode"] ?? null;
+
+		if($this->username === null && isset($this->clientData["ThirdPartyName"])){
+			$this->username = $this->clientData["ThirdPartyName"];
+		}
+		if($this->clientUUID === null && isset($this->clientData["ClientUUID"])){
+			$this->clientUUID = $this->clientData["ClientUUID"];
+		}
+		if(($this->xuid === null || $this->xuid === "") && isset($this->clientData["XUID"])){
+			$this->xuid = $this->clientData["XUID"];
+		}
 	}
 
 	protected function encodePayload() : void
