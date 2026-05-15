@@ -83,6 +83,7 @@ use pocketmine\network\mcpe\protocol\SetLocalPlayerAsInitializedPacket;
 use pocketmine\network\mcpe\protocol\SetPlayerGameTypePacket;
 use pocketmine\network\mcpe\protocol\ShowCreditsPacket;
 use pocketmine\network\mcpe\protocol\SpawnExperienceOrbPacket;
+use pocketmine\network\mcpe\protocol\SubChunkRequestPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\TickSyncPacket;
 use pocketmine\network\mcpe\protocol\types\InputMode;
