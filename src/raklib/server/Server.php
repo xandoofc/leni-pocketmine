@@ -137,12 +137,12 @@ class Server implements ServerInterface{
 		 */
 		do{
 			$stream = !$this->shutdown;
-			for($i = 0; $i < 500 for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){ $stream for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){ !$this->shutdown; ++$i){ //if we received a shutdown event, we don't care about any more messages from the event source
+			for($i = 0; $i < 500 && $stream && !$this->shutdown; ++$i){ //if we received a shutdown event, we don't care about any more messages from the event source
 				$stream = $this->eventSource->process($this);
 			}
 
 			$socket = true;
-			for($i = 0; $i < 500 for($i = 0; $i < 100 && $socket; ++$i){for($i = 0; $i < 100 && $socket; ++$i){ $socket; ++$i){
+			for($i = 0; $i < 500 && $socket; ++$i){
 				$socket = $this->receivePacket();
 			}
 		}while($stream || $socket);
