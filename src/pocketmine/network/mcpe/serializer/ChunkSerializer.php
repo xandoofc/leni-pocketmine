@@ -114,11 +114,16 @@ final class ChunkSerializer
 		$writtenCount = 0;
 
 		[$minSubChunkIndex, $maxSubChunkIndex] = self::getDimensionChunkBounds($dimensionId, $playerProtocol);
-		for ($y = $minSubChunkIndex; $writtenCount < $subChunkCount; ++$y, ++$writtenCount) {
-			self::serializeSubChunk($chunk->getSubChunk($y), $legacyToRuntime, $playerProtocol, $stream);
+		$encodedBiomePalette = "";
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_486) {
+			$encodedBiomePalette = self::networkSerializeBiomesAsPalette($chunk);
 		}
 
-		if ($playerProtocol >= ProtocolInfo::PROTOCOL_475) {
+		for ($y = $minSubChunkIndex; $writtenCount < $subChunkCount; ++$y, ++$writtenCount) {
+			self::serializeSubChunk($chunk->getSubChunk($y), $legacyToRuntime, $playerProtocol, $stream, $encodedBiomePalette);
+		}
+
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_475 && $playerProtocol < ProtocolInfo::PROTOCOL_486) {
 			//TODO: right now we don't support 3D natively, so we just 3Dify our 2D biomes so they fill the column
 			$encodedBiomePalette = self::networkSerializeBiomesAsPalette($chunk);
 			for ($y = $minSubChunkIndex; $y <= $maxSubChunkIndex; ++$y) {
@@ -146,7 +151,7 @@ final class ChunkSerializer
 		return $stream->getBuffer();
 	}
 
-	public static function serializeSubChunk(SubChunkInterface $subChunk, \Closure|null $legacyToRuntime, int $playerProtocol, BinaryStream $stream) : string
+	public static function serializeSubChunk(SubChunkInterface $subChunk, \Closure|null $legacyToRuntime, int $playerProtocol, BinaryStream $stream, string $encodedBiomes = "") : string
 	{
 		if ($legacyToRuntime === null) {
 			$stream->putByte(0); //storage version
@@ -196,6 +201,10 @@ final class ChunkSerializer
 					$runtimeId = $legacyToRuntime($fullBlock);
 					$stream->putUnsignedVarInt($runtimeId << 1);
 				}
+			}
+
+			if ($playerProtocol >= ProtocolInfo::PROTOCOL_486) {
+				$stream->put($encodedBiomes);
 			}
 		}
 
