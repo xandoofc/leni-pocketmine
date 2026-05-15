@@ -1,57 +1,52 @@
-# PocketMine-MP Server Config
-# Config files are stored in YAML format. YAML is a strict version of JSON, with a few additions.
-# See https://www.yaml.io for information about the YAML format.
-# If you are unfamiliar with YAML, you can use an online YAML validator to check your files for errors.
-# This file is for server-specific configuration.
-
-language: "eng"
-settings:
-  enable-dev-builds: true
-  shutdown-timeout: 15
-  send-chunk-radius: 4
-  enable-snooper: false
-  async-chunk-request: true
-  save-player-data: true
-  query-plugins: false
-memory:
-  main-dedicated-memory: 512
-  main-hard-limit: 1024
-  asynchronous-workers: 2
-  global-limit: 0
-  main-limit: 0
-level:
-  default-format: leveldb
-  chunks-per-tick: 4
-  clear-tick: 200
-  spawn-radius: 0
-  spawn-protection: 0
+chunk-gc:
+  limit: 512
+  period: 600
 chunk-sending:
-  per-tick: 4
   compression-level: 7
+  per-tick: 4
 chunk-ticking:
+  clear-tick: 200
+  light-updates: false
   per-tick: 2
   tick-radius: 4
-  light-updates: false
-  clear-tick: 200
-chunk-gc:
-  period: 600
-  limit: 512
 debug:
-  level: 1
   commands: false
   ignored-packets:
-    - "login"
-    - "text"
-    - "move_player"
-    - "move_entity"
-    - "tick_sync"
-    - "level_chunk"
-    - "batch"
-    - "add_player"
-    - "remove_player"
-    - "update_block"
-    - "update_attributes"
-upnp: false
-
+  - login
+  - text
+  - move_player
+  - move_entity
+  - tick_sync
+  - level_chunk
+  - batch
+  - add_player
+  - remove_player
+  - update_block
+  - update_attributes
+  level: 1
+language: eng
+level:
+  chunks-per-tick: 4
+  clear-tick: 200
+  default-format: leveldb
+  spawn-protection: 0
+  spawn-radius: 0
+memory:
+  asynchronous-workers: 2
+  global-limit: 0
+  main-dedicated-memory: 512
+  main-hard-limit: 1024
+  main-limit: 0
 network:
   max-mtu-size: 1000
+resource-pack:
+  minimal-bedrock-protocol: 944
+settings:
+  async-chunk-request: true
+  enable-dev-builds: true
+  enable-snooper: false
+  query-plugins: false
+  save-player-data: true
+  send-chunk-radius: 4
+  shutdown-timeout: 15
+upnp: false
