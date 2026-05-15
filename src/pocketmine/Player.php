@@ -3111,6 +3111,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				$this->vanillaVersion,
 				$this->getProtocolVersion()
 			]));
+			$this->server->getLogger()->debug("Post-login sequence completed for " . $this->username);
 
 			if ($this->isOp()) {
 				$this->setRemoveFormat(false);
