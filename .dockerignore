@@ -19,6 +19,5 @@ banned-players.txt
 ops.txt
 white-list.txt
 players/
-vendor/
 worlds/
 *.md

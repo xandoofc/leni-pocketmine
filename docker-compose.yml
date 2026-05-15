@@ -15,5 +15,3 @@ services:
       - ./server.properties:/app/server.properties
       - ./pocketmine.yml:/app/pocketmine.yml
       - ./submarine.yml:/app/submarine.yml
-    environment:
-      - DO_LOOP=yes
