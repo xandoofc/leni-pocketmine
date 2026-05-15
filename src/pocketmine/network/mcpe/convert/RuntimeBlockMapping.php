@@ -99,12 +99,15 @@ final class RuntimeBlockMapping
 
 			if ($protocolVersion >= ProtocolInfo::PROTOCOL_419) {
 				foreach ($list as $state) {
-					$data = $state->getShort("data");
-					if ($data > 15) {
-						continue;
+					if($state->hasTag("data")){
+						$data = $state->getShort("data");
+						if ($data > 15) {
+							continue;
+						}
+						self::registerMapping($state->getInt("runtime_id"), $state->getInt("legacy_id", -1), $data);
+					}else{
+						self::registerMapping($state->getInt("runtime_id"), $state->getInt("legacy_id", -1), 0);
 					}
-
-					self::registerMapping($state->getInt("runtime_id"), $state->getInt("legacy_id"), $data);
 				}
 			} else {
 				foreach ($list as $runtimeId => $tag) {
