@@ -198,6 +198,7 @@ use pocketmine\network\mcpe\protocol\SetPlayerGameTypePacket;
 use pocketmine\network\mcpe\protocol\SetSpawnPositionPacket;
 use pocketmine\network\mcpe\protocol\SetTitlePacket;
 use pocketmine\network\mcpe\protocol\StartGamePacket;
+use pocketmine\network\mcpe\protocol\CameraPresetsPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\ToastRequestPacket;
 use pocketmine\network\mcpe\protocol\TransferPacket;
@@ -3070,6 +3071,19 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
 				$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));
+			}
+
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_618 && $this->getProtocolVersion() < 766) {
+				$cpk = new CameraPresetsPacket();
+				$cpk->data = new \pocketmine\nbt\tag\CompoundTag();
+				$this->sendDataPacket($cpk);
+			}
+
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_766) {
+				$cpk = new CameraPresetsPacket();
+				$cpk->presets = [];
+				$cpk->data = new \pocketmine\nbt\tag\CompoundTag();
+				$this->sendDataPacket($cpk);
 			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_332) {
