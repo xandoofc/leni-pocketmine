@@ -129,11 +129,10 @@ final class ChunkSerializer
 			for ($y = $minSubChunkIndex; $y <= $maxSubChunkIndex; ++$y) {
 				$stream->put($encodedBiomePalette);
 			}
-		} else {
+		} elseif ($playerProtocol < 944) {
 			if ($playerProtocol < ProtocolInfo::PROTOCOL_361) {
 				$stream->put(pack("v*", ...$chunk->getHeightMapArray()));
 			}
-
 			$stream->put($chunk->getBiomeIdArray());
 		}
 
