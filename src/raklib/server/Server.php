@@ -45,7 +45,7 @@ use const SOCKET_ECONNRESET;
 
 class Server implements ServerInterface{
 
-	private const RAKLIB_TPS = 100;
+	private const RAKLIB_TPS = 200;
 	private const RAKLIB_TIME_PER_TICK = 1 / self::RAKLIB_TPS;
 	private const BLOCK_MESSAGE_SUPPRESSION_THRESHOLD = 2;
 	private const PACKET_ERROR_SUPPRESSION_THRESHOLD = 2;
@@ -137,12 +137,12 @@ class Server implements ServerInterface{
 		 */
 		do{
 			$stream = !$this->shutdown;
-			for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){ //if we received a shutdown event, we don't care about any more messages from the event source
+			for($i = 0; $i < 500 for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){ $stream for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){for($i = 0; $i < 100 && $stream && !$this->shutdown; ++$i){ !$this->shutdown; ++$i){ //if we received a shutdown event, we don't care about any more messages from the event source
 				$stream = $this->eventSource->process($this);
 			}
 
 			$socket = true;
-			for($i = 0; $i < 100 && $socket; ++$i){
+			for($i = 0; $i < 500 for($i = 0; $i < 100 && $socket; ++$i){for($i = 0; $i < 100 && $socket; ++$i){ $socket; ++$i){
 				$socket = $this->receivePacket();
 			}
 		}while($stream || $socket);

@@ -37,7 +37,7 @@ final class SendReliabilityLayer{
 	 * Delay in seconds before an unacked packet is retransmitted.
 	 * TODO: Replace this with dynamic calculation based on roundtrip times (that's a complex task for another time)
 	 */
-	private const UNACKED_RETRANSMIT_DELAY = 2.0;
+	private const UNACKED_RETRANSMIT_DELAY = 0.3;
 
 	/** @var EncapsulatedPacket[] */
 	private array $sendQueue = [];
@@ -85,7 +85,7 @@ final class SendReliabilityLayer{
 		private int $mtuSize,
 		private \Closure $sendDatagramCallback,
 		private \Closure $onACK,
-		private int $reliableWindowSize = 512,
+		private int $reliableWindowSize = 2048,
 	){
 		$this->sendOrderedIndex = array_fill(0, PacketReliability::MAX_ORDER_CHANNELS, 0);
 		$this->sendSequencedIndex = array_fill(0, PacketReliability::MAX_ORDER_CHANNELS, 0);
