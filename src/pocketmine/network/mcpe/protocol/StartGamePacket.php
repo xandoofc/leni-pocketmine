@@ -481,6 +481,11 @@ class StartGamePacket extends DataPacket
 
 	protected function encodePayload() : void
 	{
+		if($this->getProtocol() >= 944){
+			$this->encodePayload944();
+			return;
+		}
+
 		$this->putEntityUniqueId($this->entityUniqueId);
 		$this->putEntityRuntimeId($this->entityRuntimeId);
 		$this->putVarInt($this->playerGamemode);
@@ -694,6 +699,101 @@ class StartGamePacket extends DataPacket
 				}
 			}
 		}
+	}
+
+	private function encodePayload944() : void
+	{
+		$this->putEntityUniqueId($this->entityUniqueId);
+		$this->putEntityRuntimeId($this->entityRuntimeId);
+		$this->putVarInt($this->playerGamemode);
+		$this->putVector3($this->playerPosition);
+		$this->putLFloat($this->pitch);
+		$this->putLFloat($this->yaw);
+
+		// LevelSettings block
+		$this->putLLong($this->seed);
+		$this->spawnSettings->write($this);
+		$this->putVarInt($this->generator);
+		$this->putVarInt($this->worldGamemode);
+		$this->putBool($this->hardcore);
+		$this->putVarInt($this->difficulty);
+		$this->putBlockPosition($this->spawnX, $this->spawnY, $this->spawnZ);
+		$this->putBool($this->hasAchievementsDisabled);
+		$this->putVarInt($this->editorWorldType);
+		$this->putBool($this->createdInEditorMode);
+		$this->putBool($this->exportedFromEditorMode);
+		$this->putVarInt($this->time);
+		$this->putVarInt($this->eduEditionOffer);
+		$this->putBool($this->hasEduFeaturesEnabled);
+		$this->putString($this->eduProductUUID);
+		$this->putLFloat($this->rainLevel);
+		$this->putLFloat($this->lightningLevel);
+		$this->putBool($this->hasConfirmedPlatformLockedContent);
+		$this->putBool($this->isMultiplayerGame);
+		$this->putBool($this->hasLANBroadcast);
+		$this->putVarInt($this->xboxLiveBroadcastMode);
+		$this->putVarInt($this->platformBroadcastMode);
+		$this->putBool($this->commandsEnabled);
+		$this->putBool($this->isTexturePacksRequired);
+		$this->putGameRules($this->gameRules, $this->getProtocol());
+		$this->experiments->write($this);
+		$this->putBool($this->hasBonusChestEnabled);
+		$this->putBool($this->hasStartWithMapEnabled);
+		$this->putVarInt($this->defaultPlayerPermission);
+		$this->putLInt($this->serverChunkTickRadius);
+		$this->putBool($this->hasLockedBehaviorPack);
+		$this->putBool($this->hasLockedResourcePack);
+		$this->putBool($this->isFromLockedWorldTemplate);
+		$this->putBool($this->useMsaGamertagsOnly);
+		$this->putBool($this->isFromWorldTemplate);
+		$this->putBool($this->isWorldTemplateOptionLocked);
+		$this->putBool($this->onlySpawnV1Villagers);
+		$this->putBool($this->disablePersona);
+		$this->putBool($this->disableCustomSkins);
+		$this->putBool($this->muteEmoteAnnouncements);
+		$this->putString($this->vanillaVersion);
+		$this->putLInt($this->limitedWorldWidth);
+		$this->putLInt($this->limitedWorldLength);
+		$this->putBool($this->isNewNether);
+		($this->eduSharedUriResource ?? new EducationUriResource("", ""))->write($this);
+		$this->putBool($this->experimentalGameplayOverride !== null);
+		if($this->experimentalGameplayOverride !== null){
+			$this->putBool($this->experimentalGameplayOverride);
+		}
+		$this->putByte($this->chatRestrictionLevel);
+		$this->putBool($this->disablePlayerInteractions);
+
+		// Post-LevelSettings fields
+		$this->putString($this->levelId);
+		$this->putString($this->worldName);
+		$this->putString($this->premiumWorldTemplateId);
+		$this->putBool($this->isTrial);
+		$this->playerMovementSettings->write($this);
+		$this->putLLong($this->currentTick);
+		$this->putVarInt($this->enchantmentSeed);
+
+		// Block palette
+		$this->putUnsignedVarInt(count($this->blockPalette));
+		$nbtWriter = new NetworkLittleEndianNBTStream();
+		foreach($this->blockPalette as $entry){
+			$this->putString($entry->getName());
+			$this->put($nbtWriter->write($entry->getStates()));
+		}
+
+		$this->putString($this->multiplayerCorrelationId);
+		$this->putBool($this->enableNewInventorySystem);
+		$this->putString($this->serverSoftwareVersion);
+		$this->put((new NetworkLittleEndianNBTStream())->write($this->playerActorProperties));
+		$this->putLLong($this->blockPaletteChecksum);
+		$this->putUUID($this->worldTemplateId);
+		$this->putBool($this->enableClientSideChunkGeneration);
+		$this->putBool($this->blockNetworkIdsAreHashes);
+		$this->networkPermissions->encode($this);
+		$this->putBool(false); // no serverJoinInformation
+		$this->putString($this->serverIdentifier);
+		$this->putString($this->worldIdentifier);
+		$this->putString($this->scenarioIdentifier);
+		$this->putString($this->ownerIdentifier);
 	}
 
 	public function mustBeDecoded() : bool
