@@ -127,72 +127,63 @@ class LoginPacket extends DataPacket
 
 		$authInfoJsonLength = $buffer->getLInt();
 		if($authInfoJsonLength <= 0){
-			//technically this is always positive; the problem results because getLInt() is implicitly signed
-			//this is inconsistent with many other methods, but we can't do anything about that for now
 			throw new PacketDecodeException("Length of auth info JSON must be positive");
 		}
 
 		try{
-			$this->authInfo = json_decode($buffer->get($authInfoJsonLength), associative: true, flags: JSON_THROW_ON_ERROR);
+			$authInfoJson = $buffer->get($authInfoJsonLength);
+			$this->authInfo = json_decode($authInfoJson, associative: true, flags: JSON_THROW_ON_ERROR);
 		}catch(\JsonException $e){
 			throw new PacketDecodeException("Failed decoding chain data JSON: " . $e->getMessage());
 		}
 
-		if(isset($this->authInfo["Certificate"]) && is_string($this->authInfo["Certificate"])){
-			$certificateData = json_decode($this->authInfo["Certificate"], true);
-			if(isset($certificateData["chain"]) && is_array($certificateData["chain"])){
-				$chainArray = $certificateData;
-			}else{
-				throw new PacketDecodeException("Invalid 'chain' data in Certificate field");
+		if($this->protocol >= 900 && isset($this->authInfo["Token"]) && is_string($this->authInfo["Token"])){
+			$token = $this->authInfo["Token"];
+			$parts = explode(".", $token);
+			if(isset($parts[1])){
+				$payload = json_decode(base64_decode(strtr($parts[1], "-_", "+/")), true);
+				if(isset($payload["extraData"])){
+					$this->username = $payload["extraData"]["displayName"] ?? null;
+					$this->clientUUID = $payload["extraData"]["identity"] ?? null;
+					$this->xuid = $payload["extraData"]["XUID"] ?? "0";
+				}
 			}
-		}elseif(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
-			$chainArray = $this->authInfo;
-		}elseif($this->protocol >= 900 && isset($this->authInfo["Token"]) && is_string($this->authInfo["Token"])){
-			$chainArray = ["chain" => [$this->authInfo["Token"]]];
 		}else{
-			throw new PacketDecodeException("Missing or invalid 'chain' field in chain data (keys: " . implode(", ", array_keys($this->authInfo)) . ")");
-		}
-
-		$this->chainData = $chainArray;
-
-		$hasExtraData = false;
-		foreach ($chainArray["chain"] as $chain) {
-			if(strlen($chain) < 10){
-				continue; //skip placeholder entries like ".."
+			if(isset($this->authInfo["Certificate"]) && is_string($this->authInfo["Certificate"])){
+				$certificateData = json_decode($this->authInfo["Certificate"], true);
+				if(isset($certificateData["chain"]) && is_array($certificateData["chain"])){
+					$chainArray = $certificateData;
+				}else{
+					throw new PacketDecodeException("Invalid 'chain' data in Certificate field");
+				}
+			}elseif(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
+				$chainArray = $this->authInfo;
+			}else{
+				throw new PacketDecodeException("Missing or invalid 'chain' field in chain data");
 			}
-			$webtoken = Utils::decodeJWT($chain);
-			if(!is_array($webtoken)){
-				continue;
-			}
-			if (isset($webtoken["extraData"])) {
-				if ($hasExtraData) {
-					throw new PacketDecodeException("Found 'extraData' multiple times in key chain");
+			$this->chainData = $chainArray;
+			foreach($chainArray["chain"] as $chain){
+				if(strlen($chain) < 10) continue;
+				$webtoken = Utils::decodeJWT($chain);
+				if(!is_array($webtoken)) continue;
+				if(isset($webtoken["extraData"])){
+					$this->username = $webtoken["extraData"]["displayName"] ?? $this->username;
+					$this->clientUUID = $webtoken["extraData"]["identity"] ?? $this->clientUUID;
+					$this->xuid = $webtoken["extraData"]["XUID"] ?? $this->xuid;
 				}
-				$hasExtraData = true;
-				if (isset($webtoken["extraData"]["displayName"])) {
-					$this->username = $webtoken["extraData"]["displayName"];
+				if(isset($webtoken["identityPublicKey"])){
+					$this->identityPublicKey = $webtoken["identityPublicKey"];
 				}
-				if (isset($webtoken["extraData"]["identity"])) {
-					$this->clientUUID = $webtoken["extraData"]["identity"];
-				}
-				if (isset($webtoken["extraData"]["XUID"])) {
-					$this->xuid = $webtoken["extraData"]["XUID"];
-				}
-			}
-
-			if (isset($webtoken["identityPublicKey"])) {
-				$this->identityPublicKey = $webtoken["identityPublicKey"];
 			}
 		}
 
 		$clientDataLen = $buffer->getLInt();
 		$this->clientDataJwt = $buffer->get($clientDataLen);
-		\GlobalLogger::get()->info("clientDataJwt len=$clientDataLen, first=" . substr($this->clientDataJwt, 0, 60));
 		try{
 			$this->clientData = Utils::decodeJWT($this->clientDataJwt);
 		}catch(\Throwable $e){
-			\GlobalLogger::get()->warning("Failed to decode clientDataJwt: " . $e->getMessage() . " data=" . bin2hex(substr($this->clientDataJwt, 0, 40)));
-			throw $e;
+			\GlobalLogger::get()->warning("Failed to decode clientDataJwt: " . $e->getMessage());
+			$this->clientData = [];
 		}
 
 		$this->clientId = $this->clientData["ClientRandomId"] ?? null;
@@ -203,17 +194,16 @@ class LoginPacket extends DataPacket
 			$this->username = $this->clientData["ThirdPartyName"];
 		}
 		if($this->clientUUID === null){
-			$uuidFields = ["ClientUUID", "SelfSignedId", "DeviceId", "AppSessionId"];
-			foreach($uuidFields as $field){
-				if(isset($this->clientData[$field]) && is_string($this->clientData[$field]) && $this->clientData[$field] !== ""){
-					$this->clientUUID = $this->clientData[$field];
+			foreach(["ClientUUID", "SelfSignedId", "DeviceId", "AppSessionId"] as $f){
+				if(isset($this->clientData[$f]) && is_string($this->clientData[$f]) && $this->clientData[$f] !== ""){
+					$this->clientUUID = $this->clientData[$f];
 					break;
 				}
 			}
 		}
 		if($this->clientUUID === null && $this->username !== null){
 			$hash = md5("offline:" . $this->username);
-			$this->clientUUID = substr($hash, 0, 8) . "-" . substr($hash, 8, 4) . "-" . substr($hash, 12, 4) . "-" . substr($hash, 16, 4) . "-" . substr($hash, 20, 12);
+			$this->clientUUID = substr($hash, 0, 8) . "-" . substr($hash, 8, 4) . "-3" . substr($hash, 13, 3) . "-" . substr($hash, 16, 4) . "-" . substr($hash, 20, 12);
 		}
 		if(($this->xuid === null || $this->xuid === "") && isset($this->clientData["XUID"])){
 			$this->xuid = $this->clientData["XUID"];
