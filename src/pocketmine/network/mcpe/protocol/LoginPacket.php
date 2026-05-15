@@ -138,7 +138,7 @@ class LoginPacket extends DataPacket
 			throw new PacketDecodeException("Failed decoding chain data JSON: " . $e->getMessage());
 		}
 
-		if($this->protocol >= ProtocolInfo::PROTOCOL_900){
+		if($this->protocol >= 900){
 			$logger = \GlobalLogger::get();
 			$logger->info("authInfo (protocol " . $this->protocol . "): keys=" . implode(", ", array_keys($this->authInfo)));
 			$logger->info("authInfo raw: " . substr(json_encode($this->authInfo), 0, 500));
