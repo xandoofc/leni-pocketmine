@@ -3130,6 +3130,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			$this->server->addOnlinePlayer($this);
 			$this->server->sendFullPlayerListData($this);
+		} catch(\Throwable $e){
+			$this->server->getLogger()->critical("Post-login error: " . $e->getMessage());
+			$this->server->getLogger()->logException($e);
 		} finally {
 			Timings::$playerNetworkSendPreSpawnGameData->stopTiming();
 		}
