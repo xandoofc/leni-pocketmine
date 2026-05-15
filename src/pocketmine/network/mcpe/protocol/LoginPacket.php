@@ -138,6 +138,12 @@ class LoginPacket extends DataPacket
 			throw new PacketDecodeException("Failed decoding chain data JSON: " . $e->getMessage());
 		}
 
+		if($this->protocol >= ProtocolInfo::PROTOCOL_900){
+			$logger = \GlobalLogger::get();
+			$logger->info("authInfo (protocol " . $this->protocol . "): keys=" . implode(", ", array_keys($this->authInfo)));
+			$logger->info("authInfo raw: " . substr(json_encode($this->authInfo), 0, 500));
+		}
+
 		if(isset($this->authInfo["Certificate"]) && is_string($this->authInfo["Certificate"])){
 			$certificateData = json_decode($this->authInfo["Certificate"], true);
 			if(isset($certificateData["chain"]) && is_array($certificateData["chain"])){
@@ -147,16 +153,6 @@ class LoginPacket extends DataPacket
 			}
 		}elseif(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
 			$chainArray = $this->authInfo;
-		}elseif($this->protocol >= ProtocolInfo::PROTOCOL_900){
-			$logger = \GlobalLogger::get();
-			$logger->info("authInfo (protocol " . $this->protocol . "): keys=" . implode(", ", array_keys($this->authInfo)));
-			if(isset($this->authInfo["rawChain"]) && is_array($this->authInfo["rawChain"])){
-				$logger->info("rawChain count: " . count($this->authInfo["rawChain"]) . ", first: " . substr(strval($this->authInfo["rawChain"][0] ?? "N/A"), 0, 50));
-			}
-			if(isset($this->authInfo["chain"]) && is_array($this->authInfo["chain"])){
-				$logger->info("chain count: " . count($this->authInfo["chain"]) . ", first: " . substr(strval($this->authInfo["chain"][0] ?? "N/A"), 0, 50));
-			}
-			throw new PacketDecodeException("authInfo format unknown for protocol " . $this->protocol);
 		}else{
 			throw new PacketDecodeException("Missing or invalid 'chain' field in chain data (keys: " . implode(", ", array_keys($this->authInfo)) . ")");
 		}
