@@ -92,6 +92,9 @@ class ProtocolConvertor
 
 	public function getChunkProtocol(int $protocolVersion) : int
 	{
+		if ($protocolVersion >= ProtocolInfo::PROTOCOL_800) {
+			return ProtocolInfo::PROTOCOL_800;
+		}
 		foreach (self::PROTOCOL_CHUNK_VERSIONS as $protocol) {
 			if ($protocolVersion >= $protocol) {
 				return $protocol;
