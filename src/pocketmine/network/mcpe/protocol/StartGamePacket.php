@@ -787,10 +787,6 @@ class StartGamePacket extends DataPacket
 		$this->putString($this->serverSoftwareVersion);
 		$this->put((new NetworkLittleEndianNBTStream())->write($this->playerActorProperties));
 		$this->putLLong($this->blockPaletteChecksum);
-		if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_662) {
-			$this->putUnsignedVarInt(0); // clientSideGenerationSettings slice length
-			$this->putBool(false); // clientSideGenerationEnabled
-		}
 		$this->putUUID($this->worldTemplateId);
 		$this->putBool(false); // enableClientSideChunkGeneration = false
 		$this->putBool($this->blockNetworkIdsAreHashes);

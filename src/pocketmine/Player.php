@@ -3057,9 +3057,11 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			$pk->playerMovementSettings = new PlayerMovementSettings(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3, 0, false);
 			$pk->serverSoftwareVersion = $this->vanillaVersion;
+			$pk->enableNewInventorySystem = true;
 			$pk->playerActorProperties = new CompoundTag("");
-			$pk->blockPaletteChecksum = 0; //we don't bother with this (0 skips verification) - the preimage is some dumb stringified NBT, not even actual NBT
+			$pk->blockPaletteChecksum = 0;
 			$pk->worldTemplateId = UUID::fromBinary(str_repeat("\x00", 16), 0);
+			$pk->blockNetworkIdsAreHashes = false;
 			$pk->networkPermissions = new NetworkPermissions(disableClientSounds: true);
 			$pk->vanillaVersion = $this->vanillaVersion;
 
@@ -3077,14 +3079,12 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				}
 			}
 
-			$this->dataPacket($pk);
-
-			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_818) {
-				$this->sendDataPacket(SetMovementAuthorityPacket::create(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3));
-			}
-
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
 				$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));
+			}
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_332) {
+				$this->sendDataPacket(StaticPacketCache::getInstance()->getAvailableActorIdentifiers($this->getProtocolVersion()));
+				$this->sendDataPacket(StaticPacketCache::getInstance()->getBiomeDefs($this->getProtocolVersion()));
 			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_618 && $this->getProtocolVersion() < 766) {
@@ -3100,9 +3100,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				$this->sendDataPacket($cpk);
 			}
 
-			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_332) {
-				$this->sendDataPacket(StaticPacketCache::getInstance()->getAvailableActorIdentifiers($this->getProtocolVersion()));
-				$this->sendDataPacket(StaticPacketCache::getInstance()->getBiomeDefs($this->getProtocolVersion()));
+			$this->dataPacket($pk);
+
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_975) {
+				$this->sendDataPacket(SetMovementAuthorityPacket::create(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3));
 			}
 
 			$this->level->sendTime($this);
