@@ -69,6 +69,9 @@ final class ItemTranslator
 
 	private int $protocolVersion = 0;
 
+	/** @var ItemTypeDictionary */
+	private ItemTypeDictionary $dictionary;
+
 	public static function getInstance(int $protocolVersion) : self
 	{
 		$protocolVersion = ProtocolConvertor::getInstance()->getItemPaletteProtocol($protocolVersion);
@@ -147,6 +150,7 @@ final class ItemTranslator
 	 */
 	public function __construct(ItemTypeDictionary $dictionary, array $simpleMappings, array $complexMappings)
 	{
+		$this->dictionary = $dictionary;
 		foreach ($dictionary->getEntries() as $entry) {
 			$stringId = $entry->getStringId();
 			$netId = $entry->getNumericId();
@@ -194,7 +198,7 @@ final class ItemTranslator
 			return $result;
 		}
 
-		$fallbackProtocols = [944, 786, 671, 567, 465, 419, 407, 389, 361, 340, 332, 313, 282, 274, 261, 223, 137, 110];
+		$fallbackProtocols = [671, 567, 465, 419, 407, 389, 361, 340, 332, 313, 282, 274, 261, 223, 137, 110];
 		foreach ($fallbackProtocols as $fbProtocol) {
 			if ($fbProtocol >= $this->protocolVersion) {
 				continue;
@@ -210,7 +214,7 @@ final class ItemTranslator
 			}
 		}
 
-		throw new \InvalidArgumentException("Unmapped ID/metadata combination $internalId:$internalMeta");
+		return [$internalId, $internalMeta];
 	}
 
 	/**
@@ -233,7 +237,7 @@ final class ItemTranslator
 			return [$this->simpleNetToCoreMapping[$networkId], $networkMeta];
 		}
 
-		$fallbackProtocols = [944, 786, 671, 567, 465, 419, 407, 389, 361, 340, 332, 313, 282, 274, 261, 223, 137, 110];
+		$fallbackProtocols = [671, 567, 465, 419, 407, 389, 361, 340, 332, 313, 282, 274, 261, 223, 137, 110];
 		foreach ($fallbackProtocols as $fbProtocol) {
 			if ($fbProtocol >= $this->protocolVersion) {
 				continue;
@@ -246,7 +250,7 @@ final class ItemTranslator
 			}
 		}
 
-		throw new TypeConversionException("Unmapped network ID/metadata combination $networkId:$networkMeta");
+		return [$networkId, $networkMeta];
 	}
 
 	/**
