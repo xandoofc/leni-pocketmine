@@ -244,20 +244,33 @@ class CraftingManager
 		Timings::$craftingDataCacheRebuild->startTiming();
 
 		$pk = new CraftingDataPacket();
+
 		foreach (self::$shapelessRecipes as $list) {
 			foreach ($list as $recipe) {
-				$pk->addShapelessRecipe($recipe);
+				try {
+					$pk->addShapelessRecipe($recipe);
+				} catch (\Throwable $e) {
+					continue;
+				}
 			}
 		}
 
 		foreach (self::$shapedRecipes as $list) {
 			foreach ($list as $recipe) {
-				$pk->addShapedRecipe($recipe);
+				try {
+					$pk->addShapedRecipe($recipe);
+				} catch (\Throwable $e) {
+					continue;
+				}
 			}
 		}
 
 		foreach (self::$furnaceRecipes as $recipe) {
-			$pk->addFurnaceRecipe($recipe);
+			try {
+				$pk->addFurnaceRecipe($recipe);
+			} catch (\Throwable $e) {
+				continue;
+			}
 		}
 
 		foreach (self::$potionTypeRecipes as $recipes) {
@@ -291,10 +304,13 @@ class CraftingManager
 
 		$pk->cleanRecipes = true;
 
-		$stream = new BinaryStream();
-		PacketBatch::encodePackets($stream, [$pk], $protocolVersion);
-
-		self::$craftingDataCache[$protocolVersion] = NetworkCompression::compress($stream->getBuffer(), $protocolVersion);
+		try {
+			$stream = new BinaryStream();
+			PacketBatch::encodePackets($stream, [$pk], $protocolVersion);
+			self::$craftingDataCache[$protocolVersion] = NetworkCompression::compress($stream->getBuffer(), $protocolVersion);
+		} catch (\Throwable $e) {
+			self::$craftingDataCache[$protocolVersion] = "";
+		}
 		Timings::$craftingDataCacheRebuild->stopTiming();
 	}
 

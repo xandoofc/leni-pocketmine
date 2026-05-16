@@ -67,6 +67,8 @@ final class ItemTranslator
 	/** @var self[] */
 	private static array $instance = [];
 
+	private int $protocolVersion = 0;
+
 	public static function getInstance(int $protocolVersion) : self
 	{
 		$protocolVersion = ProtocolConvertor::getInstance()->getItemPaletteProtocol($protocolVersion);
@@ -132,7 +134,9 @@ final class ItemTranslator
 			}
 		}
 
-		return new self(GlobalItemTypeDictionary::getInstance($protocolVersion)->getDictionary(), $simpleMappings, $complexMappings);
+		$translator = new self(GlobalItemTypeDictionary::getInstance($protocolVersion)->getDictionary(), $simpleMappings, $complexMappings);
+		$translator->protocolVersion = $protocolVersion;
+		return $translator;
 	}
 
 	/**
@@ -185,8 +189,28 @@ final class ItemTranslator
 	 */
 	public function toNetworkId(int $internalId, int $internalMeta) : array
 	{
-		return $this->toNetworkIdQuiet($internalId, $internalMeta) ??
-			throw new \InvalidArgumentException("Unmapped ID/metadata combination $internalId:$internalMeta");
+		$result = $this->toNetworkIdQuiet($internalId, $internalMeta);
+		if ($result !== null) {
+			return $result;
+		}
+
+		$fallbackProtocols = [944, 786, 671, 567, 465, 419, 407, 389, 361, 340, 332, 313, 282, 274, 261, 223, 137, 110];
+		foreach ($fallbackProtocols as $fbProtocol) {
+			if ($fbProtocol >= $this->protocolVersion) {
+				continue;
+			}
+			try {
+				$fbTranslator = self::getInstance($fbProtocol);
+				$result = $fbTranslator->toNetworkIdQuiet($internalId, $internalMeta);
+				if ($result !== null) {
+					return $result;
+				}
+			} catch (\Throwable $e) {
+				continue;
+			}
+		}
+
+		throw new \InvalidArgumentException("Unmapped ID/metadata combination $internalId:$internalMeta");
 	}
 
 	/**
@@ -208,6 +232,20 @@ final class ItemTranslator
 		if (isset($this->simpleNetToCoreMapping[$networkId])) {
 			return [$this->simpleNetToCoreMapping[$networkId], $networkMeta];
 		}
+
+		$fallbackProtocols = [944, 786, 671, 567, 465, 419, 407, 389, 361, 340, 332, 313, 282, 274, 261, 223, 137, 110];
+		foreach ($fallbackProtocols as $fbProtocol) {
+			if ($fbProtocol >= $this->protocolVersion) {
+				continue;
+			}
+			try {
+				$fbTranslator = self::getInstance($fbProtocol);
+				return $fbTranslator->fromNetworkId($networkId, $networkMeta, $isComplexMapping);
+			} catch (\Throwable $e) {
+				continue;
+			}
+		}
+
 		throw new TypeConversionException("Unmapped network ID/metadata combination $networkId:$networkMeta");
 	}
 
