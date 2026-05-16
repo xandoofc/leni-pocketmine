@@ -3056,7 +3056,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$pk->experiments = new Experiments([], false);
 
 			$pk->playerMovementSettings = new PlayerMovementSettings(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3, 0, false);
-			$pk->serverSoftwareVersion = "Submarine";
+			$pk->serverSoftwareVersion = $this->vanillaVersion;
 			$pk->playerActorProperties = new CompoundTag("");
 			$pk->blockPaletteChecksum = 0; //we don't bother with this (0 skips verification) - the preimage is some dumb stringified NBT, not even actual NBT
 			$pk->worldTemplateId = UUID::fromBinary(str_repeat("\x00", 16), 0);

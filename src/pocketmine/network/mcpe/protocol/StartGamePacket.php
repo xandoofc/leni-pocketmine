@@ -651,7 +651,6 @@ class StartGamePacket extends DataPacket
 					}
 				}
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_361 && $this->getProtocol() < ProtocolInfo::PROTOCOL_776) {
-					if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
 						$this->putUnsignedVarInt(count($this->itemTable));
 						foreach ($this->itemTable as $entry) {
 							$this->putString($entry->getStringId());
@@ -780,9 +779,7 @@ class StartGamePacket extends DataPacket
 		$nbtWriter = new NetworkLittleEndianNBTStream();
 		foreach($this->blockPalette as $entry){
 			$this->putString($entry->getName());
-			$nbtWriter->buffer = "";
-			$entry->getStates()->write($nbtWriter);
-			$this->put($nbtWriter->buffer);
+			$this->put($nbtWriter->write($entry->getStates()));
 		}
 
 		$this->putString($this->multiplayerCorrelationId);
