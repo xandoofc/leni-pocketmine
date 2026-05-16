@@ -737,6 +737,9 @@ class StartGamePacket extends DataPacket
 		$this->putBool($this->isTexturePacksRequired);
 		$this->putGameRules($this->gameRules, $this->getProtocol());
 		$this->experiments->write($this);
+		if($this->getProtocol() >= ProtocolInfo::PROTOCOL_712){
+			$this->putBool(false); // experimentsPreviouslyToggled
+		}
 		$this->putBool($this->hasBonusChestEnabled);
 		$this->putBool($this->hasStartWithMapEnabled);
 		$this->putVarInt($this->defaultPlayerPermission);
