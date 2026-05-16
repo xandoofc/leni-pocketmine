@@ -48,12 +48,12 @@ class SetMovementAuthorityPacket extends DataPacket
 
 	protected function decodePayload() : void
 	{
-		$this->mode = ServerAuthMovementMode::fromPacket($this->getByte());
+		$this->mode = ServerAuthMovementMode::fromPacket($this->getVarInt());
 	}
 
 	protected function encodePayload() : void
 	{
-		$this->putByte($this->mode->value);
+		$this->putVarInt($this->mode->value);
 	}
 
 	public function handle(NetworkSession $session) : bool

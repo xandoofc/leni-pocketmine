@@ -75,12 +75,15 @@ class ItemRegistryPacket extends DataPacket
 	protected function encodePayload() : void
 	{
 		$this->putUnsignedVarInt(count($this->entries));
+		$nbtWriter = new NetworkLittleEndianNBTStream();
 		foreach ($this->entries as $entry) {
 			$this->putString($entry->getStringId());
 			$this->putLShort($entry->getNumericId());
 			$this->putBool($entry->isComponentBased());
 			$this->putVarInt($entry->getVersion());
-			$this->put((new NetworkLittleEndianNBTStream())->write($entry->getComponentNbt()));
+			$nbtWriter->buffer = "";
+			$entry->getComponentNbt()->write($nbtWriter);
+			$this->put($nbtWriter->buffer);
 		}
 	}
 

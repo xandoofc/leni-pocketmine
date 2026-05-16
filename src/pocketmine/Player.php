@@ -3055,8 +3055,8 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$pk->worldName = $this->server->getMotd();
 			$pk->experiments = new Experiments([], false);
 
-			$pk->playerMovementSettings = new PlayerMovementSettings(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V2, 0, false);
-			$pk->serverSoftwareVersion = sprintf("%s %s", VersionInfo::NAME, VersionInfo::VERSION()->getFullVersion(true));
+			$pk->playerMovementSettings = new PlayerMovementSettings(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3, 0, false);
+			$pk->serverSoftwareVersion = "Submarine";
 			$pk->playerActorProperties = new CompoundTag("");
 			$pk->blockPaletteChecksum = 0; //we don't bother with this (0 skips verification) - the preimage is some dumb stringified NBT, not even actual NBT
 			$pk->worldTemplateId = UUID::fromBinary(str_repeat("\x00", 16), 0);
@@ -3080,7 +3080,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$this->dataPacket($pk);
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_818) {
-				$this->sendDataPacket(SetMovementAuthorityPacket::create(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V2));
+				$this->sendDataPacket(SetMovementAuthorityPacket::create(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3));
 			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
@@ -6339,7 +6339,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			$chunk = $this->level->getChunk($subChunkX, $subChunkZ);
 			if ($chunk !== null) {
 				$subChunk = $chunk->getSubChunk($subChunkY);
-				$data = ChunkSerializer::serializeSubChunk($subChunk, null, $this->protocolVersion, new BinaryStream());
+				$data = ChunkSerializer::serializeSubChunk($subChunk, null, $this->protocolVersion, new BinaryStream(), $subChunkY);
 				$entries[] = new SubChunkPacketEntryWithoutCache(new SubChunkPacketEntryCommon(
 					$offset,
 					SubChunkRequestResult::SUCCESS,

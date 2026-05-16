@@ -120,7 +120,7 @@ final class ChunkSerializer
 		}
 
 		for ($y = $minSubChunkIndex; $writtenCount < $subChunkCount; ++$y, ++$writtenCount) {
-			self::serializeSubChunk($chunk->getSubChunk($y), $legacyToRuntime, $playerProtocol, $stream, $encodedBiomePalette);
+			self::serializeSubChunk($chunk->getSubChunk($y), $legacyToRuntime, $playerProtocol, $stream, $y, $encodedBiomePalette);
 		}
 
 		if ($playerProtocol >= ProtocolInfo::PROTOCOL_475 && $playerProtocol < ProtocolInfo::PROTOCOL_486) {
@@ -150,7 +150,7 @@ final class ChunkSerializer
 		return $stream->getBuffer();
 	}
 
-	public static function serializeSubChunk(SubChunkInterface $subChunk, \Closure|null $legacyToRuntime, int $playerProtocol, BinaryStream $stream, string $encodedBiomes = "") : string
+	public static function serializeSubChunk(SubChunkInterface $subChunk, \Closure|null $legacyToRuntime, int $playerProtocol, BinaryStream $stream, int $subChunkY, string $encodedBiomes = "") : string
 	{
 		if ($legacyToRuntime === null) {
 			$stream->putByte(0); //storage version
@@ -172,10 +172,18 @@ final class ChunkSerializer
 				$stream->put(self::$emptyBlockLight); // block light
 			}
 		} else {
-			$stream->putByte(8); // storage version
+			if ($playerProtocol >= 944) {
+				$stream->putByte(9); // storage version
+			} else {
+				$stream->putByte(8); // storage version
+			}
 
 			$blockLayers = $subChunk->getBlockLayers();
 			$stream->putByte(count($blockLayers)); // layer count
+
+			if ($playerProtocol >= 944) {
+				$stream->putByte($subChunkY);
+			}
 
 			foreach ($blockLayers as $blocks) {
 				// 1 is network format (palette out of runtimeIDs), 0 is storage format (palette out of NBT tags)

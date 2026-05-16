@@ -777,7 +777,9 @@ class StartGamePacket extends DataPacket
 		$nbtWriter = new NetworkLittleEndianNBTStream();
 		foreach($this->blockPalette as $entry){
 			$this->putString($entry->getName());
-			$this->put($nbtWriter->write($entry->getStates()));
+			$nbtWriter->buffer = "";
+			$entry->getStates()->write($nbtWriter);
+			$this->put($nbtWriter->buffer);
 		}
 
 		$this->putString($this->multiplayerCorrelationId);
@@ -786,7 +788,7 @@ class StartGamePacket extends DataPacket
 		$this->put((new NetworkLittleEndianNBTStream())->write($this->playerActorProperties));
 		$this->putLLong($this->blockPaletteChecksum);
 		$this->putUUID($this->worldTemplateId);
-		$this->putBool(true); // enableClientSideChunkGeneration = true
+		$this->putBool(false); // enableClientSideChunkGeneration = false
 		$this->putBool($this->blockNetworkIdsAreHashes);
 		$this->networkPermissions->encode($this); // ServerAuthoritativeSound
 		$this->putBool(false); // no serverJoinInformation
