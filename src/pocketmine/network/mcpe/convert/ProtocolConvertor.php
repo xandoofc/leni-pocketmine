@@ -158,6 +158,9 @@ class ProtocolConvertor
 
 	public function getCratingProtocol(int $playerProtocol) : int
 	{
+		if ($playerProtocol >= ProtocolInfo::PROTOCOL_975) {
+			return ProtocolInfo::PROTOCOL_944;
+		}
 		foreach (self::PROTOCOL_CRAFTING_VERSIONS as $protocol) {
 			if ($playerProtocol >= $protocol) {
 				return $protocol;
