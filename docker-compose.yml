@@ -15,3 +15,4 @@ services:
       - ./server.properties:/app/server.properties
       - ./pocketmine.yml:/app/pocketmine.yml
       - ./submarine.yml:/app/submarine.yml
+      - ./src:/app/src
