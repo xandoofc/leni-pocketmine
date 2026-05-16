@@ -247,18 +247,30 @@ class CraftingManager
 
 		foreach (self::$shapelessRecipes as $list) {
 			foreach ($list as $recipe) {
-				$pk->addShapelessRecipe($recipe);
+				try {
+					$pk->addShapelessRecipe($recipe);
+				} catch (\Throwable $e) {
+					continue;
+				}
 			}
 		}
 
 		foreach (self::$shapedRecipes as $list) {
 			foreach ($list as $recipe) {
-				$pk->addShapedRecipe($recipe);
+				try {
+					$pk->addShapedRecipe($recipe);
+				} catch (\Throwable $e) {
+					continue;
+				}
 			}
 		}
 
 		foreach (self::$furnaceRecipes as $recipe) {
-			$pk->addFurnaceRecipe($recipe);
+			try {
+				$pk->addFurnaceRecipe($recipe);
+			} catch (\Throwable $e) {
+				continue;
+			}
 		}
 
 		foreach (self::$potionTypeRecipes as $recipes) {

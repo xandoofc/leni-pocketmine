@@ -214,7 +214,7 @@ final class ItemTranslator
 			}
 		}
 
-		return [$internalId, $internalMeta];
+		throw new \InvalidArgumentException("Unmapped ID/metadata combination $internalId:$internalMeta");
 	}
 
 	/**
@@ -250,7 +250,7 @@ final class ItemTranslator
 			}
 		}
 
-		return [$networkId, $networkMeta];
+		throw new TypeConversionException("Unmapped network ID/metadata combination $networkId:$networkMeta");
 	}
 
 	/**
