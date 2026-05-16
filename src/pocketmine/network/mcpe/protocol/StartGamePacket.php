@@ -651,6 +651,7 @@ class StartGamePacket extends DataPacket
 					}
 				}
 				if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_361 && $this->getProtocol() < ProtocolInfo::PROTOCOL_776) {
+					if ($this->getProtocol() >= ProtocolInfo::PROTOCOL_419) {
 						$this->putUnsignedVarInt(count($this->itemTable));
 						foreach ($this->itemTable as $entry) {
 							$this->putString($entry->getStringId());
@@ -716,7 +717,13 @@ class StartGamePacket extends DataPacket
 		$this->putVarInt($this->worldGamemode);
 		$this->putBool($this->hardcore);
 		$this->putVarInt($this->difficulty);
-		$this->putBlockPosition($this->spawnX, $this->spawnY, $this->spawnZ);
+		if($this->getProtocol() >= ProtocolInfo::PROTOCOL_944){
+			$this->putVarInt($this->spawnX);
+			$this->putVarInt($this->spawnY);
+			$this->putVarInt($this->spawnZ);
+		}else{
+			$this->putBlockPosition($this->spawnX, $this->spawnY, $this->spawnZ);
+		}
 		$this->putBool($this->hasAchievementsDisabled);
 		$this->putVarInt($this->editorWorldType);
 		$this->putBool($this->createdInEditorMode);
