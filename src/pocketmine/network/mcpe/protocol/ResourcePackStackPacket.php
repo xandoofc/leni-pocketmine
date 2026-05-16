@@ -116,15 +116,12 @@ class ResourcePackStackPacket extends DataPacket
 			}
 			if ($protocol >= ProtocolInfo::PROTOCOL_388) {
 				$this->putString($this->baseGameVersion);
-					if ($protocol >= ProtocolInfo::PROTOCOL_419) {
-						$this->experiments->write($this);
-						if ($protocol >= ProtocolInfo::PROTOCOL_712) {
-							$this->putBool(false); // experimentsPreviouslyToggled
-						}
-						if ($protocol >= ProtocolInfo::PROTOCOL_671) {
-							$this->putBool($this->useVanillaEditorPacks);
-						}
+				if ($protocol >= ProtocolInfo::PROTOCOL_419) {
+					$this->experiments->write($this);
+					if ($protocol >= ProtocolInfo::PROTOCOL_671) {
+						$this->putBool($this->useVanillaEditorPacks);
 					}
+				}
 			}
 		}
 	}
