@@ -3000,6 +3000,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			return;
 		}
 		$this->loginProcessed = true;
+		$this->server->getLogger()->debug("Handshake: Starting completeLoginSequence for " . $this->username);
 
 		/** @var float[] $pos */
 		$pos = $this->namedtag->getListTag("Pos")->getAllValues();
@@ -3079,33 +3080,43 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 				}
 			}
 
+			$this->server->getLogger()->debug("Handshake: Sending ItemRegistryPacket (975+)");
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
 				$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));
 			}
+			$this->server->getLogger()->debug("Handshake: Sending Actor/Biome Packets");
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_332) {
 				$this->sendDataPacket(StaticPacketCache::getInstance()->getAvailableActorIdentifiers($this->getProtocolVersion()));
+				$this->server->getLogger()->debug("Handshake: Sent AvailableActorIdentifiers");
 				$this->sendDataPacket(StaticPacketCache::getInstance()->getBiomeDefs($this->getProtocolVersion()));
+				$this->server->getLogger()->debug("Handshake: Sent BiomeDefs");
 			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_618 && $this->getProtocolVersion() < 766) {
+				$this->server->getLogger()->debug("Handshake: Sending CameraPresetsPacket (Old)");
 				$cpk = new CameraPresetsPacket();
 				$cpk->data = new \pocketmine\nbt\tag\CompoundTag();
 				$this->sendDataPacket($cpk);
 			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_766) {
+				$this->server->getLogger()->debug("Handshake: Sending CameraPresetsPacket (New)");
 				$cpk = new CameraPresetsPacket();
 				$cpk->presets = [];
 				$cpk->data = new \pocketmine\nbt\tag\CompoundTag();
 				$this->sendDataPacket($cpk);
 			}
 
+			$this->server->getLogger()->debug("Handshake: Sending StartGamePacket");
 			$this->dataPacket($pk);
+			$this->server->getLogger()->debug("Handshake: Sent StartGamePacket");
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_975) {
+				$this->server->getLogger()->debug("Handshake: Sending SetMovementAuthorityPacket (V3)");
 				$this->sendDataPacket(SetMovementAuthorityPacket::create(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V3));
 			}
 
+			$this->server->getLogger()->debug("Handshake: Sending TimePacket");
 			$this->level->sendTime($this);
 
 			$this->sendAttributes(true);
@@ -5050,6 +5061,9 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 */
 	public function handleDataPacket(DataPacket $packet) : void
 	{
+		if ($this->getProtocolVersion() >= 900) {
+			$this->server->getLogger()->debug("Packet In: " . get_class($packet) . " (ID: " . $packet::NETWORK_ID . ")");
+		}
 		if ($this->sessionAdapter !== null) {
 			$this->sessionAdapter->handleDataPacket($packet);
 		}
@@ -5062,6 +5076,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	{
 		if (!$this->connected) {
 			return false;
+		}
+
+		if ($this->getProtocolVersion() >= 900) {
+			$this->server->getLogger()->debug("Packet Out: " . get_class($packet) . " (ID: " . $packet::NETWORK_ID . ")");
 		}
 
 		if ($packet instanceof BatchPacket) {
