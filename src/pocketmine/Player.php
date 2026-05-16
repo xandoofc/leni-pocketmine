@@ -3078,7 +3078,7 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 
 			$this->dataPacket($pk);
 
-			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776 && $this->getProtocolVersion() < ProtocolInfo::PROTOCOL_800) {
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
 				$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));
 			}
 
