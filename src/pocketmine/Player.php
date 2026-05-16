@@ -5626,6 +5626,8 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 	 */
 	final public function close($message = "", string $reason = "generic reason", bool $notify = true) : void
 	{
+		$this->server->getLogger()->notice("Disconnecting " . $this->getName() . " Reason: " . $reason);
+		$this->server->getLogger()->notice(Utils::getDebugBacktrace(null, 5));
 		if ($this->connected && !$this->closed) {
 			if ($notify && strlen($reason) > 0) {
 				$pk = new DisconnectPacket();
