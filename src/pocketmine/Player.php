@@ -195,6 +195,7 @@ use pocketmine\network\mcpe\protocol\ResourcePackStackPacket;
 use pocketmine\network\mcpe\protocol\RespawnPacket;
 use pocketmine\network\mcpe\protocol\serializer\PacketBatch;
 use pocketmine\network\mcpe\protocol\ServerToClientHandshakePacket;
+use pocketmine\network\mcpe\protocol\SetMovementAuthorityPacket;
 use pocketmine\network\mcpe\protocol\SetPlayerGameTypePacket;
 use pocketmine\network\mcpe\protocol\SetSpawnPositionPacket;
 use pocketmine\network\mcpe\protocol\SetTitlePacket;
@@ -3077,6 +3078,10 @@ class Player extends Human implements CommandSender, ChunkLoader, ChunkListener,
 			}
 
 			$this->dataPacket($pk);
+
+			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_818) {
+				$this->sendDataPacket(SetMovementAuthorityPacket::create(ServerAuthMovementMode::SERVER_AUTHORITATIVE_V2));
+			}
 
 			if ($this->getProtocolVersion() >= ProtocolInfo::PROTOCOL_776) {
 				$this->sendDataPacket(ItemRegistryPacket::create(GlobalItemTypeDictionary::getInstance($this->getProtocolVersion())->getDictionary()->getEntries()));

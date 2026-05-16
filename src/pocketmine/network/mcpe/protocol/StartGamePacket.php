@@ -788,12 +788,11 @@ class StartGamePacket extends DataPacket
 		$this->putUUID($this->worldTemplateId);
 		$this->putBool(true); // enableClientSideChunkGeneration = true
 		$this->putBool($this->blockNetworkIdsAreHashes);
-		$this->putBool($this->enableTickDeathSystems);
-		$this->networkPermissions->encode($this);
+		$this->networkPermissions->encode($this); // ServerAuthoritativeSound
 		$this->putBool(false); // no serverJoinInformation
 		$this->putString($this->serverIdentifier);
-		$this->putString($this->worldIdentifier);
 		$this->putString($this->scenarioIdentifier);
+		$this->putString($this->worldIdentifier);
 		$this->putString($this->ownerIdentifier);
 	}
 

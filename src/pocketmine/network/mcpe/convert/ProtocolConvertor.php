@@ -278,9 +278,6 @@ class ProtocolConvertor
 
 	public function getItemPaletteProtocol(int $playerProtocol) : int
 	{
-		if ($playerProtocol >= ProtocolInfo::PROTOCOL_800) {
-			return ProtocolInfo::PROTOCOL_567;
-		}
 		foreach (self::PROTOCOL_ITEM_PALETTE_VERSIONS as $protocol) {
 			if ($playerProtocol >= $protocol) {
 				return $protocol;
